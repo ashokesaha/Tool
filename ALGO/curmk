@@ -1,0 +1,2 @@
+cc -g -c cursestest.c
+cc -o cursestest cursestest.o -l curses

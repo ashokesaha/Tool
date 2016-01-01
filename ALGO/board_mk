@@ -1,0 +1,2 @@
+cc  -g -c Board.c
+cc -o Board Board.o -lcurses

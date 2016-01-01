@@ -1,0 +1,8 @@
+#yacc -dv test.y
+#lex test.l
+#cc -o test y.tab.c lex.yy.c -ly -ll
+
+yacc -dv parse.y
+flex parse.l
+cc -g -o parse y.tab.c lex.yy.c parser.c cip.c  -ly -ll
+rm lex.yy.c y.tab.c y.tab.h y.output 
