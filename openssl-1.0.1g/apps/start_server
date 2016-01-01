@@ -1,0 +1,3 @@
+#./openssl s_server -accept $1 -cert ./backend_cert.pem  -key ./backend_key.pem   -CAfile ./ashokeca.pem -dhparam dh_2048_2 -cipher $2 -tls1 -reuseCount 1 -www
+
+./openssl s_server -accept $1 -cert ./backend_cert.pem  -key ./backend_key.pem   -CAfile ./ashokeca.pem -dhparam dh_2048_2 -tls1 -reuseCount 1 -rotateCipher -www  -quiet

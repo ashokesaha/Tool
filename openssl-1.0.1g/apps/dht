@@ -1,0 +1,1 @@
+ while true; do echo "GET /" | ./openssl  s_client -connect 10.102.28.123:443 -tls1 -cipher DHE-RSA-AES128-SHA -quiet | grep "I AM" 2>/dev/null; done

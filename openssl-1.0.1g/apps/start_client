@@ -1,0 +1,1 @@
+./openssl s_client -connect 10.102.28.238:${1} -cert ./client_one_cert.pem -key ./client_one_key.pem -CAfile ./ashokeca.pem -tls1  -cipher $2 

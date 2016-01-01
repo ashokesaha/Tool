@@ -1,0 +1,46 @@
+CH : Major test case id 0x01
+=================================
+01)Repeat same ciphers (as given in command line) to make cid list around 4kB. 
+   Not a negative case and should work.
+
+02)Same as (1) but, fill with junk fpr all ciphers but the last one. Last one is
+   the proper supplied cipher. Size 4kB.
+
+03)Fill all ciphers with junk. (4kB)
+
+04)Make cidlen smaller than actual value. Make cidlist as big with valid ciphers.
+   Say, we put 10 ciphers.
+
+05)Make cidlen bigger than actual value. Make cidlist as big with valid ciphers.
+   Make it say, 0xFFFF
+
+06)Test with cidlen as 0.
+
+07)Add a smaller session id (< 32). Keep session id length properly wrt session id 
+   value set.
+
+08)Set a big session id (say 1kB) and set length properly.
+
+09)set session id as 32 bytes, but length as max value.
+
+10)Set a proper CH and set msglen as 0.
+
+11)Set a msglen 1 bye more than real len.
+
+12)Set msglen 1 byte less than real len.
+
+13)Set msglen to biggest value 0xFFFFFF
+
+14)Put many unknown extensions of varied length (but extn format is valid).
+
+15)As (14), but intermix some known extensions and repeat the known extensions.
+
+16)Put the version in CH message smaller than RH version.
+
+17)Make a big record with many valid CH messages. Say, 64 CH messages.
+
+18)Make proper CH and capture the sessionid. Send another record like (17) with
+   the CH having that session id.
+
+19)Keep repeating (17) and (18) and check if it causes memory outage.
+

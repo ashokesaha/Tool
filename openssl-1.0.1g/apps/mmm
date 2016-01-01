@@ -1,0 +1,1 @@
+gcc -DMONOLITH -I.. -I../include  -g -DASHOKE_TOOL -DL_ENDIAN -DTERMIOS -Wall -E s_client.c -o s_client.i

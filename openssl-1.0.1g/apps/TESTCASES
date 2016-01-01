@@ -1,0 +1,15 @@
+1. Test with all ECC Curves.
+2. Test with C-AUTH , but client sending no cert. With both client cert
+   optional and mandatory.
+3. Test with Policy based client auth.
+4. Test with POST Request with policy based client auth, where 
+	a.POST body spreads across multiple nsbs.(REQ Hdr complete in 1st nsb)
+	b.POST REQ HDR spreads across multiple nsbs.
+	c.POST data arrives in multiple records.
+5. Multirecord test with client not sending CERT (for client auth case)
+6. Test with certchain where both server/client is sending cert chain in
+   both FE/BE.
+7. Test with SNI
+8. Test with SNI with SAN (client coming with SAN).
+9. Test server name auth.
+

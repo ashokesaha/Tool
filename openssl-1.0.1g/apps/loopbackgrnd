@@ -1,0 +1,14 @@
+./ashoke_client --ip=10.102.28.121 --port=443 --cert=./client_one_cert.pem  --key=./client_one_key.pem  &
+./ashoke_client --ip=10.102.28.121 --port=443 --cert=./client_one_cert.pem  --key=./client_one_key.pem  &
+./ashoke_client --ip=10.102.28.121 --port=443 --cert=./client_one_cert.pem  --key=./client_one_key.pem  &
+./ashoke_client --ip=10.102.28.121 --port=443 --cert=./client_one_cert.pem  --key=./client_one_key.pem  &
+./ashoke_client --ip=10.102.28.121 --port=443 --cert=./client_one_cert.pem  --key=./client_one_key.pem  &
+./ashoke_client --ip=10.102.28.121 --port=443 --cert=./client_one_cert.pem  --key=./client_one_key.pem  &
+./ashoke_client --ip=10.102.28.121 --port=443 --cert=./client_one_cert.pem  --key=./client_one_key.pem  &
+./ashoke_client --ip=10.102.28.121 --port=443 --cert=./client_one_cert.pem  --key=./client_one_key.pem  &
+./ashoke_client --ip=10.102.28.121 --port=443 --cert=./client_one_cert.pem  --key=./client_one_key.pem  &
+./ashoke_client --ip=10.102.28.121 --port=443 --cert=./client_one_cert.pem  --key=./client_one_key.pem  &
+./ashoke_client --ip=10.102.28.121 --port=443 --cert=./client_one_cert.pem  --key=./client_one_key.pem  &
+./ashoke_client --ip=10.102.28.121 --port=443 --cert=./client_one_cert.pem  --key=./client_one_key.pem  &
+./ashoke_client --ip=10.102.28.121 --port=443 --cert=./client_one_cert.pem  --key=./client_one_key.pem  &
+./ashoke_client --ip=10.102.28.121 --port=443 --cert=./client_one_cert.pem  --key=./client_one_key.pem  &

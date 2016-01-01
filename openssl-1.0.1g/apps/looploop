@@ -1,0 +1,36 @@
+echo "";echo "ssl3 RC4-MD5"; 		./looptest ssl3 RC4-MD5
+echo "";echo "ssl3  DES-CBC-SHA"; 	./looptest ssl3	DES-CBC-SHA
+echo "";echo "ssl3 EXP-RC4-MD5";	./looptest ssl3	EXP-RC4-MD5	
+echo "";echo "ssl3 DES-CBC-SHA";	./looptest ssl3	DES-CBC-SHA
+echo "";echo "ssl3 EXP-ADH-RC4-MD5";	./looptest ssl3	EXP-ADH-RC4-MD5	
+echo "";echo "ssl3 ADH-RC4-MD5";	./looptest ssl3	ADH-RC4-MD5	
+echo "";echo "ssl3 AES128-SHA";		./looptest ssl3	AES128-SHA	
+echo "";echo "ssl3 ADH-AES128-SHA";	./looptest ssl3	ADH-AES128-SHA	
+echo "";echo "ssl3 DHE-RSA-AES128-SHA";	./looptest ssl3	DHE-RSA-AES128-SHA	
+echo "";echo "ssl3 DES-CBC3-SHA";	./looptest ssl3	DES-CBC3-SHA	
+echo "";echo "ssl3 AES256-SHA";		./looptest ssl3	AES256-SHA	
+ 
+
+echo "";echo "tls1 RC4-MD5";		./looptest tls1 RC4-MD5
+echo "";echo "tls1 DES-CBC-SHA";	./looptest tls1	DES-CBC-SHA
+echo "";echo "tls1 EXP-RC4-MD5";	./looptest tls1	EXP-RC4-MD5	
+echo "";echo "tls1 EXP-ADH-RC4-MD5";	./looptest tls1	EXP-ADH-RC4-MD5	
+echo "";echo "tls1 ADH-RC4-MD5";	./looptest tls1	ADH-RC4-MD5	
+echo "";echo "tls1 AES128-SHA";		./looptest tls1	AES128-SHA	
+echo "";echo "tls1 ADH-AES128-SHA";	./looptest tls1	ADH-AES128-SHA	
+echo "";echo "tls1 DHE-RSA-AES128-SHA";	./looptest tls1	DHE-RSA-AES128-SHA	
+echo "";echo "tls1 DES-CBC3-SHA";	./looptest tls1	DES-CBC3-SHA	
+echo "";echo "tls1 AES256-SHA";		./looptest tls1	AES256-SHA	
+
+
+
+echo "";echo "tls12 RC4-MD5";		./looptest tls1_2 RC4-MD5
+#echo "";echo "tls12 DES-CBC-SHA";	./looptest tls1_2 DES-CBC-SHA
+#echo "";echo "tls12 EXP-RC4-MD5";	./looptest tls1_2 EXP-RC4-MD5	
+#echo "";echo "tls12 EXP-ADH-RC4-MD5";	./looptest tls1_2 EXP-ADH-RC4-MD5	
+echo "";echo "tls12 ADH-RC4-MD5";	./looptest tls1_2 ADH-RC4-MD5	
+echo "";echo "tls12 AES128-SHA";	./looptest tls1_2 AES128-SHA	
+echo "";echo "tls12 ADH-AES128-SHA";	./looptest tls1_2 ADH-AES128-SHA	
+echo "";echo "tls12 DHE-RSA-AES128-SHA";./looptest tls1_2 DHE-RSA-AES128-SHA	
+echo "";echo "tls12 DES-CBC3-SHA";	./looptest tls1_2 DES-CBC3-SHA	
+echo "";echo "tls12 AES256-SHA";	./looptest tls1_2 AES256-SHA	

@@ -1,0 +1,1 @@
+./ashoke_client --ip=$1 --port=$2 --timeout=100 --version=ssl3 --cipher=$3 --cert=./client_one_cert.pem --key=./client_one_key.pem  --loop=10000 --burst=30 --reneg

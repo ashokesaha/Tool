@@ -1,0 +1,2 @@
+cc -g -I include/ -c addtest.c
+cc -o addtest addtest.o ./libcrypto.a

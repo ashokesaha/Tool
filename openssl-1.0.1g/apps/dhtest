@@ -1,0 +1,5 @@
+#echo "GET /" | ./openssl s_client -connect 10.102.28.121:443 -$1 -cipher $2 -cert ./client_one_cert.pem -key ./client_one_key.pem -quiet 2> /dev/null
+
+
+
+./openssl s_client -connect 10.102.28.121:443 -$1 -cipher $2 -cert ./client_one_cert.pem -key ./client_one_key.pem 

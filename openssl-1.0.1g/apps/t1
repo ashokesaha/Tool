@@ -1,0 +1,69 @@
+0303          ECDH-RSA-AES256-GCM-SHA384                        DATA FAILURE
+0303          ECDH-RSA-AES128-GCM-SHA256                   HANDSHAKE FAILURE
+0303         ECDHE-RSA-AES256-GCM-SHA384                   HANDSHAKE FAILURE
+0303         ECDHE-RSA-AES128-GCM-SHA256                             SUCCESS
+0303              ECDH-RSA-AES256-SHA384                        DATA FAILURE
+0303              ECDH-RSA-AES128-SHA256                   HANDSHAKE FAILURE
+0303             ECDHE-RSA-AES256-SHA384                   HANDSHAKE FAILURE
+0303             ECDHE-RSA-AES128-SHA256                             SUCCESS
+0303                    AECDH-AES256-SHA                   HANDSHAKE FAILURE
+0303                    AECDH-AES128-SHA                   HANDSHAKE FAILURE
+0303                  AECDH-DES-CBC3-SHA                   HANDSHAKE FAILURE
+0303                       AECDH-RC4-SHA                   HANDSHAKE FAILURE
+0303                      AECDH-NULL-SHA                   HANDSHAKE FAILURE
+0303                ECDHE-RSA-AES256-SHA                             SUCCESS
+0303                ECDHE-RSA-AES128-SHA                             SUCCESS
+0303              ECDHE-RSA-DES-CBC3-SHA                             SUCCESS
+0303                   ECDHE-RSA-RC4-SHA                             SUCCESS
+0303                  ECDHE-RSA-NULL-SHA                   HANDSHAKE FAILURE
+0303                 ECDH-RSA-AES256-SHA                   HANDSHAKE FAILURE
+0303                 ECDH-RSA-AES128-SHA                   HANDSHAKE FAILURE
+0303               ECDH-RSA-DES-CBC3-SHA                   HANDSHAKE FAILURE
+0303                    ECDH-RSA-RC4-SHA                   HANDSHAKE FAILURE
+0303                   ECDH-RSA-NULL-SHA                   HANDSHAKE FAILURE
+0303               ADH-AES256-GCM-SHA384                   HANDSHAKE FAILURE
+0303               ADH-AES128-GCM-SHA256                   HANDSHAKE FAILURE
+0303            DH-RSA-AES256-GCM-SHA384                   HANDSHAKE FAILURE
+0303            DH-RSA-AES128-GCM-SHA256                   HANDSHAKE FAILURE
+0303           DHE-RSA-AES256-GCM-SHA384                   HANDSHAKE FAILURE
+0303           DHE-RSA-AES128-GCM-SHA256                             SUCCESS
+0303                   AES256-GCM-SHA384                             SUCCESS
+0303                   AES128-GCM-SHA256                             SUCCESS
+0303                   ADH-AES256-SHA256                   HANDSHAKE FAILURE
+0303                   ADH-AES128-SHA256                   HANDSHAKE FAILURE
+0303               DHE-RSA-AES256-SHA256                             SUCCESS
+0303                DH-RSA-AES256-SHA256                   HANDSHAKE FAILURE
+0303               DHE-RSA-AES128-SHA256                             SUCCESS
+0303                DH-RSA-AES128-SHA256                   HANDSHAKE FAILURE
+0303                       AES256-SHA256                             SUCCESS
+0303                       AES128-SHA256                             SUCCESS
+0303                         NULL-SHA256                   HANDSHAKE FAILURE
+0303                      ADH-AES256-SHA                             SUCCESS
+0303                  DHE-RSA-AES256-SHA                             SUCCESS
+0303                   DH-RSA-AES256-SHA                   HANDSHAKE FAILURE
+0303                          AES256-SHA                             SUCCESS
+0303                      ADH-AES128-SHA                             SUCCESS
+0303                  DHE-RSA-AES128-SHA                             SUCCESS
+0303                   DH-RSA-AES128-SHA                   HANDSHAKE FAILURE
+0303                          AES128-SHA                             SUCCESS
+0303                    ADH-DES-CBC3-SHA                             SUCCESS
+0303                     ADH-DES-CBC-SHA                   HANDSHAKE FAILURE
+0303                 EXP-ADH-DES-CBC-SHA                   HANDSHAKE FAILURE
+0303                         ADH-RC4-MD5                             SUCCESS
+0303                     EXP-ADH-RC4-MD5                        DATA FAILURE
+0303                EDH-RSA-DES-CBC3-SHA                             SUCCESS
+0303                 EDH-RSA-DES-CBC-SHA                   HANDSHAKE FAILURE
+0303             EXP-EDH-RSA-DES-CBC-SHA                        DATA FAILURE
+0303                 DH-RSA-DES-CBC3-SHA                   HANDSHAKE FAILURE
+0303                  DH-RSA-DES-CBC-SHA                   HANDSHAKE FAILURE
+0303              EXP-DH-RSA-DES-CBC-SHA                   HANDSHAKE FAILURE
+0303                        DES-CBC3-SHA                             SUCCESS
+0303                         DES-CBC-SHA                   HANDSHAKE FAILURE
+0303                     EXP-DES-CBC-SHA                   HANDSHAKE FAILURE
+0303                        IDEA-CBC-SHA                   HANDSHAKE FAILURE
+0303                     EXP-RC2-CBC-MD5                   HANDSHAKE FAILURE
+0303                             RC4-SHA                             SUCCESS
+0303                             RC4-MD5                             SUCCESS
+0303                         EXP-RC4-MD5                   HANDSHAKE FAILURE
+0303                            NULL-SHA                        DATA FAILURE
+0303                            NULL-MD5                   HANDSHAKE FAILURE

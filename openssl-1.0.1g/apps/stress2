@@ -1,0 +1,10 @@
+#!/bin/sh
+
+a=0
+
+while true
+do
+   echo $a
+   GET | openssl s_client -connect ww1.def12.com:443 -servername ww1.def12.com
+   a=`expr $a + 1`
+done

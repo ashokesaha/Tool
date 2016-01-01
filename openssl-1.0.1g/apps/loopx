@@ -1,0 +1,15 @@
+#./ashoke_client --ip=10.102.28.166 --port=$1 --cert=./client_one_cert.pem  --key=./client_one_key.pem  --log=test.log.$1 --timeout=300 --reuse=2 --reneg
+
+./ashoke_client --ip=10.102.28.72 --port=$1 --cert=./client_one_cert.pem  --key=./client_one_key.pem  --timeout=500  --version=ssl3  --cipher=RC4-MD5
+
+#./ashoke_client --ip=10.102.28.166 --port=$1 --cert=./client_one_cert.pem  --key=./client_one_key.pem  --timeout=100 --err=16
+
+#./ashoke_client --ip=10.102.28.166 --port=$1 --log=test.log.$1 --timeout=300
+
+#./ashoke_client --ip=$1 --port=$2 --cert=./client_one_cert.pem  --key=./client_one_key.pem  --cipher=DHE-RSA-AES256-SHA  --version=tls1 --timeout=100 --loop=1000 --burst=30 --reuse=2
+
+#./ashoke_client --ip=$1 --port=$2  --cipher=DHE-RSA-AES256-SHA  --version=tls1 --timeout=100 --loop=1000 --burst=30 --reuse=2
+
+#./ashoke_client --ip=$1 --port=$2  --cipher=DHE-RSA-AES256-SHA  --version=tls1 --timeout=100 --loop=1000 --burst=30
+
+#./ashoke_client --ip=$1 --port=$2 --timeout=100 --version=ssl3 --cipher=$3 --cert=./client_one_cert.pem --key=./client_one_key.pem  --loop=10000 --burst=30
