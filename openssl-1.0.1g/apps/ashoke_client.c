@@ -7,6 +7,7 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <signal.h>
+#include <fcntl.h>
 #include <sys/wait.h>
 
 #include "openssl/x509.h"
@@ -51,7 +52,7 @@ extern	int		aesni_pad_byte_test;
 #define		DEFITER		1
 #define		DEFBURST	1
 
-#define		DEFCERTPATH	"/var/CERTS"
+#define		DEFCERTPATH	"/tmp/ToolPkg"
 
 //#define		REQUEST		"GET /index.html HTTP/1.1 \r\nHost: 10.102.28.61\r\nConnection: keep-alive\r\n\r\n"
 
@@ -192,7 +193,8 @@ main(int argc,char **argv)
 	char		*cert=NULL,*key=NULL;
 	FILE		*fout = NULL;
 	int			addrlen;
-	int			sd;
+	int			sz,szlen,sd;
+	int			sflag;
 	struct sockaddr_in	peeraddr;
 	
 
@@ -221,6 +223,7 @@ main(int argc,char **argv)
 
 	optind = 0;
 
+	InitRandom();
 
 	while ((ch = getopt_long(argc, argv, "a:b:c:d:e:f:ghi:j:kl:m:no:p:q:r:s", longopts, NULL)) != -1)
 	{
@@ -291,35 +294,46 @@ main(int argc,char **argv)
 				ret += r;
 			}
 
-			tm.tv_sec = 1;
-			tm.tv_usec = 100 * 1024 * 1024;
-			//setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &tm, sizeof(tm));
+			sz = 0;
+			szlen = 4;
+			getsockopt(sockfd, SOL_SOCKET, SO_RCVBUF, &sz, &szlen);
+			printf("size of SO_RCVBUF %d\n",sz);
+			sz = 0;
+			szlen = 4;
+			getsockopt(sockfd, SOL_SOCKET, SO_SNDBUF, &sz, &szlen);
+			printf("size of SO_SNDBUF %d\n",sz);
+
+			sflag = fcntl(sockfd,F_GETFL,0);
+			sflag |= O_NONBLOCK;
+			fcntl(sockfd,F_SETFL,sflag);
+			shutdown(sockfd,SHUT_WR);
 			
 			PeerList[PeerCount].peer = strdup(ip);
 			PeerList[PeerCount].fp = openPeerLog(ip);
 			PeerList[PeerCount].sfd = sockfd;
+			setbuf(PeerList[PeerCount].fp,NULL);
 			PeerCount++;
 		}
-		fclose(fp);
-		free(buf);
-		shutdown(sockfd,SHUT_WR);
+		//fclose(fp);
+		//free(buf);
 
 
 		do 
 		{
-		for(i=0;(i<PeerCount) && oneFound;i++)
+		oneFound = 0;
+		for(i=0;(i<PeerCount) ;i++)
 		{
-			oneFound = 0;
 			if(PeerList[i].sfd == -1)
 				continue;
+
 			oneFound = 1;
-			ret = recv(sockfd,peerData,sizeof(peerData)-1,0);
+			ret = recv(PeerList[i].sfd,peerData,sizeof(peerData)-1,0);
 			if(ret > 0)
 			{
 				peerData[ret]=0;
 				fprintf(PeerList[i].fp,"%s",peerData);
 			}
-			else if (errno != EAGAIN)
+			else if ((ret == 0) || (errno != EAGAIN))
 			{
 				PeerList[i].sfd = -1;
 				fclose(PeerList[i].fp);
@@ -985,6 +999,7 @@ do_reneg:
 
 end:
 	PrintSummary(M->version,C->name,NULL,FailMessage(Ret));
+
 	sd = BIO_get_fd(con->wbio,NULL);
 	close(sd);
 	SSL_shutdown(con);
@@ -1031,7 +1046,7 @@ char *FailMessage(int failCode)
 void PrintSummary(int version,const char *cipher, char *options,char *result)
 {
 	printf("%04x%s%32s%s%32s\n",version,SPACE4,cipher,SPACE4,result);
-	fflush(stdout);
+	//fflush(stdout);
 }
 
 
@@ -1173,8 +1188,8 @@ FILE	*openPeerLog(char *peer)
 
 	sprintf(filename,"%s.%d.log",peer,curRandom);
 	fp	= fopen(filename,"w");
-	if(fp)
-		setbuf(fp,NULL);
+	//if(fp)
+	//	setbuf(fp,NULL);
 	return fp;
 }
 

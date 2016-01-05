@@ -11,6 +11,8 @@
 #./ashoke_client --ip=$1 --port=$2 --cert=./client_one_cert.pem  --key=./client_one_key.pem  --timeout=100  --reuse=2 --reneg=1  --cipher=ECDHE-RSA-AES128-SHA  --version=tls12
 
 
-./ashoke_client --ip=$1 --port=$2 --cert=./client_one_cert.pem  --key=./client_one_key.pem  --timeout=500  --adminport=2345 --inetd 
+#./ashoke_client --ip=$1 --port=$2 --cert=./client_one_cert.pem  --key=./client_one_key.pem  --timeout=300  --adminport=2345 --inetd --loop=100
 
-#./ashoke_client --ip=$1 --port=$2 --cert=./client_one_cert.pem  --key=./client_one_key.pem  --timeout=500  
+./ashoke_client --ip=$1 --port=$2 --cert=./client_one_cert.pem  --key=./client_one_key.pem  --timeout=300  --loop=100 --burst=5 --adminport=2345 --inetd
+
+#./ashoke_client --ip=$1 --port=$2 --cert=./client_one_cert.pem  --key=./client_one_key.pem  --timeout=300 --reuse=1
