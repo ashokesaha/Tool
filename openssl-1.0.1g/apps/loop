@@ -13,6 +13,6 @@
 
 #./ashoke_client --ip=$1 --port=$2 --cert=./client_one_cert.pem  --key=./client_one_key.pem  --timeout=300  --adminport=2345 --inetd --loop=100
 
-./ashoke_client --ip=$1 --port=$2 --cert=./client_one_cert.pem  --key=./client_one_key.pem  --timeout=300  --loop=100 --burst=5 --adminport=2345 --inetd
+#./ashoke_client --ip=$1 --port=$2 --cert=./client_one_cert.pem  --key=./client_one_key.pem  --timeout=300  --loop=100 --burst=5 --adminport=2345 --inetd
 
-#./ashoke_client --ip=$1 --port=$2 --cert=./client_one_cert.pem  --key=./client_one_key.pem  --timeout=300 --reuse=1
+./ashoke_client --ip=$1 --port=$2 --cert=./client_one_cert.pem  --key=./client_one_key.pem  --timeout=300 

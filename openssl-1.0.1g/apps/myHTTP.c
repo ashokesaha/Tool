@@ -3,6 +3,7 @@
 #include <string.h>
 #include <signal.h>
 #include <sys/types.h>
+#include <sys/errno.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 
@@ -124,6 +125,7 @@ HTTP_CTX	*Login(char *username,char *passwd,char *host)
 	int			ret = 0;
 
 	ctx = (HTTP_CTX *)malloc(sizeof(HTTP_CTX));
+	ctx->rState = resp_init;
 	ctx->username = strdup(username);
 	ctx->passwd = strdup(passwd);
 	ctx->host = strdup(host);
@@ -166,6 +168,29 @@ HTTP_CTX	*Login(char *username,char *passwd,char *host)
 }
 
 
+int		allocReadBuf(HTTP_CTX *ctx)
+{
+
+	ctx->readBuf[0].ptr = malloc(MAXHDRSIZE);
+	ctx->readBuf[0].len = 0;
+	return 0;
+}
+
+
+int		freeReadBuf(HTTP_CTX *ctx)
+{
+	int		i;
+
+	free(ctx->readBuf[0].ptr);
+	ctx->readBuf[0].ptr = NULL;
+	ctx->readBuf[0].len = 0;
+
+	free(ctx->readBuf[1].ptr);
+	ctx->readBuf[1].ptr = NULL;
+	ctx->readBuf[1].len = 0;
+
+	return 0;
+}
 
 cJSON	*newLoginObject(char *username,char *passwd)
 {
@@ -208,20 +233,396 @@ int	MakeSocket(char *ip,int port)
 	ret = connect(sd,(struct sockaddr *)&addr,sizeof(addr));
 
 	if(ret < 0)
+	{
+		perror("connect:");
 		return -1;
+	}
 	return sd;
+}
+
+
+/* Status-Line = HTTP-Version SP Status-Code SP Reason-Phrase CRLF */
+int		ReadStatus(HTTP_CTX	*ctx)
+{
+	int		ret;
+
+	do
+	{
+		/* Eevry time we read, the lastOff is the amount we 
+		 * did not process in last iteration. So, parsing should
+		 * happen from the beginning of the buffer and the length
+		 * is lastOff + ret
+		 */
+		ret	= recv(ctx->sockfd,ctx->readBuf[0].ptr+ctx->lastOff,
+							MAXSTATUSSIZE - ctx->lastOff, MSG_DONTWAIT);
+
+		if(ret <= 0  &&  errno != EAGAIN)
+			break;
+		if(ret == -1  &&  errno == EAGAIN)
+			continue;
+
+		ParseRespStatus(ctx,ret+ctx->lastOff);
+
+		/* Whenever we come out of parsing, the unprocessed data (can
+		 * be part of status line, or part of header ... is already
+		 * copied to the start of the buffer and lastOff is set
+		 * accordingly.
+		 */
+			
+		if(ctx->rState != resp_status)
+			break;
+
+		//ctx->lastOff += ret;
+
+	} while (ret == -1 &&  errno == EAGAIN && ctx->lastOff < MAXSTATUSSIZE);
+
+	return ctx->rState;
+}
+
+
+/* Everytime we enter this function, the data to be processed is from
+ * the start of the buffer. Pending data from last iteration
+ * that we could not process were copied at the front and more data
+ * read. The chkpt is the last processed data
+ */
+int	ParseRespStatus(HTTP_CTX *ctx, int len)
+{
+	int		i;
+	char	*p = ctx->readBuf[0].ptr;
+	char	*chkpt = NULL;
+
+	for(i=0; i<len; i++)
+	{
+		if(ctx->Status.substatus == STATUS_DONE)
+		{
+			strncpy(p,&p[i],len-i);
+			ctx->lastOff = len - i;
+			break;
+		}
+
+		switch(ctx->Status.substatus)
+		{
+			case	STATUS_START:	
+				if(p[i]==SP  ||  p[i]==CR  ||  p[i]==LF)
+					goto status_err;
+				ctx->Status.version = NULL;
+				ctx->Status.status = NULL;
+				ctx->Status.reason = NULL;
+				ctx->Status.substatus = STATUS_VER;
+
+			case	STATUS_VER:	
+				if(ctx->Status.version == NULL)
+					ctx->Status.version = &p[i];
+				if(p[i]==CR  ||  p[i]==LF)
+					goto status_err;
+				if(p[i] == SP)
+				{
+					p[i] = 0;
+					ctx->Status.version = strdup(ctx->Status.version);
+					ctx->Status.substatus = STATUS_CODE;
+					chkpt = &p[i+1];
+				}
+				break;
+
+			case	STATUS_CODE:	
+				if(ctx->Status.status == NULL)
+					ctx->Status.status = &p[i];
+				if(p[i]==CR  ||  p[i]==LF)
+					goto status_err;
+				if(p[i] == SP)
+				{
+					p[i] = 0;
+					ctx->Status.status = strdup(ctx->Status.status);
+					ctx->Status.substatus = STATUS_REASN;
+					chkpt = &p[i+1];
+				}
+				break;
+
+			case	STATUS_REASN:	
+				if(p[i] == LF)
+					goto status_err;
+				if(ctx->Status.reason == NULL)
+					ctx->Status.reason = &p[i];
+				if(p[i] == CR)
+					ctx->Status.substatus = STATUS_LF;
+				break;
+		
+			case	STATUS_LF:	
+				if(p[i] != LF)
+					goto status_err;
+				ctx->Status.substatus = STATUS_DONE;
+				ctx->rState = resp_header;
+				break;
+		}
+	}
+
+	if((ctx->Status.substatus != STATUS_DONE) && chkpt) 
+	{
+		strncpy(p,chkpt,len - (chkpt - p));
+		ctx->lastOff = len - (chkpt - p);
+	}
+
+status_err:
+	return ctx->Status.substatus;
+}
+
+
+
+int		ReadHeader(HTTP_CTX	*ctx)
+{
+	int		ret;
+	do
+	{
+		ret	= recv(ctx->sockfd,ctx->readBuf[0].ptr+ctx->lastOff,
+							MAXHDRSIZE - ctx->lastOff, MSG_DONTWAIT);
+
+		if(ret <= 0  &&  errno != EAGAIN)
+			break;
+		if(ret == -1  &&  errno == EAGAIN)
+			continue;
+
+		ParseRespHeader(ctx, ret + ctx->lastOff);
+			
+		if(ctx->rState != resp_header)
+			break;
+
+	} while (ret == -1 &&  errno == EAGAIN && ctx->lastOff < MAXHDRSIZE);
+
+	return ctx->rState;
+}
+
+
+
+int	ParseRespHeader(HTTP_CTX *ctx, int len)
+{
+	int		i,j;
+	char	*p = ctx->readBuf[0].ptr;
+	char	*chkpt = NULL;
+
+	for(i=0; i<len; i++)
+	{
+		if(ctx->Header.substatus == HEADER_DONE_CRLF)
+		{
+			strncpy(p,&p[i],len-i);
+			ctx->lastOff = len - i;
+			ctx->rState = resp_body;
+			break;
+		}
+
+		switch(ctx->Header.substatus)
+		{
+			case	HEADER_START:	
+				if(p[i]==SP  ||  p[i]==CR  ||  p[i]==LF)
+					goto header_err;
+
+				ctx->Header.nameValNum = 64;	
+				ctx->Header.curNum = 0;	
+				ctx->Header.nameVal = (NAMEVAL *)malloc(sizeof(NAMEVAL) * ctx->Header.nameValNum);
+				for(j=0; j < ctx->Header.nameValNum; j++)
+				{
+					ctx->Header.nameVal[j].name = NULL;
+					ctx->Header.nameVal[j].value = NULL;
+				}
+
+				ctx->Header.substatus = HEADER_NAME_START;
+
+			case	HEADER_NAME_START:
+				ctx->Header.nameVal[ctx->Header.curNum].name = &p[i];
+				ctx->Header.substatus = HEADER_NAME;
+
+			case	HEADER_NAME:
+				if(p[i] == COL)
+				{
+					ctx->Header.substatus = HEADER_VAL;
+					p[i] = 0;
+					chkpt = &p[i+1];
+					ctx->Header.nameVal[ctx->Header.curNum].name = 
+						strdup(ctx->Header.nameVal[ctx->Header.curNum].name);
+					ctx->Header.substatus = HEADER_VAL_START;
+				}
+				break;
+
+			case	HEADER_VAL_START:
+				ctx->Header.nameVal[ctx->Header.curNum].value = &p[i];
+				ctx->Header.substatus = HEADER_VAL;
+
+			case	HEADER_VAL:
+				if(p[i]==CR && p[i+1]==LF)
+				{
+					ctx->Header.substatus = HEADER_VAL_DONE;
+					p[i] = p[i+1] = 0;
+					chkpt = &p[i+1];
+					i++;
+					ctx->Header.nameVal[ctx->Header.curNum].value =
+						strdup(ctx->Header.nameVal[ctx->Header.curNum].value);
+				}
+				break;
+
+
+			case	HEADER_VAL_DONE:
+				/* We come here if we have encountered CRLF after a
+				 * header value. So, now it should be end of header or a
+				 * new header starts.
+				 */
+				if(p[i] == CR)
+				{
+					ctx->Header.substatus = HEADER_VAL_DONE_CR;
+				}
+				else
+				{
+					ctx->Header.curNum++;
+					ctx->Header.nameVal[ctx->Header.curNum].name = &p[i];
+					ctx->Header.substatus = HEADER_NAME;
+				}
+				break;
+
+
+			case	HEADER_VAL_DONE_CR:
+				if(p[i] != LF)
+					goto header_err;
+				ctx->Header.substatus = HEADER_DONE_CRLF;
+				break;
+
+			case	HEADER_DONE_CRLF:
+				if(p[i] != LF)
+					goto header_err;
+				ctx->rState = resp_body;
+				break;
+		}
+	}
+	
+	if((ctx->Header.substatus != HEADER_DONE_CRLF) && chkpt )
+	{
+		strncpy(p,chkpt,len - (chkpt - p));
+		ctx->lastOff = len - (chkpt - p);
+	}
+
+header_err:
+	
+	return ctx->Status.substatus;
+}
+
+
+int		ReadBody(HTTP_CTX	*ctx)
+{
+	int		ret;
+	char	*ptr;
+	do
+	{
+		ret	= recv(ctx->sockfd,ctx->readBuf[0].ptr+ctx->lastOff,
+							ctx->maxBodySize - ctx->lastOff, MSG_DONTWAIT);
+
+		if(ret <= 0  &&  errno != EAGAIN);
+			break;
+		if(ret == -1  &&  errno == EAGAIN);
+			continue;
+		
+		ctx->bodyLen += ret;
+
+		ParseBody(ctx);
+			
+		if(ctx->rState != resp_body)
+			break;
+
+		ctx->lastOff += ret;
+
+		if(ctx->lastOff > (ctx->maxBodySize * 0.8))
+		{
+			ptr = malloc(2 * ctx->maxBodySize);
+			bcopy(ctx->readBuf[1].ptr,ptr,ctx->lastOff);
+			free(ctx->readBuf[1].ptr);
+			ctx->readBuf[1].ptr = ptr;
+			ctx->maxBodySize = 2 * ctx->maxBodySize;
+		}
+
+	} while (ret == -1 &&  errno == EAGAIN && ctx->lastOff < ctx->maxBodySize);
+
+	return ctx->rState;
 }
 
 
 
 #ifdef	SELFTEST
-main()
+main(int argc, char **argv)
 {
 	char		out[1024];
-	int			len;
+	int			i,len;
+	int			testcase = atoi(argv[1]);
 	HTTP_CTX	*ctx;
 
-	ctx = Login("nsroot","nsroot","10.102.28.133");
+	if(testcase == 1)
+	{
+		ctx = Login("nsroot","nsroot","10.102.28.133");
+	}
+	else if(testcase == 2)
+	{
+		DataPusher();
+	}
+	else if(testcase == 3)
+	{
+		HTTP_CTX	ctx;
+		ctx.rState = resp_init;
+		allocReadBuf(&ctx);
+		ctx.sockfd = MakeSocket("127.0.0.1",8081);
+		if(ctx.sockfd <= 0)
+		{
+			printf("MakeSocket(\"127.0.0.1\",8081) : Failed\n");
+			fflush(stdout);
+			return 0;
+		}
+		ctx.rState = resp_status;
+
+		while(ctx.rState == resp_status)
+		{
+			ReadStatus(&ctx);
+		}
+		while(ctx.rState == resp_header)
+		{
+			ReadHeader(&ctx);
+		}
+		printf("Headers:\n");
+		for(i=0; i<ctx.Header.curNum; i++)
+		{
+			printf("%s:%s\n",ctx.Header.nameVal[i].name,ctx.Header.nameVal[i].value);
+		}
+		while(ctx.rState == resp_body)
+		{
+			ReadBody(&ctx);
+		}
+	}
+}
+
+
+int		DataPusher()
+{
+	int		sd,asd,datalen,len,optval=0;
+	char	*data = TESTSTR;
+	struct	sockaddr_in	addr;
+
+	sd = socket(PF_INET,SOCK_STREAM,6);
+	addr.sin_family 		=   PF_INET;
+	addr.sin_port			=	htons(8081);
+	addr.sin_addr.s_addr	=	INADDR_ANY;
+	addr.sin_len			=	sizeof(addr);
+	optval 					= 1;
+	setsockopt(sd, SOL_SOCKET, SO_REUSEPORT, &optval, sizeof(optval));
+	while(bind(sd,(struct sockaddr *)&addr,sizeof(addr)) )
+	{
+		printf("Retrying ... DataPush server failed to bind.\n");
+		sleep(2);
+	}
+	listen(sd,5);
+	asd = accept(sd,NULL,NULL);
+	datalen = strlen(data);	
+	while(datalen)
+	{
+		len = send(asd,data,datalen,0);
+		printf("sent %d bytes left %d bytes\n",len,datalen-len);
+		if(len <= 0)
+			break;
+		datalen -= len;
+		data += len;
+	}
 }
 
 #endif
