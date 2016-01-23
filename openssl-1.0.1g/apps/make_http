@@ -1,0 +1,3 @@
+cc -DSELFTEST -c -g myHTTP.c
+cc -c -g cJSON.c
+cc -o myHTTP myHTTP.o cJSON.o -lm
