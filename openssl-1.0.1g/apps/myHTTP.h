@@ -13,6 +13,11 @@
 #define		LF				0x0a
 #define		COL				':'	
 
+#define		STATUSOK		200
+#define		STATUSCREATED	201
+
+#define		CONTENTLEN		"Content-Length"
+
 
 typedef	enum	http_resp_state {
 	resp_init,
@@ -179,22 +184,11 @@ LoopDone:
 		case '{':\
 		case '|':\
 		case '}':\
+		case ':':\
 		case ' ': *ptr++='%';sprintf(ptr,"%02x",c);ptr += 2; break;\
 		default : *ptr++ = c; break;\
 	}
 
-
-
-#define	LOGINSTR	\
-"POST /nitro/v1/config/ HTTP/1.1\r\n\
-Content-Type: application/x-www-form-urlencoded\r\n\
-Cache-Control: no-cache\r\n\
-Pragma: no-cache\r\n\
-User-Agent: Ashoke-Tool/0.9\r\n\
-Host: %s\r\n\
-Accept: text/html\r\n\
-Connection: keep-alive\r\n\
-Content-Length: %d\r\n\r\n"
 
 
 #define	TESTSTR \

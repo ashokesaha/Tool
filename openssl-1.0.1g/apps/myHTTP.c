@@ -7,8 +7,11 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
+#include "Entities.h"
 #include "myHTTP.h"
 
+cJSON	*ReadResponse(HTTP_CTX *ctx);
+cJSON	*newVserverObject(HTTP_CTX *,char *,char *,int ,char *);
 
 int	HEXTODECIMAL(c)
 {
@@ -118,6 +121,7 @@ errlabel:
 HTTP_CTX	*Login(char *username,char *passwd,char *host)
 {
 	HTTP_CTX	*ctx = NULL;
+	cJSON		*jsn;
 	char		buf[8192];
 	char		jbuf[8192];
 	char		jbufU[8192];
@@ -145,26 +149,68 @@ HTTP_CTX	*Login(char *username,char *passwd,char *host)
 	strcpy(jbuf,"object=");
 	strcat(jbuf,cJSON_PrintUnformatted(ctx->req));
 
-	printf("Login Json (%d): %s\n",strlen(jbuf),jbuf);
-
 	ret = URLENCODE(jbuf,strlen(jbuf),jbufU);
-	printf("URLENCIDED Login Json: %s\n",jbufU);
-	printf("\n");
 
 	sprintf(buf,LOGINSTR,host,ret);
 	strcat(buf,jbufU);
 
 	ret = send(ctx->sockfd,buf,strlen(buf),0);
-	printf("sending login data (%d/%d)\n", ret,strlen(buf));
-	printf("%s\n",buf);
 
-	/* Tmp code to read response */
-	sleep(2);
-	ret = recv(ctx->sockfd,buf,4096,MSG_DONTWAIT);
-	printf("received response (%d) :\n",ret);
-	printf("%s\n",buf);
+	allocReadBuf(ctx);
+	jsn = ReadResponse(ctx);
+	if(jsn)
+	{
+		char	*jstr;
+
+		jstr = cJSON_GetObjectItem(jsn,"sessionid")->valuestring;
+		ctx->sessid = strdup(jstr);
+		printf("\n\nsess: %s\n",jstr);
+	}
 
 	return ctx;
+}
+
+
+int		AddVserver(HTTP_CTX *ctx,char *name,char *ip,int port, char *type)
+{
+	cJSON		*jsn;
+	char		jbuf[8192];
+	char		jbufU[8192];
+	int			ret = 0;
+	int			len = 0;
+
+	jsn	= newVserverObject(ctx,name,ip,port,type);
+	if(!jsn)
+		return -1;
+
+	strcpy(jbuf,"object=");
+	strcat(jbuf,cJSON_PrintUnformatted(jsn));
+	ret = URLENCODE(jbuf,strlen(jbuf),jbufU);
+
+	sprintf(jbuf,LOGINSTR,ip,ret);
+	strcat(jbuf,jbufU);
+	printf("%s: request :\n%s\n",__FUNCTION__,jbuf);
+
+	ret = 0;
+	len = 0;
+	while(len < strlen(jbuf))
+	{
+		ret = send(ctx->sockfd,jbuf+len,strlen(jbuf)-len,0);
+		if(ret <= 0)
+			break;
+		len += ret;
+	}
+	if(len != strlen(jbuf))
+		return -1;
+
+	jsn = ReadResponse(ctx);
+	if(jsn)
+	{
+		char	*jstr;
+		jstr = cJSON_PrintUnformatted(jsn);
+		printf("%s: response :\n%s\n",__FUNCTION__,jstr);
+	}
+	return 0;
 }
 
 
@@ -201,9 +247,27 @@ cJSON	*newLoginObject(char *username,char *passwd)
 	cJSON_AddStringToObject(obj2,"username",username);
 	cJSON_AddStringToObject(obj2,"password",passwd);
 	cJSON_AddItemToObject(obj1,"login",obj2);
-	//obj1->string = "object";
 	return obj1;
 }
+
+
+
+cJSON	*newVserverObject(HTTP_CTX *ctx,char *name,char *ip,int port,char *type)
+{
+	cJSON	*obj1,*obj2;
+	obj1	= cJSON_CreateObject();
+	obj2	= cJSON_CreateObject();
+
+	cJSON_AddStringToObject(obj2,"name",name);
+	cJSON_AddStringToObject(obj2,"servicetype",type);
+	cJSON_AddStringToObject(obj2,"ipv46",ip);
+	cJSON_AddNumberToObject(obj2,"port",port);
+
+	cJSON_AddStringToObject(obj1,"sessionid",ctx->sessid);
+	cJSON_AddItemToObject(obj1,"lbvserver",obj2);
+	return obj1;
+}
+
 
 
 int URLENCODE(char * in, int inlen, char *out)
@@ -503,43 +567,136 @@ header_err:
 }
 
 
-int		ReadBody(HTTP_CTX	*ctx)
+int		ReadBody(HTTP_CTX	*ctx, int len)
 {
 	int		ret;
 	char	*ptr;
+
+	if(len == 0)
+	{
+		len = ctx->maxBodySize;
+		ctx->bodyLen = 0;
+	}
+	else if (len <= ctx->lastOff)
+	{
+		ctx->bodyLen = len;
+		ctx->rState = resp_done;
+		return len;
+	}
+
+	ptr = ctx->readBuf[0].ptr;
+	ctx->readBuf[0].ptr = malloc(len);	
+	bcopy(ptr,ctx->readBuf[0].ptr,ctx->lastOff);
+	len -= ctx->lastOff;
+
+	free(ptr);
+	ptr = NULL;
+ 
 	do
 	{
 		ret	= recv(ctx->sockfd,ctx->readBuf[0].ptr+ctx->lastOff,
-							ctx->maxBodySize - ctx->lastOff, MSG_DONTWAIT);
+							len, MSG_DONTWAIT);
 
 		if(ret <= 0  &&  errno != EAGAIN);
 			break;
 		if(ret == -1  &&  errno == EAGAIN);
 			continue;
 		
+		len -= ret;
 		ctx->bodyLen += ret;
-
-		ParseBody(ctx);
-			
-		if(ctx->rState != resp_body)
-			break;
-
 		ctx->lastOff += ret;
 
-		if(ctx->lastOff > (ctx->maxBodySize * 0.8))
-		{
-			ptr = malloc(2 * ctx->maxBodySize);
-			bcopy(ctx->readBuf[1].ptr,ptr,ctx->lastOff);
-			free(ctx->readBuf[1].ptr);
-			ctx->readBuf[1].ptr = ptr;
-			ctx->maxBodySize = 2 * ctx->maxBodySize;
-		}
+		if(len == 0)
+			break;
+
+		//ParseBody(ctx);
+		//if(ctx->rState != resp_body)
+		//	break;
+
+		//if(ctx->lastOff > (ctx->maxBodySize * 0.8))
+		//{
+		//	ptr = malloc(2 * ctx->maxBodySize);
+		//	bcopy(ctx->readBuf[1].ptr,ptr,ctx->lastOff);
+		//	free(ctx->readBuf[1].ptr);
+		//	ctx->readBuf[1].ptr = ptr;
+		//	ctx->maxBodySize = 2 * ctx->maxBodySize;
+		//}
 
 	} while (ret == -1 &&  errno == EAGAIN && ctx->lastOff < ctx->maxBodySize);
+
+	if(len)
+		ctx->rState = resp_err;
+	else
+		ctx->rState = resp_done;
 
 	return ctx->rState;
 }
 
+
+char	*getRespBody(HTTP_CTX *ctx)
+{
+	return ctx->readBuf[0].ptr;
+}
+
+char	*getHeaderVal(HTTP_CTX *ctx,char *header)
+{
+	int		i;
+
+	for(i=0; i<ctx->Header.curNum; i++)
+	{
+		if(strcmp(ctx->Header.nameVal[i].name,header)==0)
+			return ctx->Header.nameVal[i].value;
+	}
+	return NULL;
+}
+
+
+cJSON	*ReadResponse(HTTP_CTX *ctx)
+{
+		int		status = 0;
+		int		err	= 0;
+		int		len	= 0;
+		char	*lenstr, *body;
+		cJSON	*jsn = NULL;
+
+		ctx->rState = resp_status;
+
+		while(ctx->rState == resp_status)
+		{
+			ReadStatus(ctx);
+		}
+		status = atoi(ctx->Status.status);
+		if(status != STATUSCREATED)
+		{
+			err = status;
+			goto	err;
+		}
+
+		while(ctx->rState == resp_header)
+		{
+			ReadHeader(ctx);
+		}
+
+		if(ctx->rState == resp_body)
+		{
+			lenstr = getHeaderVal(ctx,CONTENTLEN);
+			if(lenstr)
+				len = atoi(lenstr);
+			else
+				len = 0;
+
+			ReadBody(ctx,len);
+
+			if(ctx->rState == resp_done)
+			{
+				body = getRespBody(ctx);
+				jsn = cJSON_Parse(body);
+			}
+		}
+
+err:
+	return jsn;
+}
 
 
 #ifdef	SELFTEST
@@ -553,6 +710,7 @@ main(int argc, char **argv)
 	if(testcase == 1)
 	{
 		ctx = Login("nsroot","nsroot","10.102.28.133");
+		AddVserver(ctx,"vsrvr_1","10.102.28.134",443,"SSL");
 	}
 	else if(testcase == 2)
 	{
@@ -563,6 +721,7 @@ main(int argc, char **argv)
 		HTTP_CTX	ctx;
 		ctx.rState = resp_init;
 		allocReadBuf(&ctx);
+		ctx.maxBodySize = 16 * 1024;
 		ctx.sockfd = MakeSocket("127.0.0.1",8081);
 		if(ctx.sockfd <= 0)
 		{
@@ -583,11 +742,25 @@ main(int argc, char **argv)
 		printf("Headers:\n");
 		for(i=0; i<ctx.Header.curNum; i++)
 		{
-			printf("%s:%s\n",ctx.Header.nameVal[i].name,ctx.Header.nameVal[i].value);
+			printf("%s:%s\n",
+				ctx.Header.nameVal[i].name,ctx.Header.nameVal[i].value);
 		}
-		while(ctx.rState == resp_body)
+
+		if(ctx.rState == resp_body)
 		{
-			ReadBody(&ctx);
+			char	*len = getHeaderVal(&ctx,CONTENTLEN);
+			if(len)
+				i = atoi(len);
+			else
+				i = 0;
+
+			ReadBody(&ctx,i);
+			if(ctx.rState == resp_done)
+			{
+				cJSON	*jsn;
+				len = getRespBody(&ctx);
+				jsn = cJSON_Parse(len);
+			}
 		}
 	}
 }
