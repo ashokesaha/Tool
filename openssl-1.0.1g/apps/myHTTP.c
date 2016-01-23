@@ -655,12 +655,24 @@ cJSON	*ReadResponse(HTTP_CTX *ctx)
 {
 		int		status = 0;
 		int		err	= 0;
-		int		len	= 0;
+		int		len	= 0,i;
 		char	*lenstr, *body;
 		cJSON	*jsn = NULL;
 
-		ctx->rState = resp_status;
+		ctx->rState = resp_init;
+		ctx->lastOff = 0;
+		bzero(&ctx->Status,sizeof(ctx->Status));
+		for(i=0; i<ctx->Header.curNum;i++)
+		{
+			free(ctx->Header.nameVal[i].name);
+			free(ctx->Header.nameVal[i].value);
+			ctx->Header.nameVal[i].name = NULL;
+			ctx->Header.nameVal[i].value = NULL;
+		}
+		ctx->Header.curNum = 0;
+		ctx->Header.substatus = HEADER_START;
 
+		ctx->rState = resp_status;
 		while(ctx->rState == resp_status)
 		{
 			ReadStatus(ctx);
