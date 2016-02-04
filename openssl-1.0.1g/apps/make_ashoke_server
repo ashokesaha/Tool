@@ -1,0 +1,3 @@
+gcc -DASHOKE_TOOL -g  -I ../include -c ashoke_server.c
+gcc -g  -c cJSON.c
+gcc -o ashoke_server ashoke_server.o cJSON.o ../libssl.a ../libcrypto.a -lm

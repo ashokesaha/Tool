@@ -54,11 +54,11 @@ extern	int		aesni_pad_byte_test;
 
 #define		DEFCERTPATH	"/tmp/ToolPkg"
 
-//#define		REQUEST		"GET /index.html HTTP/1.1 \r\nHost: 10.102.28.61\r\nConnection: keep-alive\r\n\r\n"
+#define		REQUEST		"GET /index.html HTTP/1.1 \r\nHost: 10.102.28.61\r\nConnection: keep-alive\r\n\r\n"
 
 //#define		REQUEST		"GET /index.html \r\nHost: 10.102.28.61\r\nConnection: keep-alive\r\n\r\n"
 
-#define		REQUEST	"GET /\r\n"
+//#define		REQUEST	"GET /\r\n"
 
 #define		REQLEN		strlen(REQUEST)
 
@@ -352,6 +352,7 @@ main(int argc,char **argv)
 
 no_inetd:
 	doTest();
+	while(1);
 }
 
 
@@ -569,13 +570,15 @@ int		doTest()
 
 	if(CertFile)
 	{
-		sprintf(filepath,"%s/%s",CertPath,CertFile);
+		//sprintf(filepath,"%s/%s",CertPath,CertFile);
+		sprintf(filepath,"%s",CertFile);
 		in = BIO_new(BIO_s_file());
 		BIO_read_filename(in,filepath);
 		Cert = PEM_read_bio_X509(in,NULL,NULL,NULL);
 		BIO_set_close(in,BIO_CLOSE);	
 
-		sprintf(filepath,"%s/%s",CertPath,KeyFile);
+		//sprintf(filepath,"%s/%s",CertPath,KeyFile);
+		sprintf(filepath,"%s",KeyFile);
 		in = BIO_new(BIO_s_file());
 		BIO_read_filename(in,filepath);
 		rsa = PEM_read_bio_RSAPrivateKey(in,NULL,NULL,NULL);
