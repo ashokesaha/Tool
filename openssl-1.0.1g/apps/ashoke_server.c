@@ -18,6 +18,12 @@ typedef	struct _resp_profile_ {
 } RESP_PROFILE;
 
 
+#define	SERVERRESP	"HTTP1/1 200 OK\r\n\
+Content-Type: text/html; charset=ISO-8859-4\r\n\
+Content-Length:%d\r\n\
+\r\n"
+
+
 int		glb_count = 0;
 
 int	BindSocket(int port)
