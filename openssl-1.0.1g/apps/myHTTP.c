@@ -9,9 +9,25 @@
 
 #include "Entities.h"
 #include "myHTTP.h"
+#include "hashdef.h"
+#include "cJSON.h"
+
 
 cJSON	*ReadResponse(HTTP_CTX *ctx);
 cJSON	*newVserverObject(HTTP_CTX *,char *,char *,int ,char *);
+cJSON	*javaLogin(char *username,char *passwd);
+cJSON	*javaAddHTTPVserver(char *vservername,char *ip,int port);
+cJSON	*javaAddSSLVserver(char *vservername,char *ip,int port);
+cJSON	*javaDelVserver(char *vservername);
+cJSON	*javaAddHTTPService(char *service,char *server,int port);
+cJSON	*javaDelHTTPService(char *service);
+cJSON	*javaAddSSLService(char *service,char *server,int port);
+cJSON	*javaDelSSLService(char *service);
+cJSON	*javaAddServer(char *servername,char *ip);
+cJSON	*javaDelServer(char *servername);
+int		jsonSendRecv(cJSON *json,int sock);
+
+
 
 int	HEXTODECIMAL(c)
 {
@@ -719,6 +735,8 @@ main(int argc, char **argv)
 	int			testcase = atoi(argv[1]);
 	HTTP_CTX	*ctx;
 
+	testcase = 3;
+
 	if(testcase == 1)
 	{
 		ctx = Login("nsroot","nsroot","10.102.28.133");
@@ -731,18 +749,34 @@ main(int argc, char **argv)
 	else if(testcase == 3)
 	{
 		HTTP_CTX	ctx;
+		cJSON		*json,*cJc;
+		char		*str;
+		int			len;
+		char		buf[64];
+
 		ctx.rState = resp_init;
 		allocReadBuf(&ctx);
 		ctx.maxBodySize = 16 * 1024;
-		ctx.sockfd = MakeSocket("127.0.0.1",8081);
+		ctx.sockfd = MakeSocket("127.0.0.1",atoi(argv[1]));
+
 		if(ctx.sockfd <= 0)
 		{
 			printf("MakeSocket(\"127.0.0.1\",8081) : Failed\n");
 			fflush(stdout);
 			return 0;
 		}
-		ctx.rState = resp_status;
 
+		json = javaLogin("nsroot","nsroot");
+		jsonSendRecv(json,ctx.sockfd);
+
+		json = javaAddServer("test_server_1","192.168.10.1");
+		jsonSendRecv(json,ctx.sockfd);
+
+
+
+		return;
+
+		ctx.rState = resp_status;
 		while(ctx.rState == resp_status)
 		{
 			ReadStatus(&ctx);
@@ -808,6 +842,140 @@ int		DataPusher()
 		datalen -= len;
 		data += len;
 	}
+}
+
+
+cJSON	*javaLogin(char *username,char *passwd)
+{
+	cJSON	*obj1;
+
+	obj1	= cJSON_CreateObject();
+	cJSON_AddNumberToObject(obj1,"command",JLogin);
+	cJSON_AddStringToObject(obj1,"userName",username);
+	cJSON_AddStringToObject(obj1,"passwd",passwd);
+	return obj1;
+}
+
+
+cJSON	*javaAddHTTPVserver(char *vservername,char *ip,int port)
+{
+	cJSON	*obj1;
+
+	obj1	= cJSON_CreateObject();
+	cJSON_AddNumberToObject(obj1,"command",JAddHTTPVserver);
+	cJSON_AddStringToObject(obj1,"vserverName",vservername);
+	cJSON_AddStringToObject(obj1,"ipAddr",ip);
+	cJSON_AddNumberToObject(obj1,"port",port);
+	return obj1;
+}
+
+cJSON	*javaAddSSLVserver(char *vservername,char *ip,int port)
+{
+	cJSON	*obj1;
+
+	obj1	= cJSON_CreateObject();
+	cJSON_AddNumberToObject(obj1,"command",JAddSSLVserver);
+	cJSON_AddStringToObject(obj1,"vserverName",vservername);
+	cJSON_AddStringToObject(obj1,"ipAddr",ip);
+	cJSON_AddNumberToObject(obj1,"port",port);
+	return obj1;
+}
+
+cJSON	*javaDelVserver(char *vservername)
+{
+	cJSON	*obj1;
+
+	obj1	= cJSON_CreateObject();
+	cJSON_AddNumberToObject(obj1,"command",JDelHTTPVserver);
+	cJSON_AddStringToObject(obj1,"vserverName",vservername);
+	return obj1;
+}
+
+cJSON	*javaAddHTTPService(char *service,char *server,int port)
+{
+	cJSON	*obj1;
+
+	obj1	= cJSON_CreateObject();
+	cJSON_AddNumberToObject(obj1,"command",JAddHTTPService);
+	cJSON_AddStringToObject(obj1,"serviceName",service);
+	cJSON_AddStringToObject(obj1,"serverName",server);
+	cJSON_AddNumberToObject(obj1,"port",port);
+	return obj1;
+}
+
+cJSON	*javaDelHTTPService(char *service)
+{
+	cJSON	*obj1;
+
+	obj1	= cJSON_CreateObject();
+	cJSON_AddNumberToObject(obj1,"command",JDelHTTPService);
+	cJSON_AddStringToObject(obj1,"serviceName",service);
+	return obj1;
+}
+
+cJSON	*javaAddSSLService(char *service,char *server,int port)
+{
+	cJSON	*obj1;
+
+	obj1	= cJSON_CreateObject();
+	cJSON_AddNumberToObject(obj1,"command",JAddSSLService);
+	cJSON_AddStringToObject(obj1,"serviceName",service);
+	cJSON_AddStringToObject(obj1,"serverName",server);
+	cJSON_AddNumberToObject(obj1,"port",port);
+	return obj1;
+}
+
+cJSON	*javaDelSSLService(char *service)
+{
+	cJSON	*obj1;
+
+	obj1	= cJSON_CreateObject();
+	cJSON_AddNumberToObject(obj1,"command",JDelSSLService);
+	cJSON_AddStringToObject(obj1,"serviceName",service);
+	return obj1;
+}
+
+
+
+
+cJSON	*javaAddServer(char *servername,char *ip)
+{
+	cJSON	*obj1;
+
+	obj1	= cJSON_CreateObject();
+	cJSON_AddNumberToObject(obj1,"command",JAddServer);
+	cJSON_AddStringToObject(obj1,"serverName",servername);
+	cJSON_AddStringToObject(obj1,"ipAddr",ip);
+	return obj1;
+}
+
+cJSON	*javaDelServer(char *servername)
+{
+	cJSON	*obj1;
+
+	obj1	= cJSON_CreateObject();
+	cJSON_AddNumberToObject(obj1,"command",JDelServer);
+	cJSON_AddStringToObject(obj1,"serverName",servername);
+	return obj1;
+}
+
+int		jsonSendRecv(cJSON *json,int sock)
+{
+	char	*str;
+	char	buf[64];
+	int		len;
+
+	str = cJSON_PrintUnformatted(json);
+	len = send(sock,str,strlen(str),0);
+	len = send(sock,"\n",strlen("\n"),0);
+	printf("sent (%d) [%s]\n",len,str);
+
+	len = recv(sock,buf,32,0);
+	printf("received (%d)  [%s]\n", len, buf);
+	json = cJSON_Parse(buf);
+	json = cJSON_GetObjectItem(json,"result");
+	printf("result %d\n",json->valueint);
+	return json->valueint;
 }
 
 #endif

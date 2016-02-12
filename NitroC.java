@@ -13,6 +13,7 @@ import com.citrix.netscaler.nitro.resource.config.ssl.sslcipher_sslvserver_bindi
 import com.citrix.netscaler.nitro.resource.config.ssl.sslvserver_sslcipher_binding;
 import com.citrix.netscaler.nitro.resource.config.lb.lbvserver_service_binding;
 import com.citrix.netscaler.nitro.resource.config.ssl.sslvserver;
+import com.citrix.netscaler.nitro.resource.config.ssl.sslcertkey;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.io.*;
@@ -35,7 +36,7 @@ public class NitroC {
 	private	String				passwd;
 
 
-	public void NitroC(String dutIP,int dutPort,int listenPort)
+	NitroC(String dutIP,int dutPort,int listenPort)
 	{
 		this.dutIP		= dutIP;
 		this.dutPort	= dutPort;
@@ -46,18 +47,20 @@ public class NitroC {
 
 	public boolean Login(String userName,String passwd)
 	{
+		if(ns_session != null)
 		if(ns_session.isLogin() == true)
 			return ns_session.isLogin();
 
 		try
 		{
-			nitro_service ns_session = 
-				new nitro_service(this.dutIP,"HTTP");
+			ns_session = new nitro_service(this.dutIP,"HTTP");
 			ns_session.login(userName,passwd);
 
 		} catch (nitro_exception e) {
+			System.out.println("Login 5: " + e.getMessage());
 			;
 		} catch (Exception e) {
+			System.out.println("Login 6: " + e.getMessage());
 			;
 		}
 	
@@ -77,30 +80,64 @@ public class NitroC {
 		InputStream						inS;
 		OutputStream					ouS;
 		InputStreamReader				isR;
+		BufferedReader					bfR;
 		Gson							gson;
 		String							jstring;
+		boolean							ret;
+		String							Rstr;
+		byte							B[] = new byte[2];
 
 		if(isListen == true)
 			return isListen;
 
 		gson = new GsonBuilder().create();
 
+		isListen	= true;
+		
+		try  {
+			Ssock		= new ServerSocket(this.listenPort);
+			Sock		= Ssock.accept();
+			inS			= Sock.getInputStream();
+			ouS			= Sock.getOutputStream();
+			isR			= new InputStreamReader(inS);
+			bfR			= new BufferedReader(isR);
+
+		} catch (IOException ioe) {
+			isListen = false;
+			System.out.println(ioe.getMessage());
+			return false;
+		}
+
 		while (isTerminate == false)
 		{
 			try 
 			{
-				isListen	= true;
-				Ssock		= new ServerSocket(this.listenPort);
-				Sock		= Ssock.accept();
-				inS			= Sock.getInputStream();
-				ouS			= Sock.getOutputStream();
-				isR			= new InputStreamReader(inS);
+				//Sock		= Ssock.accept();
+				//inS			= Sock.getInputStream();
+				//ouS			= Sock.getOutputStream();
+				//isR			= new InputStreamReader(inS);
+				//bfR			= new BufferedReader(isR);
 
-				nsO			= gson.fromJson(isR, NSObject.class);
-				Execute(nsO);
+				
+				nsO			= gson.fromJson(bfR, NSObject.class);
+				if(nsO == null)
+				{
+					System.out.println("Failed to create nsO\n");
+					isTerminate = true;
+				}
+
+				ret			= Execute(nsO);
+
+				RespObj R 	= new RespObj(ret);
+				Rstr 		= gson.toJson(R);
+				System.out.println("writing Rstr: " + Rstr);
+				OutputStreamWriter	oWr = new OutputStreamWriter(ouS);
+				oWr.write(Rstr,0,Rstr.length());
+				oWr.flush();
 
 			} catch (IOException ioe) {
 				isListen = false;
+				System.out.println(ioe.getMessage());
 			}
 		}
 
@@ -109,19 +146,104 @@ public class NitroC {
 		return isListen;
 	}
 
+	private boolean	AddCertKey(NSObject nsO) 
+	{
+		boolean			ret = true;
+		sslcertkey		sslcertkey_obj;
 
-	public int	AddHTTPVserver(NSObject nsO)
+		try
+		{
+		sslcertkey_obj	= new sslcertkey();
+		sslcertkey_obj.set_certkey(nsO.certKeyName);
+		sslcertkey_obj.set_cert(nsO.certFileName);
+		sslcertkey_obj.set_key(nsO.keyFileName);
+		sslcertkey.add(ns_session,sslcertkey_obj);
+		
+		} catch(Exception e) {
+			System.out.println("Java Error -> " +e.getMessage());
+			ret = false;
+		}
+		return ret;
+	}
+
+	private boolean	DelCertKey(NSObject nsO) 
+	{
+		boolean			ret = true;
+
+		try
+		{
+		sslcertkey.delete(ns_session,nsO.certKeyName);
+		
+		} catch(Exception e) {
+			System.out.println("Java Error -> " +e.getMessage());
+			ret = false;
+		}
+		return ret;
+	}
+
+
+	private boolean	BindUnbindCertKey(NSObject nsO) 
+	{
+		boolean			ret = true;
+		sslvserver_sslcertkey_binding	obj_1;
+		sslservice_sslcertkey_binding	obj_2;
+
+
+		try
+		{
+			if(nsO.isVserver == true)
+			{
+System.out.println(nsO);
+System.out.flush();
+				obj_1 = new sslvserver_sslcertkey_binding();
+				obj_1.set_certkeyname(nsO.certKeyName);
+				obj_1.set_vservername(nsO.vserverName);
+				if(nsO.isCACert == true)
+					obj_1.set_ca(true);
+				if(nsO.isSNICert == true)
+					obj_1.set_snicert(true);
+				if(nsO.isUnbind)
+					sslvserver_sslcertkey_binding.delete(ns_session,obj_1);
+				else
+					sslvserver_sslcertkey_binding.add(ns_session,obj_1);
+			}
+			else
+			{
+				obj_2 = new sslservice_sslcertkey_binding();
+				obj_2.set_certkeyname(nsO.certKeyName);
+				obj_2.set_servicename(nsO.serviceName);
+				if(nsO.isCACert == true)
+					obj_2.set_ca(true);
+				if(nsO.isSNICert == true)
+					obj_2.set_snicert(true);
+				if(nsO.isUnbind)
+					sslservice_sslcertkey_binding.delete(ns_session,obj_2);
+				else
+					sslservice_sslcertkey_binding.add(ns_session,obj_2);
+			}
+
+		} catch(Exception e) {
+			System.out.println("Java Error -> " +e.getMessage());
+			ret = false;
+		}
+
+		return ret;
+	}
+
+
+
+	public boolean	AddHTTPVserver(NSObject nsO)
 	{
 		return AddVserver(nsO.vserverName,nsO.ipAddr,nsO.port, "HTTP"); 
 	}
-	public int	AddSSLVserver(NSObject nsO) 
+	public boolean	AddSSLVserver(NSObject nsO) 
 	{
 		return AddVserver(nsO.vserverName,nsO.ipAddr,nsO.port, "SSL"); 
 	}
 
-	private int	AddVserver(String name, String ip, int port,String type) 
+	private boolean	AddVserver(String name, String ip, int port,String type) 
 	{
-		int					ret = 0;
+		boolean					ret = true;
 		lbvserver			lbvserver_obj;
 
 		try
@@ -135,16 +257,16 @@ public class NitroC {
 
 		} catch(Exception e) {
 			System.out.println("Java Error -> " +e.getMessage());
-			ret = -1;
+			ret = false;
 		}
 
 		return ret;
 	}
 
 
-	private int	DelVserver(String name) 
+	private boolean	DelVserver(String name) 
 	{
-		int					ret = 0;
+		boolean					ret = true;
 		lbvserver			lbvserver_obj;
 
 		try
@@ -155,14 +277,14 @@ public class NitroC {
 
 		} catch(Exception e) {
 			System.out.println("Java Error -> " +e.getMessage());
-			ret = -1;
+			ret = false;
 		}
 		return		ret;
 	}
 
-	public int	AddDelServer(NSObject nsO,boolean add)
+	public boolean	AddDelServer(NSObject nsO,boolean add)
 	{
-		int		ret = 0;
+		boolean		ret = true;
 		server	server_obj;
 
 		try
@@ -176,7 +298,7 @@ public class NitroC {
 				server.delete(ns_session,server_obj);
 
 		} catch(Exception e) {
-			ret = -1;
+			ret = false;
 		}
 
 		return ret;
@@ -184,19 +306,19 @@ public class NitroC {
 
 
 
-	public int	AddHTTPService(NSObject nsO)
+	public boolean	AddHTTPService(NSObject nsO)
 	{
 		return AddService(nsO.serviceName,nsO.serverName,nsO.port,"HTTP");
 	}
-	public int	AddSSLService(NSObject nsO)
+	public boolean	AddSSLService(NSObject nsO)
 	{
 		return AddService(nsO.serviceName,nsO.serverName,nsO.port,"SSL");
 	}
 
 
-	private int	AddService(String name,String server,int port,String type)
+	private boolean	AddService(String name,String server,int port,String type)
 	{
-		int		ret = 0;
+		boolean		ret = true;
 		service	service_obj;
 
 		try
@@ -209,16 +331,16 @@ public class NitroC {
 			service.add(ns_session,service_obj);
 	
 		} catch(Exception e) {
-			ret = -1;
+			ret = false;
 		}
 
 		return ret;
 	}
 
 
-	private int	DelService(NSObject nsO)
+	private boolean	DelService(NSObject nsO)
 	{
-		int		ret = 0;
+		boolean		ret = true;
 		service	service_obj;
 
 		try
@@ -228,7 +350,7 @@ public class NitroC {
 			service.delete(ns_session,service_obj);
 
 		} catch(Exception e) {
-			ret = -1;
+			ret = false;
 		}
 		return ret;
 	}
@@ -236,11 +358,16 @@ public class NitroC {
 
 
 
-	public	int	Execute(NSObject nsO)
+	public	boolean	Execute(NSObject nsO)
 	{
-		int		ret = 0;
+		boolean		ret = true;
 		switch(nsO.command)
 		{
+			case	NSCommand.Login :
+					ret = Login(nsO.userName,nsO.passwd);
+					System.out.println("Execute: Login returned " + ret);
+					break;
+
 			case	NSCommand.AddHTTPVserver :
 					ret = AddHTTPVserver(nsO);
 					break;
@@ -275,8 +402,20 @@ public class NitroC {
 					ret = DelService(nsO);
 					break;
 
+			case	NSCommand.AddCertKey :
+					ret = AddCertKey(nsO);
+					break;
+
+			case	NSCommand.DelCertKey :
+					ret = DelCertKey(nsO);
+					break;
+
+			case	NSCommand.BindUnbindCertkey :
+					ret = BindUnbindCertKey(nsO); 
+					break;
+
 			default :
-					ret = -1;
+					ret = false;
 					break;
 		}
 		return ret;
@@ -303,30 +442,47 @@ public class NitroC {
 		InputStreamReader				isR;
 		Gson							gson;
 		String							jstring;
+		byte							B[];
+
 
 		try {
 	
-			Ssock = new ServerSocket(8090);
-			Sock = Ssock.accept();
-			inS = Sock.getInputStream();
-			ouS = Sock.getOutputStream();
-			isR = new InputStreamReader(inS);
+			//Ssock = new ServerSocket(8090);
+			//Sock = Ssock.accept();
+			//inS = Sock.getInputStream();
+			//ouS = Sock.getOutputStream();
+			//isR = new InputStreamReader(inS);
+			//System.out.println("Creating NitroC\n");
+			//System.out.println(args[0]);
+			//System.out.println(args[1]);
+			//System.out.println("Integer: " + Integer.parseInt(args[2]));
+			//System.out.println(args[2]);
 
-			gson = new GsonBuilder().create();
-			jstring="{name:\"ashoke\",age:100,address:\"Ajmera Green acres\"}";
-			Person p = gson.fromJson(isR, Person.class);
-			System.out.println(p);
 
-			nitro_service ns_session = 
-					new nitro_service("10.102.28.133","HTTP");
+			NitroC	nitroC = new NitroC(args[0],80,Integer.parseInt(args[1]));
+			nitroC.Listen();
 
-			ns_session.login("nsroot","nsroot");
 
-		} catch (IOException ioe) {
+			//System.out.println("Code started");
+			//nitro_service ns_session = 
+			//	new nitro_service("10.102.28.133","HTTP");
+			//ns_session.login("nsroot","nsroot");
+			//sslvserver_sslcertkey_binding  obj1;			
+			//obj1 = new sslvserver_sslcertkey_binding();
+			//obj1.set_certkeyname("server_one");
+			//obj1.set_vservername("v1");
+			//sslvserver_sslcertkey_binding.add(ns_session,obj1);
+			//obj1.perform_operation(ns_session);
 
-		} catch(nitro_exception error) {
-			System.out.println("NITRO Error -> Code " + error.getErrorCode() +
-												" : " +error.getMessage());
+
+			//gson = new GsonBuilder().create();
+			//jstring="{name:\"ashoke\",age:100,address:\"Ajmera Green acres\"}";
+			//Person p = gson.fromJson(isR, Person.class);
+			//System.out.println(p);
+			//nitro_service ns_session = 
+			//new nitro_service("10.102.28.133","HTTP");
+			//ns_session.login("nsroot","nsroot");
+
 		} catch(Exception e) {
 			System.out.println("Java Error -> " +e.getMessage());
 		}
@@ -338,6 +494,7 @@ public class NitroC {
 
 
 class	NSCommand {
+	static final int Login 		= 1;
 
 	static final int AddHTTPVserver = 101;
 	static final int DelHTTPVserver = 102;
@@ -351,6 +508,8 @@ class	NSCommand {
 
 	static final int AddCertKey = 109;
 	static final int DelCertKey = 110;
+
+	static final int BindUnbindCertkey = 111;
 
 	static final int BindSSLVserverCertkey = 111;
 	static final int UnbindSSLVserverCertkey = 112;
@@ -410,8 +569,13 @@ class	NSCommand {
 class	NSObject	{
 	int			command;
 
+	String		userName;
+	String		passwd;
+
 	boolean		isVserver;
 	boolean		isCACert;
+	boolean		isSNICert;
+	boolean		isUnbind;
 
 	int			version; //0=SSLv3,1=tls1.0,2=tls1.1,3=tls1.2
 	int			sessTimeout;
@@ -428,6 +592,23 @@ class	NSObject	{
 	String		dhfileName;
 	String		serverName;
 	String		ipAddr;
+
+	NSObject() {
+
+	}
+
+	public String toString() {
+			String str = "command: " + command + " certKeyName: " + certKeyName + " vserverName: " + vserverName + " isUnbind: " + isUnbind;
+			return str;
+	}
+}
+
+
+class	RespObj {
+	boolean		result;
+	RespObj(boolean res) {
+		result = res;
+	}
 }
 
 

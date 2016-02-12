@@ -18,6 +18,7 @@
 #include "openssl/ocsp.h"
 #include "openssl/bn.h"
 #include "cJSON.h"
+#include "nitro_lib.h"
 
 //git test
 
@@ -92,6 +93,7 @@ int			iterCount = DEFITER;
 int			burstSize=1;
 int			burstCount=1;
 int			padtest = 0;
+int			nitrotest = 0;
 int			padbyte = 0;
 int			adminport = 0;
 int			adminsock = 0;
@@ -218,6 +220,7 @@ main(int argc,char **argv)
 		{"padtest",	optional_argument,			NULL,'q'},
 		{"adminport",optional_argument,			NULL,'r'},
 		{"inetd",	optional_argument,			NULL,'s'},
+		{"nitrotest",	optional_argument,		NULL,'z'},
 		{0,0,0,0}
 	};
 
@@ -248,7 +251,14 @@ main(int argc,char **argv)
 			case	'q': padtest = atoi(optarg); padbyte=8; burstCount=0;aesni_pad_byte_test=1;break;
 			case	'r': adminport = atoi(optarg);break;
 			case	's': inetd = 1;break;
+			case	'z': nitrotest = atoi(optarg);break;
 		}
+	}
+
+	if(nitrotest)
+	{
+		doNitroTest(8090);
+		return;
 	}
 
 	if(!inetd)
@@ -1191,8 +1201,6 @@ FILE	*openPeerLog(char *peer)
 
 	sprintf(filename,"%s.%d.log",peer,curRandom);
 	fp	= fopen(filename,"w");
-	//if(fp)
-	//	setbuf(fp,NULL);
 	return fp;
 }
 
@@ -1205,3 +1213,51 @@ int		ClosePeer(int i)
 	bzero(&PeerList[i], sizeof(PEER));
 	return 0;
 }
+
+
+int	doNitroTest(int port)
+{
+	int		sfd;
+	cJSON	*json;
+
+	sfd	=	MakeSocket("127.0.0.1",port);
+
+	json	= javaLogin("nsroot","nsroot");
+	jsonSendRecv(json,sfd);
+
+#if 0
+	json	= javaAddHTTPVserver("test_vsrvr_1","10.102.28.134",8080);
+	json	= javaDelVserver("test_vsrvr_1");
+	jsonSendRecv(json,sfd);
+
+	json	= javaAddSSLVserver("test_vsrvr_2","10.102.28.134",4343);
+	json	= javaDelVserver("test_vsrvr_2");
+	jsonSendRecv(json,sfd);
+
+	json	= javaAddServer("10_1","192.168.10.1");
+	json	= javaDelServer("10_1");
+	jsonSendRecv(json,sfd);
+
+	json	= javaAddHTTPService("10_1_80","10_1",80);
+	json	= javaDelHTTPService("10_1_80");
+	jsonSendRecv(json,sfd);
+
+	json	= javaAddSSLService("10_1_443","10_1",443);
+	json	= javaDelSSLService("10_1_443");
+	jsonSendRecv(json,sfd);
+	
+	json	= javaAddCertKey("server_one","server_one_cert.pem","server_one_key.pem");
+	jsonSendRecv(json,sfd);
+
+	json	= javaDelCertKey("server_one");
+	jsonSendRecv(json,sfd);
+#endif
+
+	json	= javaBindUnbindCertKey("v1","server_one",1,0,0,0);
+	jsonSendRecv(json,sfd);
+	json	= javaBindUnbindCertKey("61_443","client_one",0,0,0,0);
+	jsonSendRecv(json,sfd);
+
+	return 0;
+}
+
