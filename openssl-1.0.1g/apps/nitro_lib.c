@@ -141,6 +141,51 @@ cJSON	*javaDelCertKey(char *certkeyname)
 }
 
 
+
+cJSON	*javaBindUnbindCipher(char *servicename,char *ciphername,int isvserver,int isunbind)
+{
+	cJSON	*obj1;
+
+	obj1	= cJSON_CreateObject();
+	cJSON_AddNumberToObject(obj1,"command",JBindUnbindCipher);
+
+	if(isvserver)
+		cJSON_AddStringToObject(obj1,"vserverName",servicename);
+	else
+		cJSON_AddStringToObject(obj1,"serviceName",servicename);
+
+	cJSON_AddStringToObject(obj1,"cipherName",ciphername);
+
+	if(isvserver)
+		cJSON_AddTrueToObject(obj1,"isVserver");
+	if(isunbind)
+		cJSON_AddTrueToObject(obj1,"isUnbind");
+
+	return obj1;
+}
+
+
+
+cJSON	*javaUnbindAllCipher(char *servicename,int isvserver)
+{
+	cJSON	*obj1;
+
+	obj1	= cJSON_CreateObject();
+	cJSON_AddNumberToObject(obj1,"command",JUnbindAllCipher);
+
+	if(isvserver)
+		cJSON_AddTrueToObject(obj1,"isVserver");
+
+	if(isvserver)
+		cJSON_AddStringToObject(obj1,"vserverName",servicename);
+	else
+		cJSON_AddStringToObject(obj1,"serviceName",servicename);
+
+	return obj1;
+}
+
+
+
 cJSON	*javaBindUnbindCertKey(char *servicename,char *certkeyname,int isvserver,int issni, int iscacert, int isunbind)
 {
 	cJSON	*obj1;

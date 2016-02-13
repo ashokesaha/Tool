@@ -14,6 +14,11 @@ import com.citrix.netscaler.nitro.resource.config.ssl.sslvserver_sslcipher_bindi
 import com.citrix.netscaler.nitro.resource.config.lb.lbvserver_service_binding;
 import com.citrix.netscaler.nitro.resource.config.ssl.sslvserver;
 import com.citrix.netscaler.nitro.resource.config.ssl.sslcertkey;
+import com.citrix.netscaler.nitro.resource.config.ssl.sslvserver_sslcipher_binding;
+import com.citrix.netscaler.nitro.resource.config.ssl.sslservice_sslcipher_binding;
+import com.citrix.netscaler.nitro.resource.config.ssl.sslservice_sslciphersuite_binding;
+import com.citrix.netscaler.nitro.resource.config.ssl.sslvserver_sslciphersuite_binding;
+
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.io.*;
@@ -193,8 +198,6 @@ public class NitroC {
 		{
 			if(nsO.isVserver == true)
 			{
-System.out.println(nsO);
-System.out.flush();
 				obj_1 = new sslvserver_sslcertkey_binding();
 				obj_1.set_certkeyname(nsO.certKeyName);
 				obj_1.set_vservername(nsO.vserverName);
@@ -356,6 +359,76 @@ System.out.flush();
 	}
 
 
+	private	boolean	BindUnbindCipher(NSObject nsO)
+	{
+		boolean		ret	=	true;
+		sslservice_sslcipher_binding	obj_2;
+		sslvserver_sslciphersuite_binding	obj_3;
+
+		try
+		{
+			if(nsO.isVserver == true)
+			{
+				obj_3 = new sslvserver_sslciphersuite_binding();
+
+				obj_3.set_vservername(nsO.vserverName);
+				obj_3.set_ciphername(nsO.cipherName);
+
+				if(nsO.isUnbind)
+						sslvserver_sslciphersuite_binding.delete(ns_session,obj_3);
+				else
+						sslvserver_sslciphersuite_binding.add(ns_session,obj_3);
+			}
+			else
+			{
+				obj_2 = new sslservice_sslcipher_binding();
+				obj_2.set_servicename(nsO.serviceName);
+				obj_2.set_ciphername(nsO.cipherName);
+				if(nsO.isUnbind)
+						sslservice_sslcipher_binding.delete(ns_session,obj_2);
+				else
+						sslservice_sslcipher_binding.add(ns_session,obj_2);
+			}
+
+		} catch(Exception e) {
+            System.out.println("Java Error -> " +e.getMessage());
+            ret = false;
+        }
+
+		return ret;
+	}
+
+	private	boolean	UnbindAllCipher(NSObject nsO)
+	{
+		boolean		ret	=	true;
+		sslvserver_sslciphersuite_binding	sv[];
+		sslservice_sslciphersuite_binding	sc[];
+		
+		try
+		{
+			if(nsO.isVserver == true)
+			{
+			sv	=	
+			sslvserver_sslciphersuite_binding.get(ns_session,nsO.vserverName);
+			sslvserver_sslciphersuite_binding.delete(ns_session,sv);
+			}
+			else
+			{
+			System.out.println("serviceName: " + nsO.serviceName);
+			sc	=	
+			sslservice_sslciphersuite_binding.get(ns_session,nsO.serviceName);
+			for(sslservice_sslciphersuite_binding s:sc)
+			{
+				System.out.println(s.get_ciphername());
+			}
+			sslservice_sslciphersuite_binding.delete(ns_session,sc);
+			}
+		} catch(Exception e) {
+            System.out.println("Java Error -> " +e.getMessage());
+            ret = false;
+        }
+		return ret;	
+	}
 
 
 	public	boolean	Execute(NSObject nsO)
@@ -414,6 +487,14 @@ System.out.flush();
 					ret = BindUnbindCertKey(nsO); 
 					break;
 
+			case	NSCommand.BindUnbindCipher :
+					ret = BindUnbindCipher(nsO); 
+					break;
+
+			case	NSCommand.UnbindAllCipher :
+					ret = UnbindAllCipher(nsO); 
+					break;
+
 			default :
 					ret = false;
 					break;
@@ -465,7 +546,7 @@ System.out.flush();
 
 			//System.out.println("Code started");
 			//nitro_service ns_session = 
-			//	new nitro_service("10.102.28.133","HTTP");
+			//new nitro_service("10.102.28.133","HTTP");
 			//ns_session.login("nsroot","nsroot");
 			//sslvserver_sslcertkey_binding  obj1;			
 			//obj1 = new sslvserver_sslcertkey_binding();
@@ -475,13 +556,20 @@ System.out.flush();
 			//obj1.perform_operation(ns_session);
 
 
-			//gson = new GsonBuilder().create();
-			//jstring="{name:\"ashoke\",age:100,address:\"Ajmera Green acres\"}";
-			//Person p = gson.fromJson(isR, Person.class);
-			//System.out.println(p);
 			//nitro_service ns_session = 
-			//new nitro_service("10.102.28.133","HTTP");
+			//	new nitro_service("10.102.28.133","HTTP");
 			//ns_session.login("nsroot","nsroot");
+			//sslvserver_sslciphersuite_binding sc[];
+			//sc = sslvserver_sslciphersuite_binding.get(ns_session,"v1");
+			//System.out.println("Total cipher bindings: " + sc.length);
+			//for(sslvserver_sslciphersuite_binding s: sc)
+			//{
+			//	System.out.println(s.get_ciphername());
+			//}
+			//gson = new GsonBuilder().create();
+			//String gStr = gson.toJson(sc);
+			//System.out.println(gStr);
+			//sslvserver_sslciphersuite_binding.delete(ns_session,sc);
 
 		} catch(Exception e) {
 			System.out.println("Java Error -> " +e.getMessage());
@@ -526,10 +614,9 @@ class	NSCommand {
 	static final int BindSSLServiceSNICertkey = 121;
 	static final int UnbindSSLServiceSNICertkey = 122;
 
-	static final int BindSSLVserverCipher = 123;
-	static final int UnbindSSLVserverCipher = 124;
-	static final int BindSSLServiceCipher = 124;
-	static final int UnbindSSLServiceCipher = 125;
+	static final int BindUnbindCipher = 123;
+	static final int UnbindAllCipher = 124;
+
 
 	static final int EnableSSLVserverCauth = 126;
 	static final int DisableSSLVserverCauth = 127;

@@ -17,6 +17,8 @@ cJSON	*javaDelServer(char *servername);
 cJSON	*javaAddCertKey(char *,char *,char *);
 cJSON	*javaDelCertKey(char *);
 cJSON	*javaBindUnbindCertKey(char *,char *,int,int , int , int );
+cJSON	*javaBindUnbindCipher(char *,char *,int ,int );
+cJSON	*javaUnbindAllCipher(char *,int );
 
 
 int		jsonSendRecv(cJSON *json,int sock);

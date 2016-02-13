@@ -1251,12 +1251,24 @@ int	doNitroTest(int port)
 
 	json	= javaDelCertKey("server_one");
 	jsonSendRecv(json,sfd);
-#endif
 
 	json	= javaBindUnbindCertKey("v1","server_one",1,0,0,0);
 	jsonSendRecv(json,sfd);
 	json	= javaBindUnbindCertKey("61_443","client_one",0,0,0,0);
 	jsonSendRecv(json,sfd);
+
+	json	= javaBindUnbindCipher("v1","AES",1,1);
+	jsonSendRecv(json,sfd);
+	json	= javaBindUnbindCipher("61_443","DES",0,1);
+	jsonSendRecv(json,sfd);
+#endif
+
+	json	= javaUnbindAllCipher("v1",1);
+	jsonSendRecv(json,sfd);
+	json	= javaUnbindAllCipher("61_443",0);
+	jsonSendRecv(json,sfd);
+
+
 
 	return 0;
 }
