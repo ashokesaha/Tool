@@ -87,7 +87,7 @@ int			versionFilter = -1;
 int			reuseCount = 0;
 int			renegCount = 0;
 int			logOutput = 0;
-char		* logfile = NULL;
+char		*logfile = NULL;
 int			toutmsec   = DEFTIMEOUT;
 int			iterCount = DEFITER;
 int			burstSize=1;
@@ -181,6 +181,7 @@ int		PadTest(const SSL_METHOD *M,const SSL_CIPHER *C);
 int		badPad(SSL *s,int state);
 char	*FormJSONConfig();
 FILE	*openPeerLog(char *peer);
+int		PrintOptions();
 
 
 
@@ -228,7 +229,7 @@ main(int argc,char **argv)
 
 	InitRandom();
 
-	while ((ch = getopt_long(argc, argv, "a:b:c:d:e:f:ghi:j:kl:m:no:p:q:r:s", longopts, NULL)) != -1)
+	while ((ch = getopt_long(argc, argv, "a:b:c:d:e:f:ghi:j:kl:m:no:p:q:r:sz:", longopts, NULL)) != -1)
 	{
 		switch(ch)
 		{
@@ -245,10 +246,15 @@ main(int argc,char **argv)
 			case	'k': printOutput = 1;break;
 			case	'l': logOutput = 1;logfile = optarg;break;
 			case	'm': iterCount = atoi(optarg);break;
-			case	'n': test_error_inj |= (1 << atoi(optarg));break;
+			case	'n': if(atoi(optarg)) 
+							{test_error_inj |= (1 << atoi(optarg));}
+						break;
 			case	'o': burstSize = atoi(optarg);break;
 			case	'p': burstCount = atoi(optarg);break;
-			case	'q': padtest = atoi(optarg); padbyte=8; burstCount=0;aesni_pad_byte_test=1;break;
+			case	'q': padtest = atoi(optarg); 
+					 if(padtest)
+					 {padbyte=8; burstCount=0;aesni_pad_byte_test=1;}
+					 break;
 			case	'r': adminport = atoi(optarg);break;
 			case	's': inetd = 1;break;
 			case	'z': nitrotest = atoi(optarg);break;
@@ -361,8 +367,9 @@ main(int argc,char **argv)
 	return 0;
 
 no_inetd:
+	errFp = fopen("/tmp/tool_err","w");
+	setbuf(errFp,NULL);
 	doTest();
-	while(1);
 }
 
 
@@ -370,6 +377,7 @@ no_inetd:
 int		ParamStrToCode(char *param)
 {
 	int		code = 0;
+
 
 	if(strcmp(param,"ip") == 0)				code = 'a';
 	else if(strcmp(param,"port") == 0)		code = 'b';
@@ -390,6 +398,10 @@ int		ParamStrToCode(char *param)
 	else if(strcmp(param,"padtest") == 0)	code = 'q';
 	else if(strcmp(param,"adminport") == 0)	code = 'r';
 	else if(strcmp(param,"inetd") == 0)		code = 's';
+	else if(strcmp(param,"nitrotest") == 0)		code = 'z';
+	else {
+		fprintf(errFp,"Bad param %s\n",param);
+	}
 
 	return code;
 }
@@ -500,6 +512,12 @@ int		SetupParams(int sd)
 		buflen += ret;
 	}
 	
+	if(buf[0] == '[')
+		bcopy(buf+1,buf,strlen(buf)-1);
+
+	fprintf(errFp,"SetupParams: read data [%s]\n",buf);
+	fprintf(errFp,"SetupParams: renegCount [%d]\n",renegCount);
+	
 	cJ	= cJSON_Parse(buf);
 	if(!cJ)
 	{
@@ -522,18 +540,26 @@ int		SetupParams(int sd)
 			case	'e': versionFilter = cJc->valueint;break;
 			case	'f': cipherFilter = strdup(cJc->valuestring);break;
 			case	'g': reuseCount = cJc->valueint;break;
-			case	'h': renegCount = 1;break;
+			case	'h': renegCount = cJc->valueint;break;
 			case	'i': toutmsec = cJc->valueint;break;
 			case	'j': recBoundary = cJc->valueint;break;
 			case	'k': printOutput = cJc->valueint;break;
-			case	'l': logOutput = 1;logfile = strdup(cJc->valuestring);break;
+			case	'l': logOutput = 1;logfile = strdup(cJc->valuestring);
+						 break;
 			case	'm': iterCount = cJc->valueint;break;
-			case	'n': test_error_inj |= (1 << (cJc->valueint));break;
+			case	'n': if(cJc->valueint) 
+							{test_error_inj |= (1 << (cJc->valueint));}
+						break;
 			case	'o': burstSize = cJc->valueint;break;
 			case	'p': burstCount = cJc->valueint;break;
-			case	'q': padtest = cJc->valueint; padbyte=8; burstCount=0;aesni_pad_byte_test=1;break;
-			case	'r': adminport = cJc->valueint;break;
-			case	's': inetd = cJc->valueint;break;
+			case	'q': padtest = cJc->valueint; 
+					if(padtest)
+						{padbyte=8; burstCount=0;aesni_pad_byte_test=1;}
+					break;
+			case	'r': adminport = cJc->valueint; break;
+			case	's': inetd = cJc->valueint; break;
+			case	'z': nitrotest = cJc->valueint; break;
+			default	: fprintf(errFp,"Bad option %s\n",cJc->string);
 		}
 		cJc = cJc->next;
 	}
@@ -559,6 +585,7 @@ int		doTest()
 		pwd = getcwd(NULL,256);
 		fout = freopen(logfile,"w",stdout);
 		setbuf(fout,NULL);
+		fprintf(errFp,"opened logifile %s\n",logfile);
 		if(!fout)
 		{
 			fprintf(errFp,"Failed to open logifile %s\n",logfile);
@@ -566,6 +593,8 @@ int		doTest()
 		}
 	}
 
+
+	if(iterCount == 0)	iterCount = 1;
 	if(iterCount <= 0)
 	{
 		fprintf(errFp,"Bad iteration count\n");
@@ -606,8 +635,8 @@ int		doTest()
 	v32Method	= TLSv1_1_client_method();
 	v33Method	= TLSv1_2_client_method();
 
-	//printf("\n\nIP: %s  Port: %d\n",IP,PORT);
-	//printf("-------------------------------------\n");
+	printf("\n\nIP: %s  Port: %d\n",IP,PORT);
+	printf("-------------------------------------\n");
 
 	while(iterCount--)
 	{
@@ -715,10 +744,10 @@ int	ForEachCipherFilter(const SSL_METHOD *M,const SSL_CIPHER *C)
 	if(checkVersionCipher(M->version & 0xFF,C->name))
 		return 0;
 
-	//ForEachCipher(M,C);
+	ForEachCipher(M,C);
 
-	for(i=0;i<burstCount;i++)
-		callAndWait(burstSize,M,C,ForEachCipher);
+	//for(i=0;i<burstCount;i++)
+	//	callAndWait(burstSize,M,C,ForEachCipher);
 
 	if(padtest)
 		PadTest(M,C);
@@ -1273,3 +1302,32 @@ int	doNitroTest(int port)
 	return 0;
 }
 
+int	PrintOptions()
+{
+	printf("IP = %s\n",IP);;
+	printf("PORT = %d\n",PORT);;
+	printf("CertFile = %s\n",CertFile);;
+	printf("KeyFile = %s\n",KeyFile);;
+	printf("versionFilter = %x\n",versionFilter);;
+	printf("cipherFilter = %s\n",cipherFilter);;
+	printf("reuseCount = %d\n",reuseCount);;
+	printf("renegCount = %d\n",renegCount);;
+	printf("toutmsec = %d\n",toutmsec);;
+	printf("recBoundary = %d\n",recBoundary);;
+	printf("printOutput = %d\n",printOutput);;
+	printf("logOutput = %d\n",logOutput);;
+	printf("logfile = %s\n",logfile);;
+	printf("iterCount = %d\n",iterCount);;
+	printf("test_error_inj = %x\n",test_error_inj);;
+	printf("burstSize = %d\n",burstSize);;
+	printf("burstCount = %d\n",burstCount);;
+	printf("padtest = %d\n",padtest);;
+	printf("padbyte = %d\n",padbyte);;
+	printf("aesni_pad_byte_test = %d\n",aesni_pad_byte_test);;
+	printf("adminport = %d\n",adminport);;
+	printf("inetd = %d\n",inetd);;
+	printf("nitrotest = %d\n",nitrotest);;
+
+
+	return 0;
+}
