@@ -101,6 +101,7 @@ int			recBoundary = 0;
 char		*CertFile=NULL,*KeyFile=NULL;
 char		*CertPath = DEFCERTPATH;
 int			inetd = 0;
+char		*Message = NULL;
 FILE		*errFp = NULL;
 unsigned int curRandom = 0;
 
@@ -221,6 +222,7 @@ main(int argc,char **argv)
 		{"padtest",	optional_argument,			NULL,'q'},
 		{"adminport",optional_argument,			NULL,'r'},
 		{"inetd",	optional_argument,			NULL,'s'},
+		{"message",	optional_argument,			NULL,'t'},
 		{"nitrotest",	optional_argument,		NULL,'z'},
 		{0,0,0,0}
 	};
@@ -229,7 +231,7 @@ main(int argc,char **argv)
 
 	InitRandom();
 
-	while ((ch = getopt_long(argc, argv, "a:b:c:d:e:f:ghi:j:kl:m:no:p:q:r:sz:", longopts, NULL)) != -1)
+	while ((ch = getopt_long(argc, argv, "a:b:c:d:e:f:ghi:j:kl:m:no:p:q:r:st:z:", longopts, NULL)) != -1)
 	{
 		switch(ch)
 		{
@@ -257,6 +259,7 @@ main(int argc,char **argv)
 					 break;
 			case	'r': adminport = atoi(optarg);break;
 			case	's': inetd = 1;break;
+			case	't': Message = strdup(optarg);break;
 			case	'z': nitrotest = atoi(optarg);break;
 		}
 	}
@@ -398,6 +401,7 @@ int		ParamStrToCode(char *param)
 	else if(strcmp(param,"padtest") == 0)	code = 'q';
 	else if(strcmp(param,"adminport") == 0)	code = 'r';
 	else if(strcmp(param,"inetd") == 0)		code = 's';
+	else if(strcmp(param,"message") == 0)		code = 't';
 	else if(strcmp(param,"nitrotest") == 0)		code = 'z';
 	else {
 		fprintf(errFp,"Bad param %s\n",param);
@@ -558,6 +562,7 @@ int		SetupParams(int sd)
 					break;
 			case	'r': adminport = cJc->valueint; break;
 			case	's': inetd = cJc->valueint; break;
+			case	't': Message = cJc->valuestring; break;
 			case	'z': nitrotest = cJc->valueint; break;
 			default	: fprintf(errFp,"Bad option %s\n",cJc->string);
 		}
@@ -609,14 +614,12 @@ int		doTest()
 
 	if(CertFile)
 	{
-		//sprintf(filepath,"%s/%s",CertPath,CertFile);
 		sprintf(filepath,"%s",CertFile);
 		in = BIO_new(BIO_s_file());
 		BIO_read_filename(in,filepath);
 		Cert = PEM_read_bio_X509(in,NULL,NULL,NULL);
 		BIO_set_close(in,BIO_CLOSE);	
 
-		//sprintf(filepath,"%s/%s",CertPath,KeyFile);
 		sprintf(filepath,"%s",KeyFile);
 		in = BIO_new(BIO_s_file());
 		BIO_read_filename(in,filepath);
@@ -627,7 +630,6 @@ int		doTest()
 	}
 
 	bzero(EndToken,sizeof(EndToken));
-	//setbuf(stdout,NULL);
 	SSL_library_init();
 
 	v30Method	= SSLv3_client_method();
@@ -636,6 +638,7 @@ int		doTest()
 	v33Method	= TLSv1_2_client_method();
 
 	printf("\n\nIP: %s  Port: %d\n",IP,PORT);
+	printf("%s\n",Message);
 	printf("-------------------------------------\n");
 
 	while(iterCount--)

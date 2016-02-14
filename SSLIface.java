@@ -133,6 +133,7 @@ class	JObject
 	int		padtest;
 	int		adminport;
 	int		inetd;
+	String	message;
 	int		nitrotest;
 
 	JObject()	{
@@ -140,6 +141,7 @@ class	JObject
 		loop		= 1;
 		burst		= 1;
 		log			= new String("log.out");
+		//message		= new String("Test Message");
 	}
 
 	public	String	toString() {
