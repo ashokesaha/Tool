@@ -638,8 +638,8 @@ int		doTest()
 	v33Method	= TLSv1_2_client_method();
 
 	printf("\n\nIP: %s  Port: %d\n",IP,PORT);
-	printf("%s\n",Message);
-	printf("-------------------------------------\n");
+	//printf("%s\n",Message);
+	//printf("-------------------------------------\n");
 
 	while(iterCount--)
 	{
@@ -790,7 +790,7 @@ int	PadTest(const SSL_METHOD *M,const SSL_CIPHER *C)
 		}
 		sbio = BIO_new_socket(sd,BIO_NOCLOSE);
 		SSL_set_bio(con,sbio,sbio);
-		con->att.pre_enc_data = badPad;
+		//con->att.pre_enc_data = badPad;
 
 		SSL_set_connect_state(con);
 		SSL_set_no_empty_frag(con);

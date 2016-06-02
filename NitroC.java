@@ -1,29 +1,18 @@
 import java.util.Arrays;
 import java.util.List;
-
-import com.citrix.netscaler.nitro.exception.nitro_exception;
-import com.citrix.netscaler.nitro.resource.config.lb.lbvserver;
-import com.citrix.netscaler.nitro.resource.config.ssl.sslcertkey;
-import com.citrix.netscaler.nitro.resource.config.ssl.sslvserver_sslcertkey_binding;
-import com.citrix.netscaler.nitro.resource.config.ssl.sslservice_sslcertkey_binding;
-import com.citrix.netscaler.nitro.service.nitro_service;
-import com.citrix.netscaler.nitro.resource.config.basic.service;
-import com.citrix.netscaler.nitro.resource.config.basic.server;
-import com.citrix.netscaler.nitro.resource.config.ssl.sslcipher_sslvserver_binding;
-import com.citrix.netscaler.nitro.resource.config.ssl.sslvserver_sslcipher_binding;
-import com.citrix.netscaler.nitro.resource.config.lb.lbvserver_service_binding;
-import com.citrix.netscaler.nitro.resource.config.ssl.sslvserver;
-import com.citrix.netscaler.nitro.resource.config.ssl.sslcertkey;
-import com.citrix.netscaler.nitro.resource.config.ssl.sslvserver_sslcipher_binding;
-import com.citrix.netscaler.nitro.resource.config.ssl.sslservice_sslcipher_binding;
-import com.citrix.netscaler.nitro.resource.config.ssl.sslservice_sslciphersuite_binding;
-import com.citrix.netscaler.nitro.resource.config.ssl.sslvserver_sslciphersuite_binding;
-
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.io.*;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+
+import com.citrix.netscaler.nitro.service.nitro_service;
+import com.citrix.netscaler.nitro.exception.nitro_exception;
+import com.citrix.netscaler.nitro.resource.config.basic.*;
+import com.citrix.netscaler.nitro.resource.config.lb.*;
+import com.citrix.netscaler.nitro.resource.config.ssl.*;
+import com.citrix.netscaler.nitro.resource.config.ns.*;
+
 
 
 public class NitroC {
@@ -151,6 +140,16 @@ public class NitroC {
 		return isListen;
 	}
 
+
+
+	private boolean	AddDelCertKey(NSObject nsO) 
+	{
+		if(nsO.isDelete == true)
+			return	AddCertKey(nsO);
+		else
+			return	DelCertKey(nsO);
+	}
+
 	private boolean	AddCertKey(NSObject nsO) 
 	{
 		boolean			ret = true;
@@ -193,7 +192,6 @@ public class NitroC {
 		sslvserver_sslcertkey_binding	obj_1;
 		sslservice_sslcertkey_binding	obj_2;
 
-
 		try
 		{
 			if(nsO.isVserver == true)
@@ -201,10 +199,13 @@ public class NitroC {
 				obj_1 = new sslvserver_sslcertkey_binding();
 				obj_1.set_certkeyname(nsO.certKeyName);
 				obj_1.set_vservername(nsO.vserverName);
+
 				if(nsO.isCACert == true)
 					obj_1.set_ca(true);
+
 				if(nsO.isSNICert == true)
 					obj_1.set_snicert(true);
+
 				if(nsO.isUnbind)
 					sslvserver_sslcertkey_binding.delete(ns_session,obj_1);
 				else
@@ -215,10 +216,13 @@ public class NitroC {
 				obj_2 = new sslservice_sslcertkey_binding();
 				obj_2.set_certkeyname(nsO.certKeyName);
 				obj_2.set_servicename(nsO.serviceName);
+
 				if(nsO.isCACert == true)
 					obj_2.set_ca(true);
+
 				if(nsO.isSNICert == true)
 					obj_2.set_snicert(true);
+
 				if(nsO.isUnbind)
 					sslservice_sslcertkey_binding.delete(ns_session,obj_2);
 				else
@@ -235,19 +239,24 @@ public class NitroC {
 
 
 
-	public boolean	AddHTTPVserver(NSObject nsO)
+	public boolean	AddDelHTTPVserver(NSObject nsO)
 	{
-		return AddVserver(nsO.vserverName,nsO.ipAddr,nsO.port, "HTTP"); 
+		if(nsO.isDelete == false)
+			return AddVserver(nsO.vserverName,nsO.ipAddr,nsO.port, "HTTP"); 
+		else
+			return	DelVserver(nsO.vserverName);
 	}
-	public boolean	AddSSLVserver(NSObject nsO) 
+	public boolean	AddDelSSLVserver(NSObject nsO) 
 	{
-		return AddVserver(nsO.vserverName,nsO.ipAddr,nsO.port, "SSL"); 
+		if(nsO.isDelete == false)
+			return AddVserver(nsO.vserverName,nsO.ipAddr,nsO.port, "SSL"); 
+		return false;
 	}
 
-	private boolean	AddVserver(String name, String ip, int port,String type) 
+	public boolean	AddVserver(String name, String ip, int port,String type) 
 	{
 		boolean					ret = true;
-		lbvserver			lbvserver_obj;
+		lbvserver				lbvserver_obj;
 
 		try
 		{
@@ -285,7 +294,7 @@ public class NitroC {
 		return		ret;
 	}
 
-	public boolean	AddDelServer(NSObject nsO,boolean add)
+	public boolean	AddDelServer(NSObject nsO)
 	{
 		boolean		ret = true;
 		server	server_obj;
@@ -295,7 +304,7 @@ public class NitroC {
 			server_obj	= new server();
 			server_obj.set_ipaddress(nsO.ipAddr);
 			server_obj.set_name(nsO.serverName);
-			if(add == true)
+			if(nsO.isDelete == false)
 				server.add(ns_session,server_obj);
 			else
 				server.delete(ns_session,server_obj);
@@ -309,13 +318,20 @@ public class NitroC {
 
 
 
-	public boolean	AddHTTPService(NSObject nsO)
+	public boolean	AddDelHTTPService(NSObject nsO)
 	{
-		return AddService(nsO.serviceName,nsO.serverName,nsO.port,"HTTP");
+		if(nsO.isDelete == false)
+			return AddService(nsO.serviceName,nsO.serverName,nsO.port,"HTTP");
+		else
+			return	DelService(nsO);
 	}
-	public boolean	AddSSLService(NSObject nsO)
+
+	public boolean	AddDelSSLService(NSObject nsO)
 	{
-		return AddService(nsO.serviceName,nsO.serverName,nsO.port,"SSL");
+		if(nsO.isDelete == false)
+			return AddService(nsO.serviceName,nsO.serverName,nsO.port,"SSL");
+		else
+			return	DelService(nsO);
 	}
 
 
@@ -361,8 +377,8 @@ public class NitroC {
 
 	private	boolean	BindUnbindCipher(NSObject nsO)
 	{
-		boolean		ret	=	true;
-		sslservice_sslcipher_binding	obj_2;
+		boolean		ret	= true;
+		sslservice_sslcipher_binding		obj_2;
 		sslvserver_sslciphersuite_binding	obj_3;
 
 		try
@@ -370,24 +386,24 @@ public class NitroC {
 			if(nsO.isVserver == true)
 			{
 				obj_3 = new sslvserver_sslciphersuite_binding();
-
 				obj_3.set_vservername(nsO.vserverName);
 				obj_3.set_ciphername(nsO.cipherName);
 
 				if(nsO.isUnbind)
-						sslvserver_sslciphersuite_binding.delete(ns_session,obj_3);
+					sslvserver_sslciphersuite_binding.delete(ns_session,obj_3);
 				else
-						sslvserver_sslciphersuite_binding.add(ns_session,obj_3);
+					sslvserver_sslciphersuite_binding.add(ns_session,obj_3);
 			}
 			else
 			{
 				obj_2 = new sslservice_sslcipher_binding();
 				obj_2.set_servicename(nsO.serviceName);
 				obj_2.set_ciphername(nsO.cipherName);
+
 				if(nsO.isUnbind)
-						sslservice_sslcipher_binding.delete(ns_session,obj_2);
+					sslservice_sslcipher_binding.delete(ns_session,obj_2);
 				else
-						sslservice_sslcipher_binding.add(ns_session,obj_2);
+					sslservice_sslcipher_binding.add(ns_session,obj_2);
 			}
 
 		} catch(Exception e) {
@@ -397,6 +413,7 @@ public class NitroC {
 
 		return ret;
 	}
+
 
 	private	boolean	UnbindAllCipher(NSObject nsO)
 	{
@@ -431,9 +448,128 @@ public class NitroC {
 	}
 
 
+
+	private	boolean	BindUnbindService (NSObject nsO) throws Exception
+	{
+		boolean		ret = true;
+		lbvserver_service_binding	obj;
+		
+		obj = new lbvserver_service_binding();
+		obj.set_name(nsO.vserverName);
+		obj.set_servicename(nsO.serviceName);
+
+		if(nsO.isUnbind == true)
+			lbvserver_service_binding.delete(ns_session,obj);
+		else
+			lbvserver_service_binding.add(ns_session,obj);
+
+		return ret;
+	}
+
+
+
+	private	boolean	SetUnsetSSLVserver(NSObject nsO) throws Exception
+	{
+		boolean			ret = true;
+		sslvserver		obj;
+
+		obj		= new sslvserver();
+		
+		if(nsO.isSetClientAuth == true) 
+		{
+			if(nsO.clientAuthEnabled == true)
+			{
+				obj.set_clientauth("ENABLED");
+
+				if(nsO.clientCertMandatory == true)
+					obj.set_clientcert("MANDATORY");
+				else
+					obj.set_clientcert("OPTIONAL");
+			}
+			else
+				obj.set_clientauth("DISABLED");
+		}
+
+		if(nsO.isSetSessTimeout == true)
+			obj.set_sesstimeout(nsO.sessTimeout);
+
+		if(nsO.isSetDH == true)
+		{
+			if(nsO.dhEnabled == true)
+				obj.set_dh("ENABLED");
+			else
+				obj.set_dh("DISABLED");
+		}
+
+		if(nsO.isSetDHFile == true)
+			obj.set_dhfile(nsO.dhFileName);
+
+		if(nsO.isSetDHCount == true)
+			obj.set_dhcount(nsO.dhCount);
+
+		if(nsO.isSetERsa == true)
+		{
+			if(nsO.eRsaEnabled == true)
+				obj.set_ersa("ENABLED");
+			else
+				obj.set_ersa("DISABLED");
+		}
+
+		if(nsO.isSetSNI == true)
+		{
+			if(nsO.sniEnabled == true)
+				obj.set_snienable("ENABLED");
+			else
+				obj.set_snienable("DISABLED");
+		}
+
+		if(nsO.isSetCN == true)
+		{
+			if(nsO.CNEnabled == true)
+				obj.set_sendclosenotify("YES");
+			else
+				obj.set_sendclosenotify("NO");
+		}
+
+		if(nsO.isSetSsl3 == true)
+		{
+			if(nsO.ssl3Enabled == true)
+				obj.set_ssl3("ENABLED");
+			else
+				obj.set_ssl3("DISABLED");
+		}
+		if(nsO.isSetTls1 == true)
+		{
+			if(nsO.tls1Enabled == true)
+				obj.set_tls1("ENABLED");
+			else
+				obj.set_tls1("DISABLED");
+		}
+		if(nsO.isSetTls11 == true)
+		{
+			if(nsO.tls11Enabled == true)
+				obj.set_tls11("ENABLED");
+			else
+				obj.set_tls11("DISABLED");
+		}
+		if(nsO.isSetTls12 == true)
+		{
+			if(nsO.tls12Enabled == true)
+				obj.set_tls12("ENABLED");
+			else
+				obj.set_tls12("DISABLED");
+		}
+
+		return ret;
+	}
+
+
 	public	boolean	Execute(NSObject nsO)
 	{
 		boolean		ret = true;
+
+		try
+		{
 		switch(nsO.command)
 		{
 			case	NSCommand.Login :
@@ -441,49 +577,57 @@ public class NitroC {
 					System.out.println("Execute: Login returned " + ret);
 					break;
 
-			case	NSCommand.AddHTTPVserver :
-					ret = AddHTTPVserver(nsO);
+			case	NSCommand.ADDDELMIP :
+					{
+					nsip	obj	=	new nsip();
+					obj.set_ipaddress(nsO.ipAddr);
+					obj.set_netmask(nsO.netMask);
+					obj.set_type("SNIP");
+					if(nsO.isDelete == true)
+						obj.delete(ns_session,obj);
+					else
+						obj.add(ns_session,obj);
+					}
 					break;
 
-			case	NSCommand.AddSSLVserver :
-					ret = AddSSLVserver(nsO);
+			case	NSCommand.ADDDELVIP :
+					{
+					nsip	obj	=	new nsip();
+					obj.set_ipaddress(nsO.ipAddr);
+					obj.set_netmask(nsO.netMask);
+					obj.set_type("VIP");
+					if(nsO.isDelete == true)
+						obj.delete(ns_session,obj);
+					else
+						obj.add(ns_session,obj);
+					}
 					break;
 
-			case	NSCommand.DelHTTPVserver :
-			case	NSCommand.DelSSLVserver :
-					ret = DelVserver(nsO.vserverName);
+			case	NSCommand.AddDelHTTPVserver :
+					ret = AddDelHTTPVserver(nsO);
 					break;
 
-			case	NSCommand.AddServer :
-					ret = AddDelServer(nsO,true);
+			case	NSCommand.AddDelSSLVserver :
+					ret = AddDelSSLVserver(nsO);
 					break;
 
-			case	NSCommand.DelServer :
-					ret = AddDelServer(nsO,false);
+			case	NSCommand.AddDelServer :
+					ret = AddDelServer(nsO);
 					break;
 
-			case	NSCommand.AddHTTPService :
-					ret = AddHTTPService(nsO);
+			case	NSCommand.AddDelHTTPService :
+					ret = AddDelHTTPService(nsO);
 					break;
 
-			case	NSCommand.AddSSLService :
-					ret = AddSSLService(nsO);
+			case	NSCommand.AddDelSSLService :
+					ret = AddDelSSLService(nsO);
 					break;
 
-			case	NSCommand.DelHTTPService :
-			case	NSCommand.DelSSLService :
-					ret = DelService(nsO);
+			case	NSCommand.AddDelCertKey :
+					ret = AddDelCertKey(nsO);
 					break;
 
-			case	NSCommand.AddCertKey :
-					ret = AddCertKey(nsO);
-					break;
-
-			case	NSCommand.DelCertKey :
-					ret = DelCertKey(nsO);
-					break;
-
-			case	NSCommand.BindUnbindCertkey :
+			case	NSCommand.BindUnbindCertKey :
 					ret = BindUnbindCertKey(nsO); 
 					break;
 
@@ -495,10 +639,32 @@ public class NitroC {
 					ret = UnbindAllCipher(nsO); 
 					break;
 
+			case	NSCommand.BindUnbindService :
+					ret = BindUnbindService(nsO); 
+					break;
+
+			case	NSCommand.SetUnsetLBVserver :
+					break;
+
+			case	NSCommand.SetUnsetSSLVserver :
+					SetUnsetSSLVserver(nsO);
+					break;
+
+			case	NSCommand.SetUnsetService :
+					break;
+
+			case	NSCommand.SetUnsetSSLService :
+					break;
+
 			default :
 					ret = false;
 					break;
 		}
+		} catch (Exception e) {
+			ret = false;
+			System.out.println("Exception : " + e.getMessage() + " Command " + nsO.command);
+		}
+
 		return ret;
 	}
 
@@ -576,149 +742,4 @@ public class NitroC {
 		}
 	}
 
-}
-
-
-
-
-class	NSCommand {
-	static final int Login 		= 1;
-
-	static final int AddHTTPVserver = 101;
-	static final int DelHTTPVserver = 102;
-	static final int AddSSLVserver = 103;
-	static final int DelSSLVserver = 104;
-
-	static final int AddHTTPService = 105;
-	static final int DelHTTPService = 106;
-	static final int AddSSLService = 107;
-	static final int DelSSLService = 108;
-
-	static final int AddCertKey = 109;
-	static final int DelCertKey = 110;
-
-	static final int BindUnbindCertkey = 111;
-
-	static final int BindSSLVserverCertkey = 111;
-	static final int UnbindSSLVserverCertkey = 112;
-	static final int BindSSLServiceCertkey = 113;
-	static final int UnbindSSLServiceCertkey = 114;
-
-	static final int BindSSLVserverCACertkey = 115;
-	static final int UnbindSSLVserverCACertkey = 116;
-	static final int BindSSLServiceCACertkey = 117;
-	static final int UnbindSSLServiceCACertkey = 118;
-
-	static final int BindSSLVserverSNICertkey = 119;
-	static final int UnbindSSLVserverSNICertkey = 120;
-	static final int BindSSLServiceSNICertkey = 121;
-	static final int UnbindSSLServiceSNICertkey = 122;
-
-	static final int BindUnbindCipher = 123;
-	static final int UnbindAllCipher = 124;
-
-
-	static final int EnableSSLVserverCauth = 126;
-	static final int DisableSSLVserverCauth = 127;
-	static final int EnableSSLServiceCauth = 128;
-	static final int DisableSSLServiceCauth = 129;
-
-	static final int EnableSSLVserverSessReuse = 130;
-	static final int DisableSSLVserverSessReuse = 131;
-	static final int EnableSSLServiceSessReuse = 132;
-	static final int DisableSSLServiceSessReuse = 133;
-
-	static final int EnableSSLVserverDH = 134;
-	static final int DisableSSLVserverDH = 135;
-	static final int EnableSSLServiceDH = 136;
-	static final int DisableSSLServiceDH = 137;
-
-	static final int SetSSLVserverSessionTimeout = 138;
-	static final int SetSSLServiceSessionTimeout = 139;
-
-	static final int EnableSSLVserverVersion = 140;
-	static final int DisableSSLVserverVersion = 141;
-	static final int EnableSSLServiceVersion = 142;
-	static final int DisableSSLServiceVersion = 143;
-
-	static final int AddCRL = 144;
-	static final int DelCRL = 145;
-
-	static final int AddOCSPResponder = 146;
-	static final int DelOCSPResponder = 147;
-
-	static final int AddServer = 148;
-	static final int DelServer = 149;
-}
-
-
-
-class	NSObject	{
-	int			command;
-
-	String		userName;
-	String		passwd;
-
-	boolean		isVserver;
-	boolean		isCACert;
-	boolean		isSNICert;
-	boolean		isUnbind;
-
-	int			version; //0=SSLv3,1=tls1.0,2=tls1.1,3=tls1.2
-	int			sessTimeout;
-	int			port;
-
-	String		vserverName;
-	String		serviceName;
-	String		cipherName;
-	String		certKeyName;
-	String		certFileName;
-	String		keyFileName;
-	String		ocspName;
-	String		crlName;
-	String		dhfileName;
-	String		serverName;
-	String		ipAddr;
-
-	NSObject() {
-
-	}
-
-	public String toString() {
-			String str = "command: " + command + " certKeyName: " + certKeyName + " vserverName: " + vserverName + " isUnbind: " + isUnbind;
-			return str;
-	}
-}
-
-
-class	RespObj {
-	boolean		result;
-	RespObj(boolean res) {
-		result = res;
-	}
-}
-
-
-
-class Person {
-	private String  name;
-	private int  	age;
-	private String  address;
-
-	Person()
-	{
-	}
-
-	Person(String name,int age,String address)
-	{
-		this.name = name;
-		this.age = age;
-		this.address = address;
-	}
-
-	public String toString()
-	{
-		String str = "Name: " + name + " Age: " + age + " Address: " + address;
-		return str;
-	}
 }

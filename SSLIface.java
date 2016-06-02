@@ -91,72 +91,22 @@ public	class	SSLIface
 
 	public	static	void	main(String argc[])
 	{
-		int			count;
+		int		count;
 		boolean		ret = false;
+		TestHarness	tH;
+		NitroC		nC;
+		NSVIP		vIP;
+		NSLBVSERVER	vsrvr;
 
-		SSLIface	iface = new SSLIface();
-		ret = iface.AddPeer("10.102.28.61",2345);
-		if(ret == false)
-		{
-			System.out.println("Add Peer failed\n");
-			return;
-		}
+		tH = TestHarness.getTestHarness();
+		tH.ConnectToDUT("10.102.28.133",80,"nsroot","nsroot");
+		nC	= tH.getDUT();
 
-		count		= iface.PeerCount();
-		JObject		jO = iface.GetJO(0);
-		jO.setDUT("10.102.28.236",443);
-		iface.Command();
+		vIP	= new NSVIP("172.16.10.1");
+		vsrvr	= new NSLBVSERVER(vIP.getIP(),80,"vserver-1");
+		vsrvr.Delete();
+		vIP.Delete();
 	}
 
 
 }
-
-
-class	JObject	
-{
-	String	ip;
-	String	log;
-	String	cert;
-	String	key;
-	String	version;
-	String	cipher;
-	int		port;
-	int		reuse;
-	int		reneg;
-	int		timeout;
-	int		ckv;
-	int		print;
-	int		iter;
-	int		err;
-	int		loop;
-	int		burst;
-	int		padtest;
-	int		adminport;
-	int		inetd;
-	String	message;
-	int		nitrotest;
-
-	JObject()	{
-		timeout		= 100;
-		loop		= 1;
-		burst		= 1;
-		log			= new String("log.out");
-		//message		= new String("Test Message");
-	}
-
-	public	String	toString() {
-		Gson	gson;
-		String	gStr;
-
-		gson	= new GsonBuilder().create();
-		gStr	= gson.toJson(this);
-		return	gStr;
-	}
-
-	public	void	setDUT(String ip, int port)	{
-		this.ip		= ip;
-		this.port	= port;
-	}
-
-}
-
