@@ -278,6 +278,7 @@ extern int	handleBindVserverCipher(char *vname,char *cname,int isVserver);
 extern int	handleBindVserverECCCurve(char *vname,char *curve,int isVserver);
 //extern int	handleBindServiceCipher(char *vname,char *cname);
 extern int	handleAddCipherGroup(char *gname);
+extern int	handleAddCipherGroupOld(char *gname,char *cname);
 extern int	handleSSLParams(SSL_PARAMS_t *);
 extern int	handleBindCipherGroup(char *gname,char *cname);
 extern int	cmpAttribs(SET_ATTR_t *a, SET_ATTR_t *b);

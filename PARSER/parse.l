@@ -69,6 +69,24 @@ VSERVER {
 		}
 
 
+-vServer {
+		int	mod =  VSRVRTOK;
+		yylval.yy_data = strdup(yytext);
+		if(debugL())
+			printf("lex:%s(%s)\n","VSRVRTOK",yytext);
+		return mod;
+		}
+
+
+ORD {
+		int	mod =  ORDTOK;
+		yylval.yy_data = strdup(yytext);
+		if(debugL())
+			printf("lex:%s(%s)\n","ORDTOK",yytext);
+		return mod;
+		}
+
+
 ssl  |
 SSL  {
 	int	mod = rule_matched ? WORD : SSL;
@@ -244,7 +262,7 @@ SSL  {
 
 
 
-[a-zA-Z0-9#_\-.:/]+* {
+[a-zA-Z0-9#_\-.:/@]+* {
 	int	mod = rule_matched ? WORD : NAME;
 	yylval.yy_data = strdup(yytext);
 	if(debugL())

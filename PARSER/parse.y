@@ -71,7 +71,7 @@ main(int argc, char **argv)
 %token  <yy_onoff>SSL2 SSL3 TLS1 TLS11 TLS12 PARAM_DROPNOHOSTHDR PARAM_STRCTCACHK
 %token  <yy_number>NUMBER CLRTXTPORT DHCOUNT ERSACOUNT SESSTIMEOUT SSLPARAM 
 %token  <yy_number>PARAM_ENCRTRIGPKTCOUNT PARAM_PUSHTRIGTMOUT PARAM_PUSHFLG PARAM_QNTMSZ PARAM_TRGTMOUT SSLPARAM PARAM_CRLMEMSZ PARAM_OCSPCACHESZ 
-%token  <yy_data>PARAM_DENYRENEG PARAM_UNDEFACTCTRL PARAM_UNDEFACTDATA
+%token  <yy_data>PARAM_DENYRENEG PARAM_UNDEFACTCTRL PARAM_UNDEFACTDATA VSRVRTOK  ORDTOK
 
 
 %%
@@ -201,12 +201,23 @@ confstmt:
 		}
 	| ADD SSL CIPHERTOK NAME 
 		{
+			printf("Cipher Rule..\n");
 			rule_matched = 1;
 			bzero(&STMT,sizeof(STMT));
 			strcpy(STMT.cmd,$1);
 			strcpy(STMT.entity,$3);
 			strcpy(STMT.name,$4);
 			handleAddCipherGroup($4);
+		}
+	| ADD SSL CIPHERTOK NAME NAME
+		{
+			printf("Cipher Rule 2..\n");
+			rule_matched = 1;
+			bzero(&STMT,sizeof(STMT));
+			strcpy(STMT.cmd,$1);
+			strcpy(STMT.entity,$3);
+			strcpy(STMT.name,$4);
+			handleAddCipherGroupOld($4,$5);
 		}
 	| BIND SSL CIPHERTOK NAME CIPHERNAMETOK NAME
 		{
@@ -216,6 +227,10 @@ confstmt:
 			strcpy(STMT.entity,$3);
 			strcpy(STMT.name,$4);
 			handleBindCipherGroup($4,$6);
+		}
+	| BIND SSL CIPHERTOK NAME VSRVRTOK ORDTOK NAME
+		{
+
 		}
 	;
 

@@ -334,6 +334,19 @@ int	handleAddCipherGroup(char *gname)
 }
 
 
+int	handleAddCipherGroupOld(char *gname,char *cname)
+{
+	CIPHERGROUP_t	*v = findCipherGroup(gname);
+	if(!v)
+		v = (CIPHERGROUP_t *)Malloc(sizeof(CIPHERGROUP_t));
+	bzero(v,sizeof(CIPHERGROUP_t));
+	strcpy(v->name,gname);
+	*ciphergroup_list_tail = v;
+	ciphergroup_list_tail = &v->next;
+	strcpy(v->cipher[head->idx++],cname);	
+	return 0;
+}
+
 
 
 int	handleBindCipherGroup(char *gname,char *cname)
