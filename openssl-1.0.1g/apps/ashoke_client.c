@@ -637,7 +637,7 @@ int		doTest()
 	v32Method	= TLSv1_1_client_method();
 	v33Method	= TLSv1_2_client_method();
 
-	printf("\n\nIP: %s  Port: %d\n",IP,PORT);
+	//printf("\n\nIP: %s  Port: %d\n",IP,PORT);
 	//printf("%s\n",Message);
 	//printf("-------------------------------------\n");
 

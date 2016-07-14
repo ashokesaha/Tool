@@ -135,7 +135,6 @@
  * OTHERWISE.
  */
 
-#undef ASHOKE_TOOL
 
 #include <stdio.h>
 #include "ssl_locl.h"

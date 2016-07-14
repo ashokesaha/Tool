@@ -3117,14 +3117,23 @@ int ssl3_send_client_verify(SSL *s)
 			if (!ssl3_digest_cached_records(s))
 				goto err;
 		}
-		else
-		if (pkey->type == EVP_PKEY_RSA)
+		else if (pkey->type == EVP_PKEY_RSA)
 		{
 			s->method->ssl3_enc->cert_verify_mac(s, NID_md5, &(data[0]));
 
 #ifdef	ASHOKE_TOOL
 		if(test_error_inj & ERRTEST_BAD_CCV_DGST)
 			data[0] += 1;
+#endif
+
+#if 0
+{
+int i;
+printf("verify mac:\n");
+for(i=0; i<MD5_DIGEST_LENGTH+SHA_DIGEST_LENGTH;i++)
+printf("%02x ",data[i]);
+printf("\n");
+}
 #endif
 
 			if (RSA_sign(NID_md5_sha1, data,
@@ -3147,6 +3156,19 @@ int ssl3_send_client_verify(SSL *s)
 			s2n(u,p);
 
 			n=u+2;
+
+#if 0
+{
+int i;
+unsigned char *p = &d[4];
+printf("Signed CCV:\n");
+for(i=0;i<n;i++)
+printf("%02x ",p[i]);
+printf("\n");
+}
+#endif
+
+
 		}
 		else
 #ifndef OPENSSL_NO_DSA
