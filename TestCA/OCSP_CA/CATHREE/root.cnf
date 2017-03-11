@@ -1,0 +1,46 @@
+dir				= .					# Where everything is kept
+
+[ ca ]
+default_ca		= CA_default		# The default ca section
+
+[ CA_default ]
+certs			= .				# Where the issued certs are kept
+crl_dir			= .		# Where the issued crl are kept
+database		= index.txt	# database index file.
+new_certs_dir	= .		# default place for new certs.
+serial			= serial 		# The current serial number
+private_key		= test_ca_key.pem
+x509_extensions	= ca_ext		# The extentions to add to the cert
+
+default_days	= 750			# how long to certify for
+default_crl_days= 30			# how long before next CRL
+default_md		= sha2			# which md to use.
+#policy			= ca_policy
+
+
+[ ca_policy ]
+commonName				=	ASHOKE-97-CA
+stateOrProvinceName		=	KA
+countryName				=	IN
+emailAddress			=	ashoke-97-ca@myca.com
+organizationName		=	CITRIX
+
+
+[ req ]
+default_bits			=	2048
+default_keyfile			=	$dir/test_ca_key.pem
+x509_extensions			=	ca_ext
+distinguished_name		=	ca_distinguished_name
+
+
+[ ca_ext ]
+basicConstraints		= CA:true
+subjectKeyIdentifier	= hash
+
+
+[ ca_distinguished_name ]
+commonName				=	RootTestCA
+stateOrProvinceName		=	KA
+countryName				=	IN
+emailAddress			=	RootTestCA@testca.com
+organizationName		=	CITRIX

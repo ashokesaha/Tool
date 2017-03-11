@@ -1,0 +1,6 @@
+OPENSSL=../../openssl-1.0.1g/apps/openssl
+
+$OPENSSL req -newkey rsa:2048  -out LevelThreeClientCAReq.pem -keyout LevelThreeClientCAKey.pem -config ./myconf.cnf -subj /CN=LevelThreeClientCA/C=IN/O=CITRIX/OU=ANG/ST=KA/emailAddress=LevelThreeClientCA@test_ca.com -nodes
+
+$OPENSSL ca -out LevelThreeClientCACert.pem -config ./myconf.cnf -infiles LevelThreeClientCAReq.pem 
+

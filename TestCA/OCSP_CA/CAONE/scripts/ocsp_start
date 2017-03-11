@@ -1,0 +1,3 @@
+OPENSSL=/home/ashokes/openssl-1.0.1g/apps/openssl
+
+$OPENSSL ocsp -index $1 -port $2 -CA $3 -rsigner $4  -rkey $5

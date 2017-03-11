@@ -1,0 +1,6 @@
+OPENSSL=../openssl-1.0.1g/apps/openssl
+
+$OPENSSL req -newkey rsa:1024  -out $1_req.pem -keyout $1_key.pem -config ./myconf.cnf -subj /CN=$1_client/C=IN/O=CITRIX/OU=ANG/ST=KA/emailAddress=$1@test_ca.com -nodes
+
+$OPENSSL ca -out $1_cert.pem -config ./myconf.cnf -infiles $1_req.pem 
+

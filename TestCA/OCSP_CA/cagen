@@ -1,0 +1,98 @@
+aianame1=$1_one.ocsptest.com
+aianame2=$1_two.ocsptest.com
+aianame3=172.28.10.1
+aianame4=172.28.20.1
+
+sed -e "s/AIANAME/$aianame1/" myconf.cnf > ttt
+mv ttt myconf.cnf 
+
+
+
+mkdir $1
+cp serial $1
+cd $1
+touch index.txt
+mkdir scripts
+cp ../gencacert scripts/
+cp ../certgen scripts/
+cp ../root.cnf .
+cp ../myconf.ini .
+
+openssl req -new -newkey rsa:2048 -x509 -days 3650 -extensions ca_ext -keyout $1_cakey.pem -out $1_cacert.pem   -subj /CN=$1_CA/C=IN/O=CITRIX/OU=ANG/ST=KA/emailAddress=$1_CA@$1_mail.com   -config ./root.cnf -sha256 -nodes
+
+
+startx=101
+endx=110
+sed -e "s/AIANAME/$aianame1/" myconf.ini > ttt
+mv ttt myconf.cnf 
+
+while true
+do
+if test $startx -le $endx
+then
+./scripts/certgen ${startx}_$1 $1
+rm ${startx}_$1_req.pem
+x=$((startx++))
+else
+break
+fi
+done
+
+
+
+startx=111
+endx=120
+sed -e "s/AIANAME/$aianame2/" myconf.ini > ttt
+mv ttt myconf.cnf 
+
+while true
+do
+if test $startx -le $endx
+then
+./scripts/certgen ${startx}_$1 $1
+rm ${startx}_$1_req.pem
+x=$((startx++))
+else
+break
+fi
+done
+
+
+
+startx=121
+endx=130
+sed -e "s/AIANAME/$aianame3/" myconf.ini > ttt
+mv ttt myconf.cnf 
+
+while true
+do
+if test $startx -le $endx
+then
+./scripts/certgen ${startx}_$1 $1
+rm ${startx}_$1_req.pem
+x=$((startx++))
+else
+break
+fi
+done
+
+
+startx=131
+endx=140
+sed -e "s/AIANAME/$aianame4/" myconf.ini > ttt
+mv ttt myconf.cnf 
+
+while true
+do
+if test $startx -le $endx
+then
+./scripts/certgen ${startx}_$1 $1
+rm ${startx}_$1_req.pem
+x=$((startx++))
+else
+break
+fi
+done
+
+
+cd ..

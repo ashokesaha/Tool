@@ -93,6 +93,7 @@ int			iterCount = DEFITER;
 int			burstSize=1;
 int			burstCount=1;
 int			padtest = 0;
+int			smallrecordtest = 0;
 int			nitrotest = 0;
 int			padbyte = 0;
 int			adminport = 0;
@@ -179,6 +180,7 @@ int  	checkVersionCipher(unsigned char ver,const char *cname);
 int		callAndWait(int,const SSL_METHOD *,const SSL_CIPHER *,int (*f)(const SSL_METHOD *,const SSL_CIPHER *));
 int		ForEachCipherFilter(const SSL_METHOD *M,const SSL_CIPHER *C);
 int		PadTest(const SSL_METHOD *M,const SSL_CIPHER *C);
+int		SmallRecordTest(const SSL_METHOD *M,const SSL_CIPHER *C);
 int		badPad(SSL *s,int state);
 char	*FormJSONConfig();
 FILE	*openPeerLog(char *peer);
@@ -223,6 +225,7 @@ main(int argc,char **argv)
 		{"adminport",optional_argument,			NULL,'r'},
 		{"inetd",	optional_argument,			NULL,'s'},
 		{"message",	optional_argument,			NULL,'t'},
+		{"smallrecordtest",	optional_argument,	NULL,'u'},
 		{"nitrotest",	optional_argument,		NULL,'z'},
 		{0,0,0,0}
 	};
@@ -231,7 +234,7 @@ main(int argc,char **argv)
 
 	InitRandom();
 
-	while ((ch = getopt_long(argc, argv, "a:b:c:d:e:f:ghi:j:kl:m:no:p:q:r:st:z:", longopts, NULL)) != -1)
+	while ((ch = getopt_long(argc, argv, "a:b:c:d:e:f:ghi:j:kl:m:no:p:q:r:st:u:z:", longopts, NULL)) != -1)
 	{
 		switch(ch)
 		{
@@ -260,6 +263,7 @@ main(int argc,char **argv)
 			case	'r': adminport = atoi(optarg);break;
 			case	's': inetd = 1;break;
 			case	't': Message = strdup(optarg);break;
+			case	'u': smallrecordtest = atoi(optarg);break; 
 			case	'z': nitrotest = atoi(optarg);break;
 		}
 	}
@@ -402,6 +406,7 @@ int		ParamStrToCode(char *param)
 	else if(strcmp(param,"adminport") == 0)	code = 'r';
 	else if(strcmp(param,"inetd") == 0)		code = 's';
 	else if(strcmp(param,"message") == 0)		code = 't';
+	else if(strcmp(param,"smallrecordtest") == 0)	code = 'u';
 	else if(strcmp(param,"nitrotest") == 0)		code = 'z';
 	else {
 		fprintf(errFp,"Bad param %s\n",param);
@@ -480,6 +485,9 @@ char	* FormJSONConfig()
 
 	if(padtest)
 		cJSON_AddNumberToObject(root,"padtest", padtest);
+
+	if(smallrecordtest)
+		cJSON_AddNumberToObject(root,"smallrecordtest", smallrecordtest);
 
 	if(adminport)
 		cJSON_AddNumberToObject(root,"adminport", adminport);
@@ -563,6 +571,7 @@ int		SetupParams(int sd)
 			case	'r': adminport = cJc->valueint; break;
 			case	's': inetd = cJc->valueint; break;
 			case	't': Message = cJc->valuestring; break;
+			case	'u': smallrecordtest = cJc->valueint; 
 			case	'z': nitrotest = cJc->valueint; break;
 			default	: fprintf(errFp,"Bad option %s\n",cJc->string);
 		}
@@ -755,6 +764,9 @@ int	ForEachCipherFilter(const SSL_METHOD *M,const SSL_CIPHER *C)
 	if(padtest)
 		PadTest(M,C);
 
+	if(smallrecordtest)
+		SmallRecordTest(M,C);
+
 	return 0;
 }
 
@@ -827,6 +839,60 @@ int	PadTest(const SSL_METHOD *M,const SSL_CIPHER *C)
 }
 
 
+int	SmallRecordTest(const SSL_METHOD *M,const SSL_CIPHER *C)
+{
+#define		MAXSMALLREC		32
+
+	SSL_CTX		*CTX		= SSL_CTX_new(M);
+	SSL			*con		= NULL;
+	char		rBuf[8092];
+	int			sd, Ret=0,ecode;
+	BIO			*sbio, *bufBio;
+	unsigned	int	*iPtr;
+
+	iPtr = malloc(sizeof(int) * MAXSMALLREC);
+	for(ecode=1;ecode<=MAXSMALLREC;ecode++)
+		iPtr[ecode] = ecode;
+
+
+	CTX->cipher_list = sk_SSL_CIPHER_new_null();
+	sk_SSL_CIPHER_push(CTX->cipher_list,C);	
+	CTX->cipher_list_by_id = sk_SSL_CIPHER_dup(CTX->cipher_list);
+
+	if(Cert)
+		SSL_CTX_use_certificate(CTX,Cert);
+	if(Key)
+		SSL_CTX_use_PrivateKey(CTX,Key);
+
+	con	= SSL_new(CTX);
+
+	if((sd = MakeSocket(IP,PORT)) < 0)
+	{
+		return -1;
+	}
+	sbio = BIO_new_socket(sd,BIO_NOCLOSE);
+	SSL_set_bio(con,sbio,sbio);
+
+	SSL_set_connect_state(con);
+	SSL_set_no_empty_frag(con);
+	ecode	= SSL_connect(con);
+	if(ecode < 0)
+	{
+		return -1;
+	}
+
+	bufBio = BIO_new(BIO_f_buffer());
+	bufBio->next_bio = con->wbio;
+	con->wbio = bufBio;
+
+	for(ecode=1;ecode<=MAXSMALLREC;ecode++)
+		SSL_write(con,&iPtr[ecode],sizeof(int));
+	BIO_flush(con->wbio);
+
+	return 0;
+
+#undef		MAXSMALLREC
+}
 
 
 int	ForEachCipher(const SSL_METHOD *M,const SSL_CIPHER *C)

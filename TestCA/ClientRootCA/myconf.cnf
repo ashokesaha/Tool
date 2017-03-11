@@ -1,0 +1,90 @@
+dir				= .
+oid_section		= new_oids
+
+[ new_oids ]
+testoid1=1.2.3.4
+testoid2=${testoid1}.5.6
+
+[ ca ]
+default_ca				= CA_default		# The default ca section
+
+[ CA_default ]
+certs					= $dir/Certs
+crl_dir					= $dir/Crl
+database				= $dir/index.txt
+new_certs_dir			= $dir/Certs
+
+serial					= $dir/serial 		# The current serial number
+
+x509_extensions			= usr_ext		# The extentions to add to the cert
+default_days			= 3650			# how long to certify for
+default_crl_days		= 30			# how long before next CRL
+default_md			= sha1			# which md to use.
+certificate			= ClientRootCACert.pem
+private_key			= ClientRootCAKey.pem
+policy				= usr_policy
+
+
+[ usr_policy ]
+stateOrProvinceName		=	supplied
+countryName			=	supplied
+commonName			=	supplied
+emailAddress			=	supplied
+organizationName		=	supplied
+
+
+[ req ]
+default_bits			=	2048
+x509_extensions			=	usr_ext
+distinguished_name		=	req_distinguished_name
+policy				= 	usr_policy
+
+
+[ usr_ext ]
+basicConstraints		= CA:false
+#nsCertType			= client 
+#keyUsage 			= nonRepudiation, digitalSignature, keyEncipherment
+#subjectAltName 		= @alt_names
+authorityInfoAccess		= @aia_sect 
+subjectKeyIdentifier		= hash
+authorityKeyIdentifier	= keyid,issuer:always
+
+certificatePolicies=ia5org,1.2.3.4,1.5.6.7.8,@polsect
+#2.5.29.33				= DER:3080300A06030A0B0C06030102030000
+2.5.29.33				= DER:3080300A06030A0B0C0603010203300A060303050706030204060000
+
+ [polsect]
+
+ policyIdentifier = 1.3.5.8
+ CPS.1="http://my.host.name/"
+ CPS.2="http://my.your.name/"
+ userNotice.1=@notice
+
+ [notice]
+
+ explicitText="Explicit Text Here"
+ organization="Organisation Name"
+ noticeNumbers=1,2,3,4
+
+
+
+
+[ req_distinguished_name ]
+stateOrProvinceName		=	CA
+countryName				=	IN
+emailAddress			=	imca@123.com
+organizationalUnitName	=	CITRIX-INDIA HULSUR MGROAD PRESTIGE DYNASTY 
+commonName				=  	THIS IS	A TEST CERTIFICATE FOR TESTING BIG CERTIFICATES 
+localityName			=	Near French Loaf
+
+[alt_names]
+DNS.1=altname-1.myca.com 
+DNS.2=altname-2.myca.com 
+DNS.3=altname-3.myca.com 
+DNS.4=altname-4.myca.com 
+email.1=mail-1@myca.com
+email.2=mail-2@myca.com
+
+
+[aia_sect]
+caIssuers;URI=http://server.whatever.org/cert-path

@@ -1,0 +1,3 @@
+OPENSSL=../openssl-1.0.1g/apps/openssl
+
+$OPENSSL req -new -newkey rsa:2048 -x509 -days 3650 -extensions ca_ext -keyout test_ca_key.pem -out test_ca_cert.pem -config ./root.cnf -nodes 

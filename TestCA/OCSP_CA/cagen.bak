@@ -1,0 +1,32 @@
+
+
+
+mkdir $1
+cp serial $1
+cd $1
+touch index.txt
+mkdir scripts
+cp ../gencacert scripts/
+cp ../certgen scripts/
+cp ../root.cnf .
+cp ../myconf.cnf .
+
+openssl req -new -newkey rsa:2048 -x509 -days 3650 -extensions ca_ext -keyout $1_cakey.pem -out $1_cacert.pem   -subj /CN=$1_CA/C=IN/O=CITRIX/OU=ANG/ST=KA/emailAddress=$1_CA@$1_mail.com   -config ./root.cnf -sha256 -nodes
+
+i=$2
+while true
+do
+if test $i -le $3
+then
+./scripts/certgen ${i}_$1 $1
+rm ${i}_$1_req.pem
+x=$((i++))
+else
+break
+fi
+done
+
+
+cd ..
+
+#openssl req -newkey rsa:2048  -out $tmp_req.pem -keyout $1_key.pem -config ./root.cnf -subj /CN=$1_server/C=IN/O=CITRIX/OU=ANG/ST=KA/emailAddress=$1@test_ca.com  -nodes

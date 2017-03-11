@@ -123,7 +123,7 @@ static OCSP_RESPONSE *query_responder(BIO *err, BIO *cbio, char *path,
 int MAIN(int, char **);
 
 int MAIN(int argc, char **argv)
-	{
+{
 	ENGINE *e = NULL;
 	char **args;
 	char *host = NULL, *port = NULL, *path = "/";
@@ -932,7 +932,7 @@ end:
 
 static int add_ocsp_cert(OCSP_REQUEST **req, X509 *cert, const EVP_MD *cert_id_md,X509 *issuer,
 				STACK_OF(OCSP_CERTID) *ids)
-	{
+{
 	OCSP_CERTID *id;
 	if(!issuer)
 		{
@@ -949,11 +949,11 @@ static int add_ocsp_cert(OCSP_REQUEST **req, X509 *cert, const EVP_MD *cert_id_m
 	err:
 	BIO_printf(bio_err, "Error Creating OCSP request\n");
 	return 0;
-	}
+}
 
 static int add_ocsp_serial(OCSP_REQUEST **req, char *serial,const EVP_MD *cert_id_md, X509 *issuer,
 				STACK_OF(OCSP_CERTID) *ids)
-	{
+{
 	OCSP_CERTID *id;
 	X509_NAME *iname;
 	ASN1_BIT_STRING *ikey;
@@ -982,13 +982,13 @@ static int add_ocsp_serial(OCSP_REQUEST **req, char *serial,const EVP_MD *cert_i
 	err:
 	BIO_printf(bio_err, "Error Creating OCSP request\n");
 	return 0;
-	}
+}
 
 static int print_ocsp_summary(BIO *out, OCSP_BASICRESP *bs, OCSP_REQUEST *req,
 			      STACK_OF(OPENSSL_STRING) *names,
 			      STACK_OF(OCSP_CERTID) *ids, long nsec,
 			      long maxage)
-	{
+{
 	OCSP_CERTID *id;
 	char *name;
 	int i;
@@ -1047,14 +1047,14 @@ static int print_ocsp_summary(BIO *out, OCSP_BASICRESP *bs, OCSP_REQUEST *req,
 		}
 
 	return 1;
-	}
+}
 
 
 static int make_ocsp_response(OCSP_RESPONSE **resp, OCSP_REQUEST *req, CA_DB *db,
 			X509 *ca, X509 *rcert, EVP_PKEY *rkey,
 			STACK_OF(X509) *rother, unsigned long flags,
 			int nmin, int ndays)
-	{
+{
 	ASN1_TIME *thisupd = NULL, *nextupd = NULL;
 	OCSP_CERTID *cid, *ca_id = NULL;
 	OCSP_BASICRESP *bs = NULL;
@@ -1153,10 +1153,10 @@ static int make_ocsp_response(OCSP_RESPONSE **resp, OCSP_REQUEST *req, CA_DB *db
 	OCSP_BASICRESP_free(bs);
 	return ret;
 
-	}
+}
 
 static char **lookup_serial(CA_DB *db, ASN1_INTEGER *ser)
-	{
+{
 	int i;
 	BIGNUM *bn = NULL;
 	char *itmp, *row[DB_NUMBER],**rrow;
@@ -1172,12 +1172,12 @@ static char **lookup_serial(CA_DB *db, ASN1_INTEGER *ser)
 	rrow=TXT_DB_get_by_index(db->db,DB_serial,row);
 	OPENSSL_free(itmp);
 	return rrow;
-	}
+}
 
 /* Quick and dirty OCSP server: read in and parse input request */
 
 static BIO *init_responder(char *port)
-	{
+{
 	BIO *acbio = NULL, *bufbio = NULL;
 	bufbio = BIO_new(BIO_f_buffer());
 	if (!bufbio) 
@@ -1205,10 +1205,10 @@ static BIO *init_responder(char *port)
 	BIO_free_all(acbio);
 	BIO_free(bufbio);
 	return NULL;
-	}
+}
 
 static int do_responder(OCSP_REQUEST **preq, BIO **pcbio, BIO *acbio, char *port)
-	{
+{
 	int have_post = 0, len;
 	OCSP_REQUEST *req = NULL;
 	char inbuf[1024];
@@ -1258,10 +1258,10 @@ static int do_responder(OCSP_REQUEST **preq, BIO **pcbio, BIO *acbio, char *port
 
 	return 1;
 
-	}
+}
 
 static int send_ocsp_response(BIO *cbio, OCSP_RESPONSE *resp)
-	{
+{
 	char http_resp[] = 
 		"HTTP/1.0 200 OK\r\nContent-type: application/ocsp-response\r\n"
 		"Content-Length: %d\r\n\r\n";
@@ -1271,12 +1271,12 @@ static int send_ocsp_response(BIO *cbio, OCSP_RESPONSE *resp)
 	i2d_OCSP_RESPONSE_bio(cbio, resp);
 	(void)BIO_flush(cbio);
 	return 1;
-	}
+}
 
 static OCSP_RESPONSE *query_responder(BIO *err, BIO *cbio, char *path,
 				STACK_OF(CONF_VALUE) *headers,
 				OCSP_REQUEST *req, int req_timeout)
-	{
+{
 	int fd;
 	int rv;
 	int i;
@@ -1368,13 +1368,13 @@ static OCSP_RESPONSE *query_responder(BIO *err, BIO *cbio, char *path,
 		OCSP_REQ_CTX_free(ctx);
 
 	return rsp;
-	}
+}
 
 OCSP_RESPONSE *process_responder(BIO *err, OCSP_REQUEST *req,
 			char *host, char *path, char *port, int use_ssl,
 			STACK_OF(CONF_VALUE) *headers,
 			int req_timeout)
-	{
+{
 	BIO *cbio = NULL;
 	SSL_CTX *ctx = NULL;
 	OCSP_RESPONSE *resp = NULL;
@@ -1416,6 +1416,6 @@ OCSP_RESPONSE *process_responder(BIO *err, OCSP_REQUEST *req,
 	if (ctx)
 		SSL_CTX_free(ctx);
 	return resp;
-	}
+}
 
 #endif

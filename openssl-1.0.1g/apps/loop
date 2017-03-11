@@ -1,8 +1,6 @@
 #./ashoke_client --ip=10.102.28.166 --port=443 --cert=./client_one_cert.pem  --key=./client_one_key.pem  --timeout=100  --cipher=ECDHE-RSA-AES128-SHA  --burst=10  --iter=10
 
-
 #./ashoke_client --ip=10.102.28.112 --port=443 --cert=./client_one_cert.pem  --key=./client_one_key.pem  --timeout=2000  --cipher=$1
-
 
 #./ashoke_client --ip=10.102.28.236 --port=443 --cert=./client_one_cert.pem  --key=./client_one_key.pem  --version=tls1_2 --loop=1000 --burst=20  --cipher=ECDHE-RSA-AES256-GCM-SHA384 --timeout=100 
 
@@ -10,9 +8,16 @@
 
 #./ashoke_client --ip=$1 --port=$2 --cert=./client_one_cert.pem  --key=./client_one_key.pem  --timeout=100  --reuse=2 --reneg=1  --cipher=ECDHE-RSA-AES128-SHA  --version=tls12
 
-
 #./ashoke_client --ip=$1 --port=$2 --cert=./client_one_cert.pem  --key=./client_one_key.pem  --timeout=300  --adminport=2345 --inetd --loop=100
 
 #./ashoke_client --ip=$1 --port=$2 --cert=./client_one_cert.pem  --key=./client_one_key.pem  --timeout=300  --loop=100 --burst=5 --adminport=2345 --inetd
 
-./ashoke_client --ip=$1 --port=$2 --cert=./client_one_cert.pem  --key=./client_one_key.pem  --timeout=300 
+#./ashoke_client --ip=$1 --port=$2 --cert=./client_one_cert.pem  --key=./client_one_key.pem  --timeout=300 --reuse=3  --burst=5
+
+#./ashoke_client --ip=$1 --port=$2 --cert=./client_one_cert.pem  --key=./client_one_key.pem  --timeout=200 --version=tls12 --cipher=AES256-SHA --reneg --ckv=2 --print
+./ashoke_client --ip=$1 --port=$2 --cert=./client_one_cert.pem  --key=./client_one_key.pem  --timeout=200  --version=tls12 --cipher=AES256-GCM-SHA384 --burst=5  --iter=100000
+
+
+#./ashoke_client --ip=$1 --port=$2 --cert=./client_one_cert.pem  --key=./client_one_key.pem  --timeout=200  --version=tls1 --cipher=AES256-SHA --ckv=0
+#./ashoke_client --ip=$1 --port=$2 --cert=./client_one_cert.pem  --key=./client_one_key.pem  --timeout=200  --version=tls1 --cipher=AES256-SHA --ckv=1
+#./ashoke_client --ip=$1 --port=$2 --cert=./client_one_cert.pem  --key=./client_one_key.pem  --timeout=200  --version=tls1 --cipher=AES256-SHA --ckv=2
