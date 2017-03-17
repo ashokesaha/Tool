@@ -932,11 +932,11 @@ int	ForEachCipher(const SSL_METHOD *M,const SSL_CIPHER *C)
 
 	for(;;)
 	{
+		int		sd = 0;
+		BIO		*sbio = NULL;
+
 		do 
 		{
-			int		sd;
-			BIO		*sbio;
-
 			con	= SSL_new(CTX);
 
 			if(recBoundary == 1)
@@ -1106,15 +1106,19 @@ do_reneg:
 			reConnect--;
 		}
 
+	sd = BIO_get_fd(con->wbio,NULL);
+	close(sd);
+	SSL_shutdown(con);
+	BIO_free(con->wbio);
 	}
 
 end:
 	PrintSummary(M->version,C->name,NULL,FailMessage(Ret));
 
-	sd = BIO_get_fd(con->wbio,NULL);
-	close(sd);
-	SSL_shutdown(con);
-	BIO_free(con->wbio);
+	//sd = BIO_get_fd(con->wbio,NULL);
+	//close(sd);
+	//SSL_shutdown(con);
+	//BIO_free(con->wbio);
 }
 
 
@@ -1318,12 +1322,12 @@ int	doNitroTest(int port)
 	int		sfd;
 	cJSON	*json;
 
+#if 0
 	sfd	=	MakeSocket("127.0.0.1",port);
 
 	json	= javaLogin("nsroot","nsroot");
 	jsonSendRecv(json,sfd);
 
-#if 0
 	json	= javaAddHTTPVserver("test_vsrvr_1","10.102.28.134",8080);
 	json	= javaDelVserver("test_vsrvr_1");
 	jsonSendRecv(json,sfd);
@@ -1359,13 +1363,13 @@ int	doNitroTest(int port)
 	jsonSendRecv(json,sfd);
 	json	= javaBindUnbindCipher("61_443","DES",0,1);
 	jsonSendRecv(json,sfd);
-#endif
 
 	json	= javaUnbindAllCipher("v1",1);
 	jsonSendRecv(json,sfd);
 	json	= javaUnbindAllCipher("61_443",0);
 	jsonSendRecv(json,sfd);
 
+#endif
 
 
 	return 0;
