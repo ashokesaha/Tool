@@ -268,6 +268,11 @@ main(int argc,char **argv)
 		}
 	}
 
+sprintf(filename,"ashoke_client.%d.log", getpid());
+freopen(fiename,"w",stdout);
+sprintf(filename,"ashoke_client.%d.log", getpid());
+freopen(fiename,"w",stderr);
+
 	if(nitrotest)
 	{
 		doNitroTest(8090);
@@ -337,8 +342,6 @@ main(int argc,char **argv)
 			setbuf(PeerList[PeerCount].fp,NULL);
 			PeerCount++;
 		}
-		//fclose(fp);
-		//free(buf);
 
 
 		do 
@@ -366,7 +369,7 @@ main(int argc,char **argv)
 	}
 	else
 	{
-		chdir("/tmp");
+		chdir("/mnt/ToolPkg");
 		/* Should be called from inetd */
 		SetupParams(0);
 		doTest();
@@ -515,28 +518,25 @@ int		SetupParams(int sd)
 	int		valInt;
 
 
-	errFp = fopen("/tmp/tool_err","w");
-	setbuf(errFp,NULL);
 	bzero(buf,sizeof(buf));
 
 	while((ret = recv(sd,buf+buflen,sizeof(buf)-buflen,0)) > 0)
 	{
 		buflen += ret;
 	}
+
+	printf("Received: %s\n",buf);
 	
 	if(buf[0] == '[')
 		bcopy(buf+1,buf,strlen(buf)-1);
 
-	fprintf(errFp,"SetupParams: read data [%s]\n",buf);
-	fprintf(errFp,"SetupParams: renegCount [%d]\n",renegCount);
-	
 	cJ	= cJSON_Parse(buf);
 	if(!cJ)
 	{
-		fprintf(errFp,"cJSON_Parse failed for [%s]\n",buf);
-		fclose(errFp);
+		printf("cJSON_Parse failed\n");
 		exit(0);
 	}
+	printf("cJSON_Parse Successful\n");
 
 
 	cJc = cJ->child;
@@ -573,13 +573,65 @@ int		SetupParams(int sd)
 			case	't': Message = cJc->valuestring; break;
 			case	'u': smallrecordtest = cJc->valueint; 
 			case	'z': nitrotest = cJc->valueint; break;
-			default	: fprintf(errFp,"Bad option %s\n",cJc->string);
+			default	: fprintf(stderr,"Bad option %s\n",cJc->string);
 		}
 		cJc = cJc->next;
 	}
 
 	return 0;
 }
+
+
+int ShowParams()
+{
+if(IP	!= NULL)
+printf("ip : %s\n", IP);
+
+if(BINDIP 	!= NULL)
+printf("bindip: %s\n", BINDIP);
+
+if(PORT != 0)
+printf("port: %d\n", PORT);
+
+if(CertFile != NULL)
+printf("cert: %s\n", CertFile);
+
+if(KeyFile != NULL)
+printf("key: %s\n", KeyFile);
+
+if(reuseCount)
+printf("reuse : %d\n", reuseCount);
+
+if(renegCount)
+printf("reneg : %d\n", renegCount);
+
+if(toutmsec)
+printf("tout : %d\n", toutmsec);
+
+if(iterCount)
+printf("iter : %d\n", iterCount);
+
+if(burstSize)
+printf("burstSize : %d\n", burstSize);
+
+if(burstCount)
+printf("burstCount : %d\n", burstCount);
+
+
+int			versionFilter = -1;
+int			padtest = 0;
+int			smallrecordtest = 0;
+int			nitrotest = 0;
+int			padbyte = 0;
+int			adminport = 0;
+int			adminsock = 0;
+int			recBoundary = 0;
+char		*CertPath = DEFCERTPATH;
+
+
+
+}
+
 
 
 int		doTest()
@@ -918,6 +970,8 @@ int	ForEachCipher(const SSL_METHOD *M,const SSL_CIPHER *C)
 	if(checkVersionCipher(M->version & 0xFF,C->name))
 		return 0;
 	*************************************************/
+
+	SSL_CTX_load_verify_locations(CTX,"cafile",NULL);
 
 	CTX->cipher_list = sk_SSL_CIPHER_new_null();
 	sk_SSL_CIPHER_push(CTX->cipher_list,C);	
