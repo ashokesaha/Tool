@@ -151,7 +151,7 @@ static int x509_subject_cmp(X509 **a, X509 **b)
 #endif
 
 int X509_verify_cert(X509_STORE_CTX *ctx)
-	{
+{
 	X509 *x,*xtmp,*chain_ss=NULL;
 	int bad_chain = 0;
 	X509_VERIFY_PARAM *param = ctx->param;
@@ -160,34 +160,34 @@ int X509_verify_cert(X509_STORE_CTX *ctx)
 	int (*cb)(int xok,X509_STORE_CTX *xctx);
 	STACK_OF(X509) *sktmp=NULL;
 	if (ctx->cert == NULL)
-		{
+	{
 		X509err(X509_F_X509_VERIFY_CERT,X509_R_NO_CERT_SET_FOR_US_TO_VERIFY);
 		return -1;
-		}
+	}
 
 	cb=ctx->verify_cb;
 
 	/* first we make sure the chain we are going to build is
 	 * present and that the first entry is in place */
 	if (ctx->chain == NULL)
-		{
+	{
 		if (	((ctx->chain=sk_X509_new_null()) == NULL) ||
 			(!sk_X509_push(ctx->chain,ctx->cert)))
-			{
+		{
 			X509err(X509_F_X509_VERIFY_CERT,ERR_R_MALLOC_FAILURE);
 			goto end;
-			}
+		}
 		CRYPTO_add(&ctx->cert->references,1,CRYPTO_LOCK_X509);
 		ctx->last_untrusted=1;
-		}
+	}
 
 	/* We use a temporary STACK so we can chop and hack at it */
 	if (ctx->untrusted != NULL
 	    && (sktmp=sk_X509_dup(ctx->untrusted)) == NULL)
-		{
+	{
 		X509err(X509_F_X509_VERIFY_CERT,ERR_R_MALLOC_FAILURE);
 		goto end;
-		}
+	}
 
 	num=sk_X509_num(ctx->chain);
 	x=sk_X509_value(ctx->chain,num-1);
@@ -195,7 +195,7 @@ int X509_verify_cert(X509_STORE_CTX *ctx)
 
 
 	for (;;)
-		{
+	{
 		/* If we have enough, we break */
 		if (depth < num) break; /* FIXME: If this happens, we should take
 		                         * note of it and, if appropriate, use the
@@ -208,7 +208,7 @@ int X509_verify_cert(X509_STORE_CTX *ctx)
 
 		/* If we were passed a cert chain, use it first */
 		if (ctx->untrusted != NULL)
-			{
+		{
 			xtmp=find_issuer(ctx, sktmp,x);
 			if (xtmp != NULL)
 				{
@@ -226,9 +226,9 @@ int X509_verify_cert(X509_STORE_CTX *ctx)
 				 * the next one */
 				continue;
 				}
-			}
-		break;
 		}
+		break;
+	}
 
 	/* at this point, chain should contain a list of untrusted
 	 * certificates.  We now need to add at least one trusted one,
@@ -241,10 +241,10 @@ int X509_verify_cert(X509_STORE_CTX *ctx)
 	i=sk_X509_num(ctx->chain);
 	x=sk_X509_value(ctx->chain,i-1);
 	if (ctx->check_issued(ctx, x, x))
-		{
+	{
 		/* we have a self signed certificate */
 		if (sk_X509_num(ctx->chain) == 1)
-			{
+		{
 			/* We have a single self signed certificate: see if
 			 * we can find it in the store. We must have an exact
 			 * match to avoid possible impersonation.
@@ -270,16 +270,16 @@ int X509_verify_cert(X509_STORE_CTX *ctx)
 				(void)sk_X509_set(ctx->chain, i - 1, x);
 				ctx->last_untrusted=0;
 				}
-			}
+		}
 		else
-			{
+		{
 			/* extract and save self signed certificate for later use */
 			chain_ss=sk_X509_pop(ctx->chain);
 			ctx->last_untrusted--;
 			num--;
 			x=sk_X509_value(ctx->chain,num-1);
-			}
 		}
+	}
 
 	/* We now lookup certs from the certificate store */
 	for (;;)
@@ -389,7 +389,7 @@ end:
 	if (sktmp != NULL) sk_X509_free(sktmp);
 	if (chain_ss != NULL) X509_free(chain_ss);
 	return ok;
-	}
+}
 
 
 /* Given a STACK_OF(X509) find the issuer of cert (if any)

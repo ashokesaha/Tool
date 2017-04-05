@@ -78,7 +78,7 @@ static int v_verbose=0, vflags = 0;
 int MAIN(int, char **);
 
 int MAIN(int argc, char **argv)
-	{
+{
 	ENGINE *e = NULL;
 	int i,ret=1, badarg = 0;
 	char *CApath=NULL,*CAfile=NULL;
@@ -110,47 +110,47 @@ int MAIN(int argc, char **argv)
 	argc--;
 	argv++;
 	for (;;)
-		{
+	{
 		if (argc >= 1)
-			{
+		{
 			if (strcmp(*argv,"-CApath") == 0)
-				{
+			{
 				if (argc-- < 1) goto end;
 				CApath= *(++argv);
-				}
+			}
 			else if (strcmp(*argv,"-CAfile") == 0)
-				{
+			{
 				if (argc-- < 1) goto end;
 				CAfile= *(++argv);
-				}
+			}
 			else if (args_verify(&argv, &argc, &badarg, bio_err,
 									&vpm))
-				{
+			{
 				if (badarg)
 					goto end;
 				continue;
-				}
+			}
 			else if (strcmp(*argv,"-untrusted") == 0)
-				{
+			{
 				if (argc-- < 1) goto end;
 				untfile= *(++argv);
-				}
+			}
 			else if (strcmp(*argv,"-trusted") == 0)
-				{
+			{
 				if (argc-- < 1) goto end;
 				trustfile= *(++argv);
-				}
+			}
 			else if (strcmp(*argv,"-CRLfile") == 0)
-				{
+			{
 				if (argc-- < 1) goto end;
 				crlfile= *(++argv);
-				}
+			}
 #ifndef OPENSSL_NO_ENGINE
 			else if (strcmp(*argv,"-engine") == 0)
-				{
+			{
 				if (--argc < 1) goto end;
 				engine= *(++argv);
-				}
+			}
 #endif
 			else if (strcmp(*argv,"-help") == 0)
 				goto end;
@@ -162,10 +162,10 @@ int MAIN(int argc, char **argv)
 				break;
 			argc--;
 			argv++;
-			}
+		}
 		else
 			break;
-		}
+	}
 
 #ifndef OPENSSL_NO_ENGINE
         e = setup_engine(bio_err, engine, 0);
@@ -176,67 +176,72 @@ int MAIN(int argc, char **argv)
 
 	lookup=X509_STORE_add_lookup(cert_ctx,X509_LOOKUP_file());
 	if (lookup == NULL) abort();
-	if (CAfile) {
+	if (CAfile) 
+	{
 		i=X509_LOOKUP_load_file(lookup,CAfile,X509_FILETYPE_PEM);
 		if(!i) {
 			BIO_printf(bio_err, "Error loading file %s\n", CAfile);
 			ERR_print_errors(bio_err);
 			goto end;
 		}
-	} else X509_LOOKUP_load_file(lookup,NULL,X509_FILETYPE_DEFAULT);
+	} 
+	else X509_LOOKUP_load_file(lookup,NULL,X509_FILETYPE_DEFAULT);
 		
 	lookup=X509_STORE_add_lookup(cert_ctx,X509_LOOKUP_hash_dir());
 	if (lookup == NULL) abort();
-	if (CApath) {
+	if (CApath) 
+	{
 		i=X509_LOOKUP_add_dir(lookup,CApath,X509_FILETYPE_PEM);
 		if(!i) {
 			BIO_printf(bio_err, "Error loading directory %s\n", CApath);
 			ERR_print_errors(bio_err);
 			goto end;
 		}
-	} else X509_LOOKUP_add_dir(lookup,NULL,X509_FILETYPE_DEFAULT);
+	} 
+	else X509_LOOKUP_add_dir(lookup,NULL,X509_FILETYPE_DEFAULT);
 
 	ERR_clear_error();
 
 	if(untfile)
-		{
+	{
 		untrusted = load_certs(bio_err, untfile, FORMAT_PEM,
 					NULL, e, "untrusted certificates");
 		if(!untrusted)
 			goto end;
-		}
+	}
 
 	if(trustfile)
-		{
+	{
 		trusted = load_certs(bio_err, trustfile, FORMAT_PEM,
 					NULL, e, "trusted certificates");
 		if(!trusted)
 			goto end;
-		}
+	}
 
 	if(crlfile)
-		{
+	{
 		crls = load_crls(bio_err, crlfile, FORMAT_PEM,
 					NULL, e, "other CRLs");
 		if(!crls)
 			goto end;
-		}
+	}
 
 	ret = 0;
 	if (argc < 1)
-		{ 
+	{ 
 		if (1 != check(cert_ctx, NULL, untrusted, trusted, crls, e))
 			ret = -1;
-		}
+	}
 	else
-		{
+	{
 		for (i=0; i<argc; i++)
 			if (1 != check(cert_ctx,argv[i], untrusted, trusted, crls, e))
 				ret = -1;
-		}
+	}
 
 end:
-	if (ret == 1) {
+	if (ret == 1) 
+	{
 		BIO_printf(bio_err,"usage: verify [-verbose] [-CApath path] [-CAfile file] [-purpose purpose] [-crl_check]");
 		BIO_printf(bio_err," [-attime timestamp]");
 #ifndef OPENSSL_NO_ENGINE
@@ -246,14 +251,15 @@ end:
 
 		BIO_printf(bio_err,"recognized usages:\n");
 		for(i = 0; i < X509_PURPOSE_get_count(); i++)
-			{
+		{
 			X509_PURPOSE *ptmp;
 			ptmp = X509_PURPOSE_get0(i);
 			BIO_printf(bio_err, "\t%-10s\t%s\n",
 				   X509_PURPOSE_get0_sname(ptmp),
 				   X509_PURPOSE_get0_name(ptmp));
-			}
+		}
 	}
+
 	if (vpm) X509_VERIFY_PARAM_free(vpm);
 	if (cert_ctx != NULL) X509_STORE_free(cert_ctx);
 	sk_X509_pop_free(untrusted, X509_free);
@@ -261,15 +267,19 @@ end:
 	sk_X509_CRL_pop_free(crls, X509_CRL_free);
 	apps_shutdown();
 	OPENSSL_EXIT(ret < 0 ? 2 : ret);
-	}
+}
+
+
 
 static int check(X509_STORE *ctx, char *file,
 		STACK_OF(X509) *uchain, STACK_OF(X509) *tchain,
 		STACK_OF(X509_CRL) *crls, ENGINE *e)
-	{
+{
 	X509 *x=NULL;
 	int i=0,ret=0;
 	X509_STORE_CTX *csc;
+
+printf("%s:(%s:%d) : file %s\n",__FUNCTION__,__FILE__,__LINE__,file);
 
 	x = load_cert(bio_err, file, FORMAT_PEM, NULL, e, "certificate file");
 	if (x == NULL)
@@ -278,16 +288,16 @@ static int check(X509_STORE *ctx, char *file,
 
 	csc = X509_STORE_CTX_new();
 	if (csc == NULL)
-		{
+	{
 		ERR_print_errors(bio_err);
 		goto end;
-		}
+	}
 	X509_STORE_set_flags(ctx, vflags);
 	if(!X509_STORE_CTX_init(csc,ctx,x,uchain))
-		{
+	{
 		ERR_print_errors(bio_err);
 		goto end;
-		}
+	}
 	if(tchain) X509_STORE_CTX_trusted_stack(csc, tchain);
 	if (crls)
 		X509_STORE_CTX_set0_crls(csc, crls);
@@ -295,21 +305,24 @@ static int check(X509_STORE *ctx, char *file,
 	X509_STORE_CTX_free(csc);
 
 	ret=0;
+
 end:
 	if (i > 0)
-		{
+	{
 		fprintf(stdout,"OK\n");
 		ret=1;
-		}
+	}
 	else
 		ERR_print_errors(bio_err);
+
 	if (x != NULL) X509_free(x);
 
 	return(ret);
-	}
+}
+
 
 static int MS_CALLBACK cb(int ok, X509_STORE_CTX *ctx)
-	{
+{
 	int cert_error = X509_STORE_CTX_get_error(ctx);
 	X509 *current_cert = X509_STORE_CTX_get_current_cert(ctx);
 
@@ -359,4 +372,4 @@ static int MS_CALLBACK cb(int ok, X509_STORE_CTX *ctx)
 	if (!v_verbose)
 		ERR_clear_error();
 	return(ok);
-	}
+}

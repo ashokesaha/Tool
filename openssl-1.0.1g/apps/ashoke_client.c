@@ -191,12 +191,14 @@ int		PrintOptions();
 
 extern long long test_error_inj;
 
+int debug_continue = 1;
 main(int argc,char **argv)
 {
 	BIO			*in = NULL;
 	RSA			*rsa = NULL;
 	char	 	ch;
 	char		*cert=NULL,*key=NULL;
+	char		filename[64];
 	FILE		*fout = NULL;
 	int			addrlen;
 	int			sz,szlen,sd;
@@ -268,10 +270,6 @@ main(int argc,char **argv)
 		}
 	}
 
-sprintf(filename,"ashoke_client.%d.log", getpid());
-freopen(fiename,"w",stdout);
-sprintf(filename,"ashoke_client.%d.log", getpid());
-freopen(fiename,"w",stderr);
 
 	if(nitrotest)
 	{
@@ -370,8 +368,16 @@ freopen(fiename,"w",stderr);
 	else
 	{
 		chdir("/mnt/ToolPkg");
+
+		//sprintf(filename,"ashoke_client.%d.log", getpid());
+		//freopen(filename,"w",stdout);
+		//sprintf(filename,"ashoke_client.%d.err", getpid());
+		//freopen(filename,"w",stderr);
+
 		/* Should be called from inetd */
 		SetupParams(0);
+		ShowParams();
+		fflush(stdout);
 		doTest();
 	}
 	return 0;
@@ -516,6 +522,7 @@ int		SetupParams(int sd)
 	char	*type;
 	char	*valStr;
 	int		valInt;
+	struct	timeval tv;
 
 
 	bzero(buf,sizeof(buf));
@@ -523,10 +530,12 @@ int		SetupParams(int sd)
 	while((ret = recv(sd,buf+buflen,sizeof(buf)-buflen,0)) > 0)
 	{
 		buflen += ret;
+		tv.tv_sec = 0;
+		tv.tv_usec = 100 * 1000;
+		if(setsockopt(0,SOL_SOCKET,SO_RCVTIMEO,&tv,sizeof(tv)))
+			printf("setsockopt error:\n");
 	}
 
-	printf("Received: %s\n",buf);
-	
 	if(buf[0] == '[')
 		bcopy(buf+1,buf,strlen(buf)-1);
 
@@ -534,9 +543,11 @@ int		SetupParams(int sd)
 	if(!cJ)
 	{
 		printf("cJSON_Parse failed\n");
+		fflush(stderr);
 		exit(0);
 	}
-	printf("cJSON_Parse Successful\n");
+	//printf("cJSON_Parse Successful\n");
+	//fflush(stdout);
 
 
 	cJc = cJ->child;
@@ -983,7 +994,6 @@ int	ForEachCipher(const SSL_METHOD *M,const SSL_CIPHER *C)
 		SSL_CTX_use_PrivateKey(CTX,Key);
 
 
-
 	for(;;)
 	{
 		int		sd = 0;
@@ -1215,7 +1225,7 @@ char *FailMessage(int failCode)
 void PrintSummary(int version,const char *cipher, char *options,char *result)
 {
 	printf("%04x%s%32s%s%32s\n",version,SPACE4,cipher,SPACE4,result);
-	//fflush(stdout);
+	fflush(stdout);
 }
 
 
