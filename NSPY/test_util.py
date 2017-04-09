@@ -19,12 +19,25 @@ from test_config import *
 
 
 def	GenerateNames(prefix,num=0) :
-	print 'GenerateNames {}: entering function'.format(prefix)
 	i = 1
 	try :
-		print 'GenerateNames {}: entering while'.format(prefix)
 		while True :
 			yield '{}_{}'.format(prefix,i)
+			i += 1
+			if ((num > 0) and (i > num)) :
+				break
+
+	finally :
+		pass
+
+
+
+def	GenerateNumbers(first,num=0) :
+	i = 1
+	try :
+		while True :
+			yield first
+			first += 1
 			i += 1
 			if ((num > 0) and (i > num)) :
 				break
@@ -39,6 +52,17 @@ def	Login(nsip,name='nsroot',passwd='nsroot',timeout=10000) :
 	ns.timeout = 10000
 	ns.set_credential(name,passwd)
 	ns.login()
+
+	DUT.SESSION = ns
+	GetIPS(ns)
+
+	if not DUT.NSIP :
+		raise TestException(103)
+	elif not DUT.SNIP :
+		raise TestException(101)
+	elif not DUT.VIP :
+		raise TestException(102)
+
 	return ns
 
 
@@ -48,6 +72,10 @@ def	Login(nsip,name='nsroot',passwd='nsroot',timeout=10000) :
 def	GetIPS(session) :
 	ips = NS.nsip.get(session)
 	d = {x.type:x.ipaddress for x in ips}
+
+	DUT.NSIP 	= d[NS.nsip.Type.NSIP]
+	DUT.VIP 	= d[NS.nsip.Type.VIP]
+	DUT.SNIP 	= d[NS.nsip.Type.SNIP]
 	return d
 
 
@@ -151,43 +179,6 @@ def AddDelSSLVserver(session,vsrvrlist,isdel=0) :
 
 
 
-def AddDelOneSvc(session,svc,type,ip,port,isdel=0) :
-	ret = 0
-	try :
-		s = NSSVC()
-		s.name = svc
-		s.ip   = ip
-		s.port = port
-		s.servicetype = type
-		
-		if(isdel == 0) :
-			NSSVC.add(session,s)
-		else :
-			NSSVC.delete(session,s)
-
-	except NITROEXCEPTION.nitro_exception as e :
-		print 'Nitro exception:::: {0}'.format(e.message)
-		ret = e.errorcode
-
-	return ret
-
-
-
-
-
-def AddDelSvc(session,isdel=0) :
-	ret = 0
-	try :
-		for (name,type,ip,port) in TestBEServices :
-			AddDelOneSvc(session,name,type,ip,port,isdel)
-
-	except NITROEXCEPTION.nitro_exception as e :
-		print 'Nitro exception:::: {0}'.format(e.message)
-		ret = e.errorcode
-
-	return ret
-
-
 
 			
 def BindUnbindOneVsrvrCKey(session,server,certkey,isunbind=0,issni=False,isca=False,ocspcheck=False,crlcheck=False) :
@@ -255,150 +246,12 @@ def	GetAllCipherSuites(session) :
 
 
 
-def	SetSSLSvcVersion(session,svc,ssl3=1,tls1=1,tls11=1,tls12=1,isupdate=1) :
-	ret = 0
-	try :
-		s = SSLSVC()
-		s.servicename = svc
 
-		if(ssl3 == 1) :
-			s.ssl3 = SSLSVC.Ssl3.ENABLED
-		else :		
-			s.ssl3 = SSLSVC.Ssl3.DISABLED
-
-		if(tls1 == 1) :
-			s.tls1 = SSLSVC.Tls1.ENABLED
-		else :		
-			s.tls1 = SSLSVC.Tls1.DISABLED
-
-		if(tls11 == 1) :
-			s.tls11 = SSLSVC.Tls11.ENABLED
-		else :		
-			s.tls11 = SSLSVC.Tls11.DISABLED
-
-		if(tls12 == 1) :
-			s.tls12 = SSLSVC.Tls12.ENABLED
-		else :		
-			s.tls12 = SSLSVC.Tls12.DISABLED
-
-		if(isupdate == 1) :
-			SSLSVC.update(session,s)
-
-	except NITROEXCEPTION.nitro_exception as e :
-		print 'Nitro exception:::: {0}'.format(e.message)
-		ret = e.errorcode
-
-	return ret
-
-
-
-
-
-def	SetSSLSvcDH(session,svc,dhfile='dh2048',dh=1,dhcount=0,isupdate=1) :
-	ret = 0
-	try :
-		s = SSLSVC()
-		s.servicename = svc
-		if(dh == 1) :
-			s.dh = SSLSVC.Dh.ENABLED
-		else :
-			s.dh = SSLSVC.Dh.DISABLED
-		s.dhcount = dhcount
-		s.dhfile = dhfile
-
-		if(isupdate == 1) :
-			SSLSVC.update(session,s)
-
-	except NITROEXCEPTION.nitro_exception as e :
-		print 'Nitro exception:::: {0}'.format(e.message)
-		ret = e.errorcode
-	return ret
-
-
-
-
-
-def	SetSSLSvcERsa(session,svc,ersa=1,ersacount=0,isupdate=1) :
-	ret = 0
-	try :
-		s = SSLSVC()
-		s.servicename = svc
-		if(ersa == 1) :
-			s.ersa = SSLSVC.Ersa.ENABLED
-		else :
-			s.ersadh = SSLSVC.Ersa.DISABLED
-		s.ersacount = ersacount
-
-		if(isupdate == 1) :
-			SSLSVC.update(session,s)
-
-	except NITROEXCEPTION.nitro_exception as e :
-		print 'Nitro exception:::: {0}'.format(e.message)
-		ret = e.errorcode
-	return ret
-
-
-
-
-
-def	SetSSLSvcMisc(session,svc,snienable=0,serverauth=0,commonname=None,sessreuse=0,sesstimeout=120,isupdate=1) :
-	ret = 0
-	try :
-		if not isinstance(svc,SSLSVC) :
-			s = SSLSVC()
-			s.servicename = svc
-		else :
-			s = svc
-
-		if(snienable == 1) :
-			s.snienable = SSLSVC.Snienable.ENABLED
-		else :
-			s.snienable = SSLSVC.Snienable.DISABLED
-
-		if(serverauth == 1) :
-			s.serverauth = SSLSVC.Serverauth.ENABLED
-		else :
-			s.serverauth = SSLSVC.Serverauth.DISABLED
-
-		if(sessreuse == 1) :
-			s.sessreuse = SSLSVC.Sessreuse.ENABLED 
-			s.sesstimeout = sesstimeout 
-		else :
-			s.sessreuse = SSLSVC.Sessreuse.DISABLED 
-
-		s.commonname = commonname 
-
-		if(isupdate == 1) :
-			SSLSVC.update(session,s)
-
-	except NITROEXCEPTION.nitro_exception as e :
-		print 'Nitro exception:::: {0}'.format(e.message)
-		ret = e.errorcode
-	return ret
-
-
-
-
-def Gen_SSLBESvc() :
-	sslsvclist = [tup[0] for tup in TestBEServices if tup[1] in ['SSL','SSL_TCP']]
-	for name in sslsvclist :
-		svc = SSLSVC()
-		svc.servicename = name
-		print type(svc)
-		print type(name)
-		yield svc
-
-
-
-
-
-
-
-sess = Login('10.102.28.201')
-d = GetIPS(sess)
-DUT.NSIP 	= d[NS.nsip.Type.NSIP]
-DUT.VIP 	= d[NS.nsip.Type.VIP]
-DUT.SNIP 	= d[NS.nsip.Type.SNIP]
+#sess = Login('10.102.28.201')
+#d = GetIPS(sess)
+#DUT.NSIP 	= d[NS.nsip.Type.NSIP]
+#DUT.VIP 	= d[NS.nsip.Type.VIP]
+#DUT.SNIP 	= d[NS.nsip.Type.SNIP]
 
 #AddDelTestServerCertsTuples(sess,0)
 #LinkUnlinkCertList(sess,TestServerCALink,0)
@@ -419,11 +272,11 @@ DUT.SNIP 	= d[NS.nsip.Type.SNIP]
 #	SetSSLSvcMisc(sess,g,snienable=0,serverauth=1,commonname='ashoke',sessreuse=0,sesstimeout=120,isupdate=1)
 
 #BindUnbindVsrvrSvc(sess,1)
-A = GenerateNames('bubu')
-B = GenerateNames('ashoke',10)
-C = [1,2]
-J = zip(A,B,C)
-print J
-J = zip(A,B)
-print J
+#A = GenerateNames('bubu')
+#B = GenerateNames('ashoke',10)
+#C = [1,2]
+#J = zip(A,B,C)
+#print J
+#J = zip(A,B)
+#print J
 

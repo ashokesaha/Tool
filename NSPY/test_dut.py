@@ -3,6 +3,7 @@ class	DUT(object) :
 	_nsip =  None
 	_vip  =  None
 	_snip =  None
+	_session = None
 
 	def __init__(self):
 		self._localx = 5
@@ -43,4 +44,12 @@ class	DUT(object) :
 	@SNIP.setter
 	def SNIP(self,snip) :
 		self.__class__._snip = snip
+
+	@property
+	def SESSION(self) :
+		return self.__class__._session
+
+	@SESSION.setter
+	def SESSION(self,session) :
+		self.__class__._session = session
 
