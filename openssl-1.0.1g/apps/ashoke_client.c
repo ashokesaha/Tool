@@ -546,8 +546,6 @@ int		SetupParams(int sd)
 		fflush(stderr);
 		exit(0);
 	}
-	//printf("cJSON_Parse Successful\n");
-	//fflush(stdout);
 
 
 	cJc = cJ->child;
