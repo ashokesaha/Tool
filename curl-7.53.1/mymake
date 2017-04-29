@@ -1,0 +1,2 @@
+cc -g -c -I ./include curlGet.c
+cc -o curlGet curlGet.o ./cJSON.o lib/.libs/libcurl.a  -lssl -lm

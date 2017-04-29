@@ -1,0 +1,1 @@
+./configure  --enable-debug  --disable-optimize  --disable-curldebug --enable-static --enable-http  --enable-ftp  --enable-verbose  --enable-cookies   --with-ssl --without-nghttp2 --without-zsh-functions-dir --without-libidn2 --without-librtmp --without-libssh2  --without-libmetalink  --without-libpsl  --without-ca-fallback   --without-zlib
