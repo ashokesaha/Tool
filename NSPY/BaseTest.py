@@ -38,11 +38,6 @@ def	SetupFn(bt) :
 
 def	StartFn(bt) :
 	bt.TestSession = Login(bt.nsip)
-
 	d = GetIPS(bt.TestSession)
-
-	DUT.NSIP        = d[NS.nsip.Type.NSIP]
-	DUT.VIP         = d[NS.nsip.Type.VIP]
-	DUT.SNIP        = d[NS.nsip.Type.SNIP]
 
 

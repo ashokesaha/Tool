@@ -88,3 +88,7 @@ TestVsrvrSvcBindings = [
 
 
 SSLCipherSuites = []
+
+NSIP = '10.102.28.201'
+BESERVERS = ['10.102.28.61']
+BESTARTPORT = 4443
