@@ -34,15 +34,21 @@ int		gCMD = 0;
 
 static size_t GET_callback(char *ptr, size_t size, size_t nmemb, void *userdata)
 {
-	//writeStatusData(1, ptr, nmemb);
-	printf("GET_callback: %d\n",nmemb);
 	return nmemb;
 }
 
 
 static size_t PUT_callback(char *ptr, size_t size, size_t nmemb, void *stream)
 {
-	return 0;
+	char buf[] =	"0123456789012345678901234567890123456789\
+					 0123456789012345678901234567890123456789\
+					 0123456789012345678901234567890123456789" ;
+					
+	if(size >= 64)
+		return 0;
+
+	bcopy(&buf[size],ptr,8);
+	return 8;
 }
 
 
@@ -193,7 +199,8 @@ main()
 
 	if(gCMD == mGET)
 		GET_Action();
-
+	if(gCMD == mPUT)
+		PUT_Action();
 }
 
 
@@ -221,5 +228,23 @@ int GET_Action()
 
 int PUT_Action()
 {
+	CURL		*curl;
+	CURLcode	res;
+	char		url[1024];
+
+	sprintf(url,"http://%s:%d/",gIP,(gPORT ? gPORT : 80));
+
+	curl = curl_easy_init();
+	curl_easy_setopt(curl, CURLOPT_READFUNCTION, PUT_callback);
+	curl_easy_setopt(curl, CURLOPT_UPLOAD, 1L);
+	curl_easy_setopt(curl, CURLOPT_PUT, 1L);
+	curl_easy_setopt(curl, CURLOPT_URL, url);
+	curl_easy_setopt(curl, CURLOPT_INFILESIZE_LARGE,64);
+	res = curl_easy_perform(curl);
+
+	if(res != CURLE_OK)
+		printf("curl_easy_perform() failed: %s\n",curl_easy_strerror(res));
+ 
+    curl_easy_cleanup(curl);
 	return 0;
 }
