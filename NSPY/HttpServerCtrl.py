@@ -1,4 +1,7 @@
+import time
 import paramiko
+from test_config import *
+
 
 class  HttpServerCtrl (object) :
 
@@ -25,11 +28,16 @@ class  HttpServerCtrl (object) :
         self.ferr   = None
 
     def connect(self) :
-        self.pkey = pkey = paramiko.RSAKey.from_private_key_file('id_rsa')
+        #self.pkey = pkey = paramiko.RSAKey.from_private_key_file('id_rsa')
+        #if not self.pkey :
+        #   raise TestException(104)
+        
         self.client = paramiko.client.SSHClient()
         self.client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         
-        self.client.connect(self.ip, username='root', pkey=self.pkey, look_for_keys=False)
+        #self.client.connect(self.ip, username='root', pkey=self.pkey, look_for_keys=False)
+        print 'HTTPDUSER {} HTTPDPASSWD {}'.format(HTTPDUSER,HTTPDPASSWD)
+        self.client.connect(self.ip, username=HTTPDUSER, password=HTTPDPASSWD)
         self.command('cd /usr/local/apache2/conf')
 
                 
@@ -41,7 +49,7 @@ class  HttpServerCtrl (object) :
         self.ferr   = None
         
         
-    def  command(self,cmdstr) :
+    def command(self,cmdstr) :
         if self.fin :
             self.fin.close()
             self.fin = None
@@ -58,7 +66,7 @@ class  HttpServerCtrl (object) :
 
 
     
-    def  sanitize(self) :
+    def sanitize(self) :
         ret = 0
         self.command('cd /usr/local/apache2/conf; ls')
         rdstr = ferr.read()
@@ -72,11 +80,12 @@ class  HttpServerCtrl (object) :
 
 
 
-    def  StartStop(self, isstop=0) :
+    def StartStop(self, isstop=0) :
         ret = 0
         if(isstop) :
             self.command('export LD_LIBRARY_PATH=/usr/local/ssl/lib; cd /usr/local/apache2/bin; ./apachectl stop 2>/dev/null')
         else :
+            #self.command('export LD_LIBRARY_PATH=/usr/local/ssl/lib; cd /usr/local/apache2/bin; ./apachectl start 2>/dev/null')
             self.command('export LD_LIBRARY_PATH=/usr/local/ssl/lib; cd /usr/local/apache2/bin; ./apachectl start 2>/dev/null')
 
         rdstr = self.ferr.read()
@@ -86,7 +95,7 @@ class  HttpServerCtrl (object) :
         return ret
 
 
-    def   LinkOne(self, tup) :
+    def LinkOneHTTPDFile(self, tup) :
         ret = 0
         cmdstr = 'cd /usr/local/apache2/conf; rm {1} 2> /dev/null; ln -s {0} {1}'.format(tup[0],tup[1])
         self.command(cmdstr)
@@ -97,27 +106,47 @@ class  HttpServerCtrl (object) :
         return ret
     
 
+    
 
-    def  LinkSet(self) :
+
+    def LinkHTTPDCertSet(self) :
         ret = 0
         for links in self.__class__.LinkSets :
             for link in links :
-                ret = self.LinkOne(link)
+                ret = self.LinkOneHTTPDCert(link)
                 if (ret != 0) :
                     break
             if(ret != 0) :
                 break
-            yield link
+            yield links
 
     
 
-    def  NumProcess(self,name) :
+    def NumProcess(self,name) :
         cmdstr = 'ps -auxwww |grep {0} | grep -v grep |wc -l'.format(name)
         self.command(cmdstr)
         str = self.fout.read()
         return int(str)
 
-    
+
+    def ClientAuthOnOff (self,on=False) :
+        if not on :
+            filename = 'httpd.nocauth.conf'
+        else :
+            filename = 'httpd.cauth.conf'
+        
+        self.LinkOneHTTPDFile( (filename,'httpd.conf'))
+
+        while (self.NumProcess('httpd') != 0) :
+            self.StartStop(isstop=1)
+            time.sleep(1)
+
+        while (self.NumProcess('httpd') == 0) :
+            self.StartStop(isstop=0)
+            time.sleep(1)
+
+        
+        
         
             
     

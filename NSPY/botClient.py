@@ -2,7 +2,8 @@ import sys
 import json
 import socket
 import time
-import struct 
+import struct
+import io
 
 
 
@@ -43,6 +44,9 @@ class  BotConfig() :
         self.adminport = None
         self.inetd = None
         self.cmd = None
+        self.peerlist = None
+        self.portlist = None
+        self.peeripport = None
 
     def Clear(self) :
         self.ip = None
@@ -66,6 +70,9 @@ class  BotConfig() :
         self.adminport = None
         self.inetd = None
         self.cmd = None
+        self.peerlist = None
+        self.portlist = None
+        self.peeripport = None
 
 
     def setIP(self,ip) :
@@ -133,6 +140,19 @@ class  BotConfig() :
 
     def setCmdPUT(self) :
         self.cmd = "PUT"
+
+    def setPeerlist(self, peers) :
+        self.peerlist = peers
+
+    def setPortlist(self, ports) :
+        self.portlist = ports
+
+    def setPeeripport(self, ipport) :
+        self.peeripport = ipport
+    
+    
+    def setUrllist(self, urls) :
+        self.urllist = urls
     
 
     def ToJson(self) :
@@ -148,37 +168,80 @@ class  BotClient(object) :
         self.ip = ip
         self.port = port
         self.sd = 0
+        self.bc = None
+        self.logname = 'test.log'
+        self.textio = None
 
     def Connect(self) :
         self.sd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sd.connect ((self.ip, self.port))
 
-    def SendCMD(self,cfg) :
-        str = cfg.ToJson()
+    def SendCMD(self) :
+        self.OpenLog(self.ip)
+        str = self.bc.ToJson()
+        #print 'sendCmd::{}'.format(str)
         lstr = struct.pack(">I", len(str))
         self.sd.sendall(lstr)
         self.sd.sendall(str)
         #self.sd.shutdown(socket.SHUT_WR)
+
+
+    def SendClose(self) :
+        str = ''
+        lstr = struct.pack(">I", len(str))
+        self.sd.sendall(lstr)
+        
+        
+    def OpenLog(self,name=None) :
+        if self.textio :
+            self.CloseLog()
+        
+        if name :
+            self.logname = name
+        
+        self.textio = io.open(self.logname, mode='at', buffering=1024)
+
+    
+
+    def Log(self,b) :
+        self.textio.write(b)
+
+    
+
+    def CloseLog(self) :
+        print 'closing Log.....'
+        if not self.textio :
+            return
+        
+        self.textio.flush()
+        self.textio.close()
+        self.textio = None
+    
+
+    def SetConfig(self, bc) :
+        self.bc = bc
+    
         
 
     def Read(self,tout=0) :
         try :
-            data = None
-            len = 0
-            data = self.sd.recv(4)
-            if not data :
-                return None
-            
-            len = struct.unpack("<I",data)
-            
-            while 1:
-                data = self.sd.recv(len[0])
-                if  not data :
-                    break
-                else :
-                    print data
-
            
+            while(1) :
+                data = None
+                
+                data = self.sd.recv(4)
+                if not data :
+                    break
+                
+                len = struct.unpack("<I",data)
+                #print 'Read: read len {}'.format(len)
+                if(len[0] == 0) :
+                    self.CloseLog()
+                    break
+                data = self.sd.recv(len[0])
+                self.Log(u"{}".format(data))
+                print data
+               
         except socket.timeout :
             pass
         return data  

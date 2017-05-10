@@ -90,5 +90,11 @@ TestVsrvrSvcBindings = [
 SSLCipherSuites = []
 
 NSIP = '10.102.28.201'
-BESERVERS = ['10.102.28.61']
+BESERVER = '10.102.28.61'
+CURLCLIENTS = ['10.102.28.71']
+CURLCLIENTPORT = 2346
+URLLIST = ['/files/one', '/files/two',  '/files/three']
 BESTARTPORT = 4443
+HTTPDUSER='root'
+HTTPDPASSWD='freebsd'
+

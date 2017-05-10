@@ -76,6 +76,9 @@ def	GetIPS(session) :
 	DUT.NSIP 	= d[NS.nsip.Type.NSIP]
 	DUT.VIP 	= d[NS.nsip.Type.VIP]
 	DUT.SNIP 	= d[NS.nsip.Type.SNIP]
+	if not DUT.SNIP :
+                DUT.SNIP = d[NS.nsip.Type.MIP]
+        
 	return d
 
 
@@ -163,9 +166,11 @@ def	LinkUnlinkCertList(session,linklist,isunlink=0) :
 
 
 
-def AddDelSSLVserver(session,vsrvrlist,isdel=0) :
-	sslv = LBVSERVER.lbvserver()
+#def AddDelSSLVserver(session,vsrvrlist,isdel=0) :
+def AddDelVserverX(session,vsrvrlist,isdel=0) :
+	l = []
 	for tup in vsrvrlist :
+                sslv = LBVSERVER.lbvserver()
 		sslv.name = tup[0]
 		sslv.servicetype = tup[1]
 		sslv.port = tup[2]
@@ -173,10 +178,30 @@ def AddDelSSLVserver(session,vsrvrlist,isdel=0) :
 	
 		if (isdel == 0) :
 			LBVSERVER.lbvserver.add(session,sslv)
+			l.append(sslv)
 		else : 
 			LBVSERVER.lbvserver.delete(session,sslv)
+	
+	return l
 
 
+
+def AddDelVserver(session,vsrvrlist,isdel=0) :
+	l = []
+	for tup in vsrvrlist :
+                sslv = LBVSERVER.lbvserver()
+		sslv.name = tup[0]
+		sslv.servicetype = tup[1]
+		sslv.port = tup[2]
+		sslv.ipv46 = DUT.VIP
+                l.append(sslv)
+                
+	if (isdel == 0) :
+		LBVSERVER.lbvserver.add(session,l)
+	else : 
+		LBVSERVER.lbvserver.delete(session,l)
+	
+	return l
 
 
 
@@ -212,7 +237,7 @@ def BindUnbindVsrvrCKey(session) :
 def BindUnbindOneVsrvrSvc(session,server,service,isunbind=0) :
 	ret = 0
 	try :
-		B = lbvserver_service_binding()
+        	B = lbvserver_service_binding()
 		B.name = server
 		B.servicename = service
 		if(isunbind == 0) :
@@ -235,13 +260,44 @@ def BindUnbindVsrvrSvc(session,isunbind=0) :
 	return ret
 
 
+
+def BindUnbindVsrvrSvcListX(session,srvrList,svcList,isunbind=0) :
+       	for (x,y) in zip(srvrList,svcList) :
+              	BindUnbindOneVsrvrSvc(session,x.name,y.name,isunbind=0)
+
+
+
+
+def BindUnbindVsrvrSvcList(session,srvrList,svcList,isunbind=0) :
+        l = []
+       	for (x,y) in zip(srvrList,svcList) :
+                B = lbvserver_service_binding()
+		B.name = x.name
+		B.servicename = y.name
+                l.append(B)
+
+        if(isunbind == 0) :
+		B.add(session,l)
+	else :
+		B.delete(session,l)
+
+	return l
+
+
+			
+
+
 def	GetAllCipherSuites(session) :
-	C = SSLCIPHERSUITE.get(sess)
-	for c in C :
-		yield c
+	c = [C.ciphername for C in SSLCIPHERSUITE.get(session) if (C.ciphername.find('ECDSA') == -1)]
+        clist = [x  for x in c if(x.find('-EXP-') == -1) if(x.find('-EXPORT-') == -1)]
+        return clist
 
 
 
+
+def     GetCurlClients() :
+        clist = ['10.102.28.71']
+        return clist
 
 
 

@@ -2,12 +2,13 @@
 class	TestException(Exception) :
 
 	Errors = {
-		0 	: 'Success',
-		1 	: 'Failure',
+		0   : 'Success',
+		1   : 'Failure',
 		100 : 'No Session with DUT ',
 		101 : 'SNIP not present ',
 		102 : 'VIP  not present ',
-		103 : 'NSIP not present '
+		103 : 'NSIP not present ',
+                104 : 'id_rsa not found'
 	}
 
 	def __init__(self,code=0) :
