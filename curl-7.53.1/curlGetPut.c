@@ -43,10 +43,12 @@ int		gUrlNum = 0;
 
 char	*gPeerIP[64];
 int		gPeerPort[64];
+char	*gServiceName[64];
 int		gNumPeerIpPort = 0;
+int		gTestId = -1;
 
 
-CURLcode	GET_Action(char *ip, int port, char *url);
+CURLcode	GET_Action(char *ip, int port, char *url, char *servicename);
 CURLcode	PUT_Action(char *ip, char *url);
 int			WriteResponse(char *format, ...);
 int			CloseResponse();
@@ -65,6 +67,7 @@ static size_t GET_header_callback(char *buffer,size_t size,size_t nitems,void *u
 	if (strncmp(buffer,"Content-Length",strlen("Content-Length")) == 0)
 	{
 		while(*buffer++ != ':');
+		buffer++;
 		*(int *)userdata = atoi(buffer);
 	}
 	return size * nitems;
@@ -100,7 +103,6 @@ static int	HandleArgs(char * buf)
 {
 	int	ret;
 	cJSON	*cJ, *cJc;
-	unsigned int debug = 1;
 	int		i;
 
 	
@@ -175,6 +177,7 @@ static int	HandleArgs(char * buf)
 			{
 				gPeerIP[gNumPeerIpPort]=strdup(cJx->child->valuestring);
 				gPeerPort[gNumPeerIpPort]=cJx->child->next->valueint;
+				gServiceName[gNumPeerIpPort]=strdup(cJx->child->next->next->valuestring);
 				gNumPeerIpPort++;	
 				cJx = cJx->next;
 			}
@@ -182,6 +185,11 @@ static int	HandleArgs(char * buf)
 			continue;
 		}
 
+		if(strcmp(cJc->string,"testid") == 0)
+		{
+			cJSON *cJx = cJc->child;
+			gTestId = cJc->valueint;
+		}
 
 		ret = ParamStrToCode(cJc->string);
 		switch(ret)
@@ -293,6 +301,16 @@ main()
 	unsigned char buf[1024];
 	volatile int debug = 1;
 
+	len =  sizeof(buf) - 1;
+	ret = readCmdData(0, buf, &len);
+	if(ret <= 0)
+		return;
+
+	if(strcmp(buf,"twinkletwinkle"))
+		return;
+
+	WriteResponse("%s","littlestar");
+	
 
 	while(1)
 	{
@@ -304,12 +322,15 @@ main()
 
 		HandleArgs(buf);
 
+		WriteResponse("bot : curlgetput\n");
+		WriteResponse("testid : %d\n",gTestId);
+
 		if(gCMD == mGET)
 		{
 			int	i,j;
 			for(i=0; i<gNumPeerIpPort; i++)
 				for(j=0; j<gUrlNum; j++)
-					if(GET_Action(gPeerIP[i],gPeerPort[i],gUrlList[j]) != CURLE_OK)
+					if(GET_Action(gPeerIP[i],gPeerPort[i],gUrlList[j],gServiceName[i]) != CURLE_OK)
 						goto next_iter;
 		}
 
@@ -326,7 +347,7 @@ next_iter:
 }
 
 
-CURLcode	GET_Action(char *ip, int port, char *url)
+CURLcode	GET_Action(char *ip, int port, char *url, char *service)
 {
 	CURL		*curl;
 	CURLcode	res;
@@ -346,12 +367,12 @@ CURLcode	GET_Action(char *ip, int port, char *url)
 	curl_easy_setopt(curl, CURLOPT_FAILONERROR, &val);
 	curl_easy_setopt(curl, CURLOPT_STDERR, NULL);
 
-	//curl_easy_setopt(curl, CURLOPT_HEADER, 1L);
-	//curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, GET_header_callback);
-	//curl_easy_setopt(curl, CURLOPT_HEADERDATA, &vall);
+	curl_easy_setopt(curl, CURLOPT_HEADER, 1L);
+	curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, GET_header_callback);
+	curl_easy_setopt(curl, CURLOPT_HEADERDATA, &vall);
 
 	curl_easy_setopt(curl, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
-	curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5);
+	curl_easy_setopt(curl, CURLOPT_TIMEOUT, 2);
 	res = curl_easy_perform(curl);
 
 	if(res != CURLE_OK)
@@ -361,11 +382,14 @@ CURLcode	GET_Action(char *ip, int port, char *url)
 
 		curl_easy_getinfo(curl,CURLINFO_RESPONSE_CODE,&val);
 		curl_easy_getinfo(curl,CURLINFO_EFFECTIVE_URL,&pp);
-		WriteResponse("FaILURE [%s]: Resp code: %d ",pp,val);
+		//WriteResponse("FaILURE [%s]: Resp code: %d\n",pp,val);
+		WriteResponse("Result : %s FAIL %d\n",service,val);
     	curl_easy_cleanup(curl);
 		return res;
 	}
-	WriteResponse("SUCCESS [%s]: Data Rcvd %d Content-Len %d ",urlstr,totData,vall);
+	//WriteResponse("SUCCESS [%s]: Data Rcvd %d Content-Len %d\n",urlstr,totData,vall);
+	WriteResponse("Result : %s SUCCESS %d %d\n",service,totData,vall);
+
     curl_easy_cleanup(curl);
 
 	return 0;
@@ -407,7 +431,8 @@ int	WriteResponse(char *format, ...)
 	int		len;
 	va_list valist;
 	
-	strcpy(buf,"curlGetPut::");
+	//strcpy(buf,"curlGetPut::");
+	buf[0] = 0;
 	va_start(valist, format);
 	vsnprintf(tbuf,sizeof(tbuf) - strlen(buf) - 1, format,valist);
 	strcat(buf,tbuf);

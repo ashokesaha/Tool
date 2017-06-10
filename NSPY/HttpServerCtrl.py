@@ -36,14 +36,13 @@ class  HttpServerCtrl (object) :
         self.client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         
         #self.client.connect(self.ip, username='root', pkey=self.pkey, look_for_keys=False)
-        print 'HTTPDUSER {} HTTPDPASSWD {}'.format(HTTPDUSER,HTTPDPASSWD)
+        #print 'HTTPDUSER {} HTTPDPASSWD {}'.format(HTTPDUSER,HTTPDPASSWD)
         self.client.connect(self.ip, username=HTTPDUSER, password=HTTPDPASSWD)
-        self.command('cd /usr/local/apache2/conf')
+        #self.command('cd /usr/local/apache2/conf')
+        #self.command('cd /home/ashokes/HTTPD/conf')
 
                 
-        self.fin.close()
-        self.fout.close()
-        self.ferr.close()
+        
         self.fin    = None
         self.fout   = None
         self.ferr   = None
@@ -67,16 +66,13 @@ class  HttpServerCtrl (object) :
 
     
     def sanitize(self) :
-        ret = 0
-        self.command('cd /usr/local/apache2/conf; ls')
-        rdstr = ferr.read()
+        ret = True
+        self.command('cd /home/ashokes/HTTPD/conf; ls')
+        rdstr = self.ferr.read()
         if(len(rdstr) > 0) :
-            ret = 1
-            print rdstr
-            return ret
+            ret = False
 
-        L = [str(line.rstrip('\n')) for line in fout]
-        S = set(L)
+        return ret
 
 
 
@@ -84,9 +80,11 @@ class  HttpServerCtrl (object) :
         ret = 0
         if(isstop) :
             self.command('export LD_LIBRARY_PATH=/usr/local/ssl/lib; cd /usr/local/apache2/bin; ./apachectl stop 2>/dev/null')
+            self.command('export LD_LIBRARY_PATH=/home/ashokes/OPENSSL/lib; cd /home/ashokes/HTTPD/bin; ./apachectl stop 2>/dev/null')
         else :
             #self.command('export LD_LIBRARY_PATH=/usr/local/ssl/lib; cd /usr/local/apache2/bin; ./apachectl start 2>/dev/null')
-            self.command('export LD_LIBRARY_PATH=/usr/local/ssl/lib; cd /usr/local/apache2/bin; ./apachectl start 2>/dev/null')
+            #self.command('export LD_LIBRARY_PATH=/usr/local/ssl/lib; cd /usr/local/apache2/bin; ./apachectl start 2>/dev/null')
+            self.command('export LD_LIBRARY_PATH=/home/ashokes/OPENSSL/lib; cd /home/ashokes/HTTPD/bin; ./apachectl start 2>/dev/null')
 
         rdstr = self.ferr.read()
         if(len(rdstr) > 0) :
@@ -97,7 +95,8 @@ class  HttpServerCtrl (object) :
 
     def LinkOneHTTPDFile(self, tup) :
         ret = 0
-        cmdstr = 'cd /usr/local/apache2/conf; rm {1} 2> /dev/null; ln -s {0} {1}'.format(tup[0],tup[1])
+        #cmdstr = 'cd /usr/local/apache2/conf; rm {1} 2> /dev/null; ln -s {0} {1}'.format(tup[0],tup[1])
+        cmdstr = 'cd /home/ashokes/HTTPD/conf; rm {1} 2> /dev/null; ln -s {0} {1}'.format(tup[0],tup[1])
         self.command(cmdstr)
         rdstr = self.ferr.read()
         if(len(rdstr) > 0) :

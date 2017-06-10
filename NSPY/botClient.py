@@ -5,6 +5,7 @@ import time
 import struct
 import io
 
+import nssrc.com.citrix.netscaler.nitro.exception.nitro_exception as NITROEXCEPTION
 
 
 
@@ -44,9 +45,11 @@ class  BotConfig() :
         self.adminport = None
         self.inetd = None
         self.cmd = None
+        self.urllist = None
         self.peerlist = None
         self.portlist = None
         self.peeripport = None
+        self.testid = None
 
     def Clear(self) :
         self.ip = None
@@ -70,9 +73,11 @@ class  BotConfig() :
         self.adminport = None
         self.inetd = None
         self.cmd = None
+        self.urllist = None
         self.peerlist = None
         self.portlist = None
         self.peeripport = None
+        seld.testid = None
 
 
     def setIP(self,ip) :
@@ -153,6 +158,9 @@ class  BotConfig() :
     
     def setUrllist(self, urls) :
         self.urllist = urls
+
+    def setTestId(self, testid) :
+        self.testid = testid
     
 
     def ToJson(self) :
@@ -164,6 +172,8 @@ class  BotConfig() :
 
 
 class  BotClient(object) :
+    id = 1
+    
     def __init__(self,ip,port) :
         self.ip = ip
         self.port = port
@@ -171,13 +181,46 @@ class  BotClient(object) :
         self.bc = None
         self.logname = 'test.log'
         self.textio = None
+        self.harness = None
+        self.id = self.__class__.id
+        self.__class__.id = self.__class__.id + 1
+
 
     def Connect(self) :
-        self.sd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sd.connect ((self.ip, self.port))
+        ret = True
+        try :
+            self.sd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.sd.connect ((self.ip, self.port))
+
+            str = 'twinkletwinkle'
+            lstr = struct.pack(">I", len(str))
+            self.sd.sendall(lstr)
+            self.sd.sendall(str)
+
+            data = self.ReadOnce()
+            if not data :
+                ret = False
+                return ret
+            if not data.__eq__('littlestar'):
+                ret = False
+                return ret
+            
+        except socket.error as e :
+            ret = False
+
+        print 'connect returning {}'.format(ret)
+        return ret
+
+
+
+
+    def SetHarness(self, harness) :
+        self.harness = harness
+
+
 
     def SendCMD(self) :
-        self.OpenLog(self.ip)
+        #self.OpenLog(self.ip)
         str = self.bc.ToJson()
         #print 'sendCmd::{}'.format(str)
         lstr = struct.pack(">I", len(str))
@@ -212,7 +255,8 @@ class  BotClient(object) :
         print 'closing Log.....'
         if not self.textio :
             return
-        
+
+        raise NITROEXCEPTION()
         self.textio.flush()
         self.textio.close()
         self.textio = None
@@ -223,6 +267,27 @@ class  BotClient(object) :
     
         
 
+    def  ReadOnce(self) :
+        data = self.sd.recv(4)
+        if not data :
+            return data
+
+        len = struct.unpack("<I",data)
+        if(len[0] == 0) :
+            return None
+
+        data = self.sd.recv(len[0])
+        return data
+
+
+
+
+    # This read would be called when we expect all the
+    # results from the client to come back. Only Client is now
+    # writing the results of its tests. We should just keep on reading
+    # till client is done.
+    # If we one to read one transaction, call ReadOnce
+    
     def Read(self,tout=0) :
         try :
            
@@ -234,17 +299,22 @@ class  BotClient(object) :
                     break
                 
                 len = struct.unpack("<I",data)
-                #print 'Read: read len {}'.format(len)
                 if(len[0] == 0) :
-                    self.CloseLog()
+                    #self.CloseLog()
                     break
                 data = self.sd.recv(len[0])
-                self.Log(u"{}".format(data))
-                print data
-               
-        except socket.timeout :
+                #self.Log(u"{}".format(data))
+                self.harness.Log('{}'.format('  ' + data))
+
+        except socket.timeout as e:
             pass
-        return data  
+        return data
+
+
+
+    def  Dump(self) :
+        s = 'BOT:: {} {} {}'.format(self.id,self.ip,self.port)
+        self.harness.Log(s)
        
     
    

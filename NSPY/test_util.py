@@ -14,7 +14,10 @@ import nssrc.com.citrix.netscaler.nitro.resource.config.lb.lbvserver  as LBVSERV
 from nssrc.com.citrix.netscaler.nitro.resource.config.lb.lbvserver_service_binding  import *
 
 from test_dut    import * 
-from test_config import * 
+from test_config import *
+from TestException import *
+
+import requests
 
 
 
@@ -48,20 +51,29 @@ def	GenerateNumbers(first,num=0) :
 
 # Files: nitro_service.py
 def	Login(nsip,name='nsroot',passwd='nsroot',timeout=10000) :
-	ns = NITROSVC.nitro_service(nsip)
-	ns.timeout = 10000
-	ns.set_credential(name,passwd)
-	ns.login()
+        print 'Login {}'.format(nsip)
+        try :
+                ns = NITROSVC.nitro_service(nsip)
+                ns.timeout = 10000
+                ns.set_credential(name,passwd)
+                ns.login()
 
-	DUT.SESSION = ns
-	GetIPS(ns)
+                DUT.SESSION = ns
+                GetIPS(ns)
 
-	if not DUT.NSIP :
-		raise TestException(103)
-	elif not DUT.SNIP :
-		raise TestException(101)
-	elif not DUT.VIP :
-		raise TestException(102)
+                if not DUT.NSIP :
+                        raise TestException(103)
+                elif not DUT.SNIP :
+                        raise TestException(101)
+                elif not DUT.VIP :
+                        raise TestException(102)
+                
+        except requests.ConnectionError as e :
+                ns = None
+        except nitro_exception as e :
+                ns = None
+        except TestException as e:
+                ns = None
 
 	return ns
 

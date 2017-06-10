@@ -131,38 +131,37 @@ def  IsSvcUP(session,svc) :
 
 
 
-def	SetSSLSvcVersion(session,svc,ssl3=1,tls1=1,tls11=1,tls12=1,isupdate=1) :
+def	SetSSLSvcVersion(sess,svcList,ssl3=1,tls1=1,tls11=1,tls12=1) :
 	ret = 0
+
 	try :
-		s = SSLSVC()
-		s.servicename = svc
 
-		if(ssl3 == 1) :
-			s.ssl3 = SSLSVC.Ssl3.ENABLED
-		else :		
-			s.ssl3 = SSLSVC.Ssl3.DISABLED
+                for s in svcList :
+                        if(ssl3 == 1) :
+                                s.ssl3 = SSLSVC.Ssl3.ENABLED
+                        else :		
+                                s.ssl3 = SSLSVC.Ssl3.DISABLED
 
-		if(tls1 == 1) :
-			s.tls1 = SSLSVC.Tls1.ENABLED
-		else :		
-			s.tls1 = SSLSVC.Tls1.DISABLED
+                        if(tls1 == 1) :
+                                s.tls1 = SSLSVC.Tls1.ENABLED
+                        else :		
+                                s.tls1 = SSLSVC.Tls1.DISABLED
 
-		if(tls11 == 1) :
-			s.tls11 = SSLSVC.Tls11.ENABLED
-		else :		
-			s.tls11 = SSLSVC.Tls11.DISABLED
+                        if(tls11 == 1) :
+                                s.tls11 = SSLSVC.Tls11.ENABLED
+                        else :		
+                                s.tls11 = SSLSVC.Tls11.DISABLED
 
-		if(tls12 == 1) :
-			s.tls12 = SSLSVC.Tls12.ENABLED
-		else :		
-			s.tls12 = SSLSVC.Tls12.DISABLED
+                        if(tls12 == 1) :
+                                s.tls12 = SSLSVC.Tls12.ENABLED
+                        else :		
+                                s.tls12 = SSLSVC.Tls12.DISABLED
 
-		if(isupdate == 1) :
-			SSLSVC.update(session,s)
-
-	except NITROEXCEPTION.nitro_exception as e :
-		print 'Nitro exception:::: {0}'.format(e.message)
-		ret = e.errorcode
+                SSLSVC.update(sess,svcList)
+                        
+        except NITROEXCEPTION.nitro_exception as e :
+                print 'Nitro exception:::: {0}'.format(e.message)
+                ret = e.errorcode
 
 	return ret
 
@@ -303,13 +302,18 @@ def     UpdateBatchCipherBinding(bindinglist, newciphername) :
 
 
 def     BindUnbindBatchCipherBinding(sess,bindinglist,isunbind=False) :
-        if not isunbind :
-                sslservice_sslciphersuite_binding.add(sess, bindinglist)
-        else :
-                sslservice_sslciphersuite_binding.delete(sess,bindinglist)
-                
+        ret = True
+        
+        try :
+                if not isunbind :
+                        sslservice_sslciphersuite_binding.add(sess, bindinglist)
+                else :
+                        sslservice_sslciphersuite_binding.delete(sess,bindinglist)
 
-                
+        except NITROEXCEPTION.nitro_exception as e :
+                ret = False            
+
+        return ret                
 
 
 
