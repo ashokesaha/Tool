@@ -347,10 +347,4 @@ def     BindMonitorServiceList(sess,serviceList,monitorname) :
         LBMONSVCBINDING.lbmonitor_service_binding.add(sess,l)
         return l
 
-        
-     
-
-
-
-        
 

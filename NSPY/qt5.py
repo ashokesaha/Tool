@@ -820,4 +820,3 @@ if __name__ == '__main__':
     app.exec_()
     print 'app.exec exit'
 
-

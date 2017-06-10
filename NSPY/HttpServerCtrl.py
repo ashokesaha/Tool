@@ -144,8 +144,4 @@ class  HttpServerCtrl (object) :
             self.StartStop(isstop=0)
             time.sleep(1)
 
-        
-        
-        
-            
-    
+

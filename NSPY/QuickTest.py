@@ -209,8 +209,3 @@ def SampleAPI() :
     plt.close('all')
     plt.close(10)
 
-    
-
-
-
-

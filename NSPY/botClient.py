@@ -331,8 +331,5 @@ def Test() :
 
     bt.SendConfig(bc)
     bt.Read(0)
-    
 
 
-
-    
