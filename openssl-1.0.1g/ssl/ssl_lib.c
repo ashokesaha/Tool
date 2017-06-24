@@ -183,7 +183,7 @@ SSL3_ENC_METHOD ssl3_undef_enc_method={
 	};
 
 int SSL_clear(SSL *s)
-	{
+{
 
 	if (s->method == NULL)
 		{
@@ -252,11 +252,11 @@ int SSL_clear(SSL *s)
 #endif
 		s->method->ssl_clear(s);
 	return(1);
-	}
+}
 
 /** Used to change an SSL_CTXs default SSL method type */
 int SSL_CTX_set_ssl_version(SSL_CTX *ctx,const SSL_METHOD *meth)
-	{
+{
 	STACK_OF(SSL_CIPHER) *sk;
 
 	ctx->method=meth;
@@ -270,7 +270,7 @@ int SSL_CTX_set_ssl_version(SSL_CTX *ctx,const SSL_METHOD *meth)
 		return(0);
 		}
 	return(1);
-	}
+}
 
 SSL *SSL_new(SSL_CTX *ctx)
 {
@@ -410,7 +410,7 @@ int SSL_CTX_set_session_id_context(SSL_CTX *ctx,const unsigned char *sid_ctx,
 
 int SSL_set_session_id_context(SSL *ssl,const unsigned char *sid_ctx,
 			       unsigned int sid_ctx_len)
-    {
+{
     if(sid_ctx_len > SSL_MAX_SID_CTX_LENGTH)
 	{
 	SSLerr(SSL_F_SSL_SET_SESSION_ID_CONTEXT,SSL_R_SSL_SESSION_ID_CONTEXT_TOO_LONG);
@@ -420,27 +420,27 @@ int SSL_set_session_id_context(SSL *ssl,const unsigned char *sid_ctx,
     memcpy(ssl->sid_ctx,sid_ctx,sid_ctx_len);
 
     return 1;
-    }
+}
 
 int SSL_CTX_set_generate_session_id(SSL_CTX *ctx, GEN_SESSION_CB cb)
-	{
+{
 	CRYPTO_w_lock(CRYPTO_LOCK_SSL_CTX);
 	ctx->generate_session_id = cb;
 	CRYPTO_w_unlock(CRYPTO_LOCK_SSL_CTX);
 	return 1;
-	}
+}
 
 int SSL_set_generate_session_id(SSL *ssl, GEN_SESSION_CB cb)
-	{
+{
 	CRYPTO_w_lock(CRYPTO_LOCK_SSL);
 	ssl->generate_session_id = cb;
 	CRYPTO_w_unlock(CRYPTO_LOCK_SSL);
 	return 1;
-	}
+}
 
 int SSL_has_matching_session_id(const SSL *ssl, const unsigned char *id,
 				unsigned int id_len)
-	{
+{
 	/* A quick examination of SSL_SESSION_hash and SSL_SESSION_cmp shows how
 	 * we can "construct" a session to give us the desired check - ie. to
 	 * find if there's a session in the hash table that would conflict with
@@ -470,40 +470,40 @@ int SSL_has_matching_session_id(const SSL *ssl, const unsigned char *id,
 	p = lh_SSL_SESSION_retrieve(ssl->ctx->sessions, &r);
 	CRYPTO_r_unlock(CRYPTO_LOCK_SSL_CTX);
 	return (p != NULL);
-	}
+}
 
 int SSL_CTX_set_purpose(SSL_CTX *s, int purpose)
-	{
+{
 	return X509_VERIFY_PARAM_set_purpose(s->param, purpose);
-	}
+}
 
 int SSL_set_purpose(SSL *s, int purpose)
-	{
+{
 	return X509_VERIFY_PARAM_set_purpose(s->param, purpose);
-	}
+}
 
 int SSL_CTX_set_trust(SSL_CTX *s, int trust)
-	{
+{
 	return X509_VERIFY_PARAM_set_trust(s->param, trust);
-	}
+}
 
 int SSL_set_trust(SSL *s, int trust)
-	{
+{
 	return X509_VERIFY_PARAM_set_trust(s->param, trust);
-	}
+}
 
 int SSL_CTX_set1_param(SSL_CTX *ctx, X509_VERIFY_PARAM *vpm)
-	{
+{
 	return X509_VERIFY_PARAM_set1(ctx->param, vpm);
-	}
+}
 
 int SSL_set1_param(SSL *ssl, X509_VERIFY_PARAM *vpm)
-	{
+{
 	return X509_VERIFY_PARAM_set1(ssl->param, vpm);
-	}
+}
 
 void SSL_free(SSL *s)
-	{
+{
 	int i;
 
 	if(s == NULL)
@@ -603,7 +603,7 @@ void SSL_free(SSL *s)
 #endif
 
 	OPENSSL_free(s);
-	}
+}
 
 void SSL_set_bio(SSL *s,BIO *rbio,BIO *wbio)
 {
@@ -786,35 +786,35 @@ int SSL_CTX_get_verify_depth(const SSL_CTX *ctx)
 	}
 
 int (*SSL_CTX_get_verify_callback(const SSL_CTX *ctx))(int,X509_STORE_CTX *)
-	{
+{
 	return(ctx->default_verify_callback);
-	}
+}
 
 void SSL_set_verify(SSL *s,int mode,
 		    int (*callback)(int ok,X509_STORE_CTX *ctx))
-	{
+{
 	s->verify_mode=mode;
 	if (callback != NULL)
 		s->verify_callback=callback;
-	}
+}
 
 void SSL_set_verify_depth(SSL *s,int depth)
-	{
+{
 	X509_VERIFY_PARAM_set_depth(s->param, depth);
-	}
+}
 
 void SSL_set_read_ahead(SSL *s,int yes)
-	{
+{
 	s->read_ahead=yes;
-	}
+}
 
 int SSL_get_read_ahead(const SSL *s)
-	{
+{
 	return(s->read_ahead);
-	}
+}
 
 int SSL_pending(const SSL *s)
-	{
+{
 	/* SSL_pending cannot work properly if read-ahead is enabled
 	 * (SSL_[CTX_]ctrl(..., SSL_CTRL_SET_READ_AHEAD, 1, NULL)),
 	 * and it is impossible to fix since SSL_pending cannot report
@@ -823,10 +823,10 @@ int SSL_pending(const SSL *s)
 	 * so we'd better not return -1.)
 	 */
 	return(s->method->ssl_pending(s));
-	}
+}
 
 X509 *SSL_get_peer_certificate(const SSL *s)
-	{
+{
 	X509 *r;
 	
 	if ((s == NULL) || (s->session == NULL))
@@ -839,10 +839,10 @@ X509 *SSL_get_peer_certificate(const SSL *s)
 	CRYPTO_add(&r->references,1,CRYPTO_LOCK_X509);
 
 	return(r);
-	}
+}
 
 STACK_OF(X509) *SSL_get_peer_cert_chain(const SSL *s)
-	{
+{
 	STACK_OF(X509) *r;
 	
 	if ((s == NULL) || (s->session == NULL) || (s->session->sess_cert == NULL))
@@ -854,12 +854,12 @@ STACK_OF(X509) *SSL_get_peer_cert_chain(const SSL *s)
 	 * certificate; if we are a server, it does not. */
 	
 	return(r);
-	}
+}
 
 /* Now in theory, since the calling process own 't' it should be safe to
  * modify.  We need to be able to read f without being hassled */
 void SSL_copy_session_id(SSL *t,const SSL *f)
-	{
+{
 	CERT *tmp;
 
 	/* Do we need to to SSL locking? */
@@ -884,11 +884,11 @@ void SSL_copy_session_id(SSL *t,const SSL *f)
 		t->cert=NULL;
 	if (tmp != NULL) ssl_cert_free(tmp);
 	SSL_set_session_id_context(t,f->sid_ctx,f->sid_ctx_length);
-	}
+}
 
 /* Fix this so it checks all the valid key/cert options */
 int SSL_CTX_check_private_key(const SSL_CTX *ctx)
-	{
+{
 	if (	(ctx == NULL) ||
 		(ctx->cert == NULL) ||
 		(ctx->cert->key->x509 == NULL))
@@ -902,11 +902,11 @@ int SSL_CTX_check_private_key(const SSL_CTX *ctx)
 		return(0);
 		}
 	return(X509_check_private_key(ctx->cert->key->x509, ctx->cert->key->privatekey));
-	}
+}
 
 /* Fix this function so that it takes an optional type parameter */
 int SSL_check_private_key(const SSL *ssl)
-	{
+{
 	if (ssl == NULL)
 		{
 		SSLerr(SSL_F_SSL_CHECK_PRIVATE_KEY,ERR_R_PASSED_NULL_PARAMETER);
@@ -929,7 +929,7 @@ int SSL_check_private_key(const SSL *ssl)
 		}
 	return(X509_check_private_key(ssl->cert->key->x509,
 		ssl->cert->key->privatekey));
-	}
+}
 
 int SSL_accept(SSL *s)
 {
@@ -941,13 +941,13 @@ int SSL_accept(SSL *s)
 }
 
 int SSL_connect(SSL *s)
-	{
+{
 	if (s->handshake_func == 0)
 		/* Not properly initialized yet */
 		SSL_set_connect_state(s);
 
 	return(s->method->ssl_connect(s));
-	}
+}
 
 long SSL_get_default_timeout(const SSL *s)
 	{
@@ -1050,7 +1050,7 @@ int SSL_renegotiate_pending(SSL *s)
 	}
 
 long SSL_ctrl(SSL *s,int cmd,long larg,void *parg)
-	{
+{
 	long l;
 
 	switch (cmd)
@@ -1088,10 +1088,10 @@ long SSL_ctrl(SSL *s,int cmd,long larg,void *parg)
 
 		if (SSL_version(s) == DTLS1_VERSION ||
 		    SSL_version(s) == DTLS1_BAD_VER)
-			{
+		{
 			s->d1->mtu = larg;
 			return larg;
-			}
+		}
 		return 0;
 	case SSL_CTRL_SET_MAX_SEND_FRAGMENT:
 		if (larg < 512 || larg > SSL3_RT_MAX_PLAIN_LENGTH)
@@ -1105,10 +1105,10 @@ long SSL_ctrl(SSL *s,int cmd,long larg,void *parg)
 	default:
 		return(s->method->ssl_ctrl(s,cmd,larg,parg));
 		}
-	}
+}
 
 long SSL_callback_ctrl(SSL *s, int cmd, void (*fp)(void))
-	{
+{
 	switch(cmd)
 		{
 	case SSL_CTRL_SET_MSG_CALLBACK:
@@ -1118,19 +1118,19 @@ long SSL_callback_ctrl(SSL *s, int cmd, void (*fp)(void))
 	default:
 		return(s->method->ssl_callback_ctrl(s,cmd,fp));
 		}
-	}
+}
 
 LHASH_OF(SSL_SESSION) *SSL_CTX_sessions(SSL_CTX *ctx)
-	{
+{
 	return ctx->sessions;
-	}
+}
 
 long SSL_CTX_ctrl(SSL_CTX *ctx,int cmd,long larg,void *parg)
-	{
+{
 	long l;
 
 	switch (cmd)
-		{
+	{
 	case SSL_CTRL_GET_READ_AHEAD:
 		return(ctx->read_ahead);
 	case SSL_CTRL_SET_READ_AHEAD:
@@ -1201,8 +1201,8 @@ long SSL_CTX_ctrl(SSL_CTX *ctx,int cmd,long larg,void *parg)
 		return 1;
 	default:
 		return(ctx->method->ssl_ctx_ctrl(ctx,cmd,larg,parg));
-		}
 	}
+}
 
 long SSL_CTX_callback_ctrl(SSL_CTX *ctx, int cmd, void (*fp)(void))
 	{
@@ -2816,6 +2816,14 @@ const SSL_CIPHER *SSL_get_current_cipher(const SSL *s)
 		return(s->session->cipher);
 	return(NULL);
 }
+
+const char *SSL_get_current_cipher_name(const SSL *s)
+{
+	if ((s->session != NULL) && (s->session->cipher != NULL))
+		return(s->session->cipher->name);
+	return(NULL);
+}
+
 #ifdef OPENSSL_NO_COMP
 const void *SSL_get_current_compression(SSL *s)
 {
@@ -2903,42 +2911,42 @@ void SSL_CTX_set_quiet_shutdown(SSL_CTX *ctx,int mode)
 }
 
 int SSL_CTX_get_quiet_shutdown(const SSL_CTX *ctx)
-	{
+{
 	return(ctx->quiet_shutdown);
-	}
+}
 
 void SSL_set_quiet_shutdown(SSL *s,int mode)
-	{
+{
 	s->quiet_shutdown=mode;
-	}
+}
 
 int SSL_get_quiet_shutdown(const SSL *s)
-	{
+{
 	return(s->quiet_shutdown);
-	}
+}
 
 void SSL_set_shutdown(SSL *s,int mode)
-	{
+{
 	s->shutdown=mode;
-	}
+}
 
 int SSL_get_shutdown(const SSL *s)
-	{
+{
 	return(s->shutdown);
-	}
+}
 
 int SSL_version(const SSL *s)
-	{
+{
 	return(s->version);
-	}
+}
 
 SSL_CTX *SSL_get_SSL_CTX(const SSL *ssl)
-	{
+{
 	return(ssl->ctx);
-	}
+}
 
 SSL_CTX *SSL_set_SSL_CTX(SSL *ssl, SSL_CTX* ctx)
-	{
+{
 	if (ssl->ctx == ctx)
 		return ssl->ctx;
 #ifndef OPENSSL_NO_TLSEXT
@@ -2953,19 +2961,19 @@ SSL_CTX *SSL_set_SSL_CTX(SSL *ssl, SSL_CTX* ctx)
 		SSL_CTX_free(ssl->ctx); /* decrement reference count */
 	ssl->ctx = ctx;
 	return(ssl->ctx);
-	}
+}
 
 #ifndef OPENSSL_NO_STDIO
 int SSL_CTX_set_default_verify_paths(SSL_CTX *ctx)
-	{
+{
 	return(X509_STORE_set_default_paths(ctx->cert_store));
-	}
+}
 
 int SSL_CTX_load_verify_locations(SSL_CTX *ctx, const char *CAfile,
 		const char *CApath)
-	{
+{
 	return(X509_STORE_load_locations(ctx->cert_store,CAfile,CApath));
-	}
+}
 #endif
 
 void SSL_set_info_callback(SSL *ssl,
@@ -3250,14 +3258,14 @@ void ssl_clear_hash_ctx(EVP_MD_CTX **hash)
 }
 
 void SSL_set_debug(SSL *s, int debug)
-	{
+{
 	s->debug = debug;
-	}
+}
 
 int SSL_cache_hit(SSL *s)
-	{
+{
 	return s->hit;
-	}
+}
 
 
 #ifdef	ASHOKE_TOOL

@@ -91,7 +91,7 @@ X509_LOOKUP_METHOD *X509_LOOKUP_file(void)
 
 static int by_file_ctrl(X509_LOOKUP *ctx, int cmd, const char *argp, long argl,
 	     char **ret)
-	{
+{
 	int ok=0;
 	char *file;
 
@@ -125,7 +125,7 @@ static int by_file_ctrl(X509_LOOKUP *ctx, int cmd, const char *argp, long argl,
 		break;
 	}
 	return(ok);
-	}
+}
 
 int X509_load_cert_file(X509_LOOKUP *ctx, const char *file, int type)
 	{

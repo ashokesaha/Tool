@@ -348,7 +348,7 @@ static int err_string_data_cmp(const ERR_STRING_DATA *a,
 static IMPLEMENT_LHASH_COMP_FN(err_string_data, ERR_STRING_DATA)
 
 static LHASH_OF(ERR_STRING_DATA) *int_err_get(int create)
-	{
+{
 	LHASH_OF(ERR_STRING_DATA) *ret = NULL;
 
 	CRYPTO_w_lock(CRYPTO_LOCK_ERR);
@@ -363,10 +363,10 @@ static LHASH_OF(ERR_STRING_DATA) *int_err_get(int create)
 	CRYPTO_w_unlock(CRYPTO_LOCK_ERR);
 
 	return ret;
-	}
+}
 
 static void int_err_del(void)
-	{
+{
 	CRYPTO_w_lock(CRYPTO_LOCK_ERR);
 	if (int_error_hash)
 		{
@@ -374,10 +374,10 @@ static void int_err_del(void)
 		int_error_hash = NULL;
 		}
 	CRYPTO_w_unlock(CRYPTO_LOCK_ERR);
-	}
+}
 
 static ERR_STRING_DATA *int_err_get_item(const ERR_STRING_DATA *d)
-	{
+{
 	ERR_STRING_DATA *p;
 	LHASH_OF(ERR_STRING_DATA) *hash;
 
@@ -391,10 +391,10 @@ static ERR_STRING_DATA *int_err_get_item(const ERR_STRING_DATA *d)
 	CRYPTO_r_unlock(CRYPTO_LOCK_ERR);
 
 	return p;
-	}
+}
 
 static ERR_STRING_DATA *int_err_set_item(ERR_STRING_DATA *d)
-	{
+{
 	ERR_STRING_DATA *p;
 	LHASH_OF(ERR_STRING_DATA) *hash;
 
@@ -408,10 +408,10 @@ static ERR_STRING_DATA *int_err_set_item(ERR_STRING_DATA *d)
 	CRYPTO_w_unlock(CRYPTO_LOCK_ERR);
 
 	return p;
-	}
+}
 
 static ERR_STRING_DATA *int_err_del_item(ERR_STRING_DATA *d)
-	{
+{
 	ERR_STRING_DATA *p;
 	LHASH_OF(ERR_STRING_DATA) *hash;
 
@@ -425,7 +425,7 @@ static ERR_STRING_DATA *int_err_del_item(ERR_STRING_DATA *d)
 	CRYPTO_w_unlock(CRYPTO_LOCK_ERR);
 
 	return p;
-	}
+}
 
 static unsigned long err_state_hash(const ERR_STATE *a)
 	{
@@ -440,7 +440,7 @@ static int err_state_cmp(const ERR_STATE *a, const ERR_STATE *b)
 static IMPLEMENT_LHASH_COMP_FN(err_state, ERR_STATE)
 
 static LHASH_OF(ERR_STATE) *int_thread_get(int create)
-	{
+{
 	LHASH_OF(ERR_STATE) *ret = NULL;
 
 	CRYPTO_w_lock(CRYPTO_LOCK_ERR);
@@ -457,10 +457,10 @@ static LHASH_OF(ERR_STATE) *int_thread_get(int create)
 		}
 	CRYPTO_w_unlock(CRYPTO_LOCK_ERR);
 	return ret;
-	}
+}
 
 static void int_thread_release(LHASH_OF(ERR_STATE) **hash)
-	{
+{
 	int i;
 
 	if (hash == NULL || *hash == NULL)
@@ -480,10 +480,10 @@ static void int_thread_release(LHASH_OF(ERR_STATE) **hash)
 		}
 #endif
 	*hash = NULL;
-	}
+}
 
 static ERR_STATE *int_thread_get_item(const ERR_STATE *d)
-	{
+{
 	ERR_STATE *p;
 	LHASH_OF(ERR_STATE) *hash;
 
@@ -498,10 +498,10 @@ static ERR_STATE *int_thread_get_item(const ERR_STATE *d)
 
 	ERRFN(thread_release)(&hash);
 	return p;
-	}
+}
 
 static ERR_STATE *int_thread_set_item(ERR_STATE *d)
-	{
+{
 	ERR_STATE *p;
 	LHASH_OF(ERR_STATE) *hash;
 
@@ -516,10 +516,10 @@ static ERR_STATE *int_thread_set_item(ERR_STATE *d)
 
 	ERRFN(thread_release)(&hash);
 	return p;
-	}
+}
 
 static void int_thread_del_item(const ERR_STATE *d)
-	{
+{
 	ERR_STATE *p;
 	LHASH_OF(ERR_STATE) *hash;
 
@@ -542,10 +542,10 @@ static void int_thread_del_item(const ERR_STATE *d)
 	ERRFN(thread_release)(&hash);
 	if (p)
 		ERR_STATE_free(p);
-	}
+}
 
 static int int_err_get_next_lib(void)
-	{
+{
 	int ret;
 
 	CRYPTO_w_lock(CRYPTO_LOCK_ERR);
@@ -553,7 +553,7 @@ static int int_err_get_next_lib(void)
 	CRYPTO_w_unlock(CRYPTO_LOCK_ERR);
 
 	return ret;
-	}
+}
 
 
 #ifndef OPENSSL_NO_ERR
@@ -571,7 +571,7 @@ static ERR_STRING_DATA SYS_str_reasons[NUM_SYS_STR_REASONS + 1];
  * value and never one of those 'standard' reason codes. */
 
 static void build_SYS_str_reasons(void)
-	{
+{
 	/* OPENSSL_malloc cannot be used here, use static storage instead */
 	static char strerror_tab[NUM_SYS_STR_REASONS][LEN_SYS_STR_REASON];
 	int i;
@@ -618,7 +618,7 @@ static void build_SYS_str_reasons(void)
 	init = 0;
 	
 	CRYPTO_w_unlock(CRYPTO_LOCK_ERR);
-	}
+}
 #endif
 
 #define err_clear_data(p,i) \
@@ -642,7 +642,7 @@ static void build_SYS_str_reasons(void)
 	} while(0)
 
 static void ERR_STATE_free(ERR_STATE *s)
-	{
+{
 	int i;
 
 	if (s == NULL)
@@ -653,10 +653,10 @@ static void ERR_STATE_free(ERR_STATE *s)
 		err_clear_data(s,i);
 		}
 	OPENSSL_free(s);
-	}
+}
 
 void ERR_load_ERR_strings(void)
-	{
+{
 	err_fns_check();
 #ifndef OPENSSL_NO_ERR
 	err_load_strings(0,ERR_str_libraries);
@@ -665,10 +665,10 @@ void ERR_load_ERR_strings(void)
 	build_SYS_str_reasons();
 	err_load_strings(ERR_LIB_SYS,SYS_str_reasons);
 #endif
-	}
+}
 
 static void err_load_strings(int lib, ERR_STRING_DATA *str)
-	{
+{
 	while (str->error)
 		{
 		if (lib)
@@ -676,16 +676,16 @@ static void err_load_strings(int lib, ERR_STRING_DATA *str)
 		ERRFN(err_set_item)(str);
 		str++;
 		}
-	}
+}
 
 void ERR_load_strings(int lib, ERR_STRING_DATA *str)
-	{
+{
 	ERR_load_ERR_strings();
 	err_load_strings(lib, str);
-	}
+}
 
 void ERR_unload_strings(int lib, ERR_STRING_DATA *str)
-	{
+{
 	while (str->error)
 		{
 		if (lib)
@@ -693,20 +693,21 @@ void ERR_unload_strings(int lib, ERR_STRING_DATA *str)
 		ERRFN(err_del_item)(str);
 		str++;
 		}
-	}
+}
 
 void ERR_free_strings(void)
-	{
+{
 	err_fns_check();
 	ERRFN(err_del)();
-	}
+}
 
 /********************************************************/
 
 void ERR_put_error(int lib, int func, int reason, const char *file,
 	     int line)
-	{
+{
 	ERR_STATE *es;
+//printf("%s:%d  %s\n",file,line,ERR_reason_error_string(reason));
 
 #ifdef _OSD_POSIX
 	/* In the BS2000-OSD POSIX subsystem, the compiler generates
@@ -737,10 +738,10 @@ void ERR_put_error(int lib, int func, int reason, const char *file,
 	es->err_file[es->top]=file;
 	es->err_line[es->top]=line;
 	err_clear_data(es,es->top);
-	}
+}
 
 void ERR_clear_error(void)
-	{
+{
 	int i;
 	ERR_STATE *es;
 
@@ -751,7 +752,7 @@ void ERR_clear_error(void)
 		err_clear(es,i);
 		}
 	es->top=es->bottom=0;
-	}
+}
 
 
 unsigned long ERR_get_error(void)
@@ -790,7 +791,7 @@ unsigned long ERR_peek_last_error_line_data(const char **file, int *line,
 
 static unsigned long get_error_values(int inc, int top, const char **file, int *line,
 	     const char **data, int *flags)
-	{	
+{
 	int i=0;
 	ERR_STATE *es;
 	unsigned long ret;
@@ -855,10 +856,10 @@ static unsigned long get_error_values(int inc, int top, const char **file, int *
 			}
 		}
 	return ret;
-	}
+}
 
 void ERR_error_string_n(unsigned long e, char *buf, size_t len)
-	{
+{
 	char lsbuf[64], fsbuf[64], rsbuf[64];
 	const char *ls,*fs,*rs;
 	unsigned long l,f,r;
@@ -904,41 +905,41 @@ void ERR_error_string_n(unsigned long e, char *buf, size_t len)
 				}
 			}
 		}
-	}
+}
 
 /* BAD for multi-threading: uses a local buffer if ret == NULL */
 /* ERR_error_string_n should be used instead for ret != NULL
  * as ERR_error_string cannot know how large the buffer is */
 char *ERR_error_string(unsigned long e, char *ret)
-	{
+{
 	static char buf[256];
 
 	if (ret == NULL) ret=buf;
 	ERR_error_string_n(e, ret, 256);
 
 	return ret;
-	}
+}
 
 LHASH_OF(ERR_STRING_DATA) *ERR_get_string_table(void)
-	{
+{
 	err_fns_check();
 	return ERRFN(err_get)(0);
-	}
+}
 
 LHASH_OF(ERR_STATE) *ERR_get_err_state_table(void)
-	{
+{
 	err_fns_check();
 	return ERRFN(thread_get)(0);
-	}
+}
 
 void ERR_release_err_state_table(LHASH_OF(ERR_STATE) **hash)
-	{
+{
 	err_fns_check();
 	ERRFN(thread_release)(hash);
-	}
+}
 
 const char *ERR_lib_error_string(unsigned long e)
-	{
+{
 	ERR_STRING_DATA d,*p;
 	unsigned long l;
 
@@ -947,10 +948,10 @@ const char *ERR_lib_error_string(unsigned long e)
 	d.error=ERR_PACK(l,0,0);
 	p=ERRFN(err_get_item)(&d);
 	return((p == NULL)?NULL:p->string);
-	}
+}
 
 const char *ERR_func_error_string(unsigned long e)
-	{
+{
 	ERR_STRING_DATA d,*p;
 	unsigned long l,f;
 
@@ -960,10 +961,10 @@ const char *ERR_func_error_string(unsigned long e)
 	d.error=ERR_PACK(l,f,0);
 	p=ERRFN(err_get_item)(&d);
 	return((p == NULL)?NULL:p->string);
-	}
+}
 
 const char *ERR_reason_error_string(unsigned long e)
-	{
+{
 	ERR_STRING_DATA d,*p=NULL;
 	unsigned long l,r;
 
@@ -978,10 +979,10 @@ const char *ERR_reason_error_string(unsigned long e)
 		p=ERRFN(err_get_item)(&d);
 		}
 	return((p == NULL)?NULL:p->string);
-	}
+}
 
 void ERR_remove_thread_state(const CRYPTO_THREADID *id)
-	{
+{
 	ERR_STATE tmp;
 
 	if (id)
@@ -992,17 +993,17 @@ void ERR_remove_thread_state(const CRYPTO_THREADID *id)
 	/* thread_del_item automatically destroys the LHASH if the number of
 	 * items reaches zero. */
 	ERRFN(thread_del_item)(&tmp);
-	}
+}
 
 #ifndef OPENSSL_NO_DEPRECATED
 void ERR_remove_state(unsigned long pid)
-	{
+{
 	ERR_remove_thread_state(NULL);
-	}
+}
 #endif
 
 ERR_STATE *ERR_get_state(void)
-	{
+{
 	static ERR_STATE fallback;
 	ERR_STATE *ret,tmp,*tmpp=NULL;
 	int i;
@@ -1015,7 +1016,7 @@ ERR_STATE *ERR_get_state(void)
 
 	/* ret == the error state, if NULL, make a new one */
 	if (ret == NULL)
-		{
+	{
 		ret=(ERR_STATE *)OPENSSL_malloc(sizeof(ERR_STATE));
 		if (ret == NULL) return(&fallback);
 		CRYPTO_THREADID_cpy(&ret->tid, &tid);
@@ -1037,18 +1038,18 @@ ERR_STATE *ERR_get_state(void)
 		 * is the first one that we just replaced. */
 		if (tmpp)
 			ERR_STATE_free(tmpp);
-		}
-	return ret;
 	}
+	return ret;
+}
 
 int ERR_get_next_error_library(void)
-	{
+{
 	err_fns_check();
 	return ERRFN(get_next_lib)();
-	}
+}
 
 void ERR_set_error_data(char *data, int flags)
-	{
+{
 	ERR_STATE *es;
 	int i;
 
@@ -1061,18 +1062,18 @@ void ERR_set_error_data(char *data, int flags)
 	err_clear_data(es,i);
 	es->err_data[i]=data;
 	es->err_data_flags[i]=flags;
-	}
+}
 
 void ERR_add_error_data(int num, ...)
-	{
+{
 	va_list args;
 	va_start(args, num);
 	ERR_add_error_vdata(num, args);
 	va_end(args);
-	}
+}
 
 void ERR_add_error_vdata(int num, va_list args)
-	{
+{
 	int i,n,s;
 	char *str,*p,*a;
 
@@ -1105,10 +1106,10 @@ void ERR_add_error_vdata(int num, va_list args)
 			}
 		}
 	ERR_set_error_data(str,ERR_TXT_MALLOCED|ERR_TXT_STRING);
-	}
+}
 
 int ERR_set_mark(void)
-	{
+{
 	ERR_STATE *es;
 
 	es=ERR_get_state();
@@ -1116,10 +1117,10 @@ int ERR_set_mark(void)
 	if (es->bottom == es->top) return 0;
 	es->err_flags[es->top]|=ERR_FLAG_MARK;
 	return 1;
-	}
+}
 
 int ERR_pop_to_mark(void)
-	{
+{
 	ERR_STATE *es;
 
 	es=ERR_get_state();
@@ -1135,4 +1136,4 @@ int ERR_pop_to_mark(void)
 	if (es->bottom == es->top) return 0;
 	es->err_flags[es->top]&=~ERR_FLAG_MARK;
 	return 1;
-	}
+}

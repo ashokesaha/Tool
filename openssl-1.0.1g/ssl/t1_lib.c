@@ -1198,29 +1198,25 @@ int ssl_parse_clienthello_tlsext(SSL *s, unsigned char **p, unsigned char *d, in
 				return 0;
 				}
 			if (!s->hit)
-				{
+			{
 				if(s->session->tlsext_ellipticcurvelist)
-					{
+				{
 					*al = TLS1_AD_DECODE_ERROR;
 					return 0;
-					}
+				}
 				s->session->tlsext_ellipticcurvelist_length = 0;
+
 				if ((s->session->tlsext_ellipticcurvelist = OPENSSL_malloc(ellipticcurvelist_length)) == NULL)
-					{
+				{
 					*al = TLS1_AD_INTERNAL_ERROR;
 					return 0;
-					}
+				}
 				s->session->tlsext_ellipticcurvelist_length = ellipticcurvelist_length;
 				memcpy(s->session->tlsext_ellipticcurvelist, sdata, ellipticcurvelist_length);
-				}
-#if 0
-			fprintf(stderr,"ssl_parse_clienthello_tlsext s->session->tlsext_ellipticcurvelist (length=%i) ", s->session->tlsext_ellipticcurvelist_length);
-			sdata = s->session->tlsext_ellipticcurvelist;
-			for (i = 0; i < s->session->tlsext_ellipticcurvelist_length; i++)
-				fprintf(stderr,"%i ",*(sdata++));
-			fprintf(stderr,"\n");
-#endif
 			}
+
+			}
+
 #endif /* OPENSSL_NO_EC */
 #ifdef TLSEXT_TYPE_opaque_prf_input
 		else if (type == TLSEXT_TYPE_opaque_prf_input &&

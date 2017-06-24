@@ -1127,6 +1127,7 @@ const char *SSL_get_psk_identity(const SSL *s);
 	} ATT_t;
 #endif
 
+
 struct ssl_st
 {
 	/* protocol version
@@ -1725,6 +1726,7 @@ int	SSL_clear(SSL *s);
 void	SSL_CTX_flush_sessions(SSL_CTX *ctx,long tm);
 
 const SSL_CIPHER *SSL_get_current_cipher(const SSL *s);
+const char *SSL_get_current_cipher_name(const SSL *s);
 int	SSL_CIPHER_get_bits(const SSL_CIPHER *c,int *alg_bits);
 char *	SSL_CIPHER_get_version(const SSL_CIPHER *c);
 const char *	SSL_CIPHER_get_name(const SSL_CIPHER *c);

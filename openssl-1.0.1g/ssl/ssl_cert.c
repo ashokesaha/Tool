@@ -402,7 +402,7 @@ void ssl_cert_free(CERT *c)
 	}
 
 int ssl_cert_inst(CERT **o)
-	{
+{
 	/* Create a CERT if there isn't already one
 	 * (which cannot really happen, as it is initially created in
 	 * SSL_CTX_new; but the earlier code usually allows for that one
@@ -414,39 +414,39 @@ int ssl_cert_inst(CERT **o)
 	 */
 	
 	if (o == NULL) 
-		{
+	{
 		SSLerr(SSL_F_SSL_CERT_INST, ERR_R_PASSED_NULL_PARAMETER);
 		return(0);
-		}
+	}
 	if (*o == NULL)
-		{
+	{
 		if ((*o = ssl_cert_new()) == NULL)
-			{
+		{
 			SSLerr(SSL_F_SSL_CERT_INST, ERR_R_MALLOC_FAILURE);
 			return(0);
-			}
 		}
-	return(1);
 	}
+	return(1);
+}
 
 
 SESS_CERT *ssl_sess_cert_new(void)
-	{
+{
 	SESS_CERT *ret;
 
 	ret = OPENSSL_malloc(sizeof *ret);
 	if (ret == NULL)
-		{
+	{
 		SSLerr(SSL_F_SSL_SESS_CERT_NEW, ERR_R_MALLOC_FAILURE);
 		return NULL;
-		}
+	}
 
 	memset(ret, 0 ,sizeof *ret);
 	ret->peer_key = &(ret->peer_pkeys[SSL_PKEY_RSA_ENC]);
 	ret->references = 1;
 
 	return ret;
-	}
+}
 
 void ssl_sess_cert_free(SESS_CERT *sc)
 	{

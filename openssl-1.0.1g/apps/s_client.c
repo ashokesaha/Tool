@@ -156,8 +156,9 @@ typedef unsigned int u_int;
 
 #define USE_SOCKETS
 #include "apps.h"
-#include <openssl/x509.h>
+#include "openssl/x509.h"
 #include "openssl/ssl.h"
+#include "openssl/ossl_typ.h"
 #include <openssl/err.h>
 #include <openssl/pem.h>
 #include <openssl/rand.h>
@@ -169,6 +170,7 @@ typedef unsigned int u_int;
 #include "s_apps.h"
 #include "timeouts.h"
 #include "ssl/ssl.h"
+#include "crypto/ossl_typ.h"
 
 #if (defined(OPENSSL_SYS_VMS) && __VMS_VER < 70000000)
 /* FIONBIO used as a switch to enable ioctl, and that isn't in VMS < 7.0 */
@@ -212,6 +214,7 @@ static int keymatexportlen=20;
 
 static void sc_usage(void);
 static void print_stuff(BIO *berr,SSL *con,int full);
+static void mini_print_stuff(BIO *bio, SSL *s, int full);
 #ifndef OPENSSL_NO_TLSEXT
 static int ocsp_resp_cb(SSL *s, void *arg);
 #endif
@@ -1292,7 +1295,7 @@ re_start:
 	if (c_Pause & 0x01) SSL_set_debug(con, 1);
 
 	if ( SSL_version(con) == DTLS1_VERSION)
-		{
+	{
 
 		sbio=BIO_new_dgram(s,BIO_NOCLOSE);
 		if (getsockname(s, &peer, (void *)&peerlen) < 0)
@@ -1324,53 +1327,45 @@ re_start:
 		else
 			/* want to do MTU discovery */
 			BIO_ctrl(sbio, BIO_CTRL_DGRAM_MTU_DISCOVER, 0, NULL);
-		}
+	}
 	else
 		sbio=BIO_new_socket(s,BIO_NOCLOSE);
 
 	if (nbio_test)
-		{
+	{
 		BIO *test;
 
 		test=BIO_new(BIO_f_nbio_test());
 		sbio=BIO_push(test,sbio);
-		}
+	}
 
 	if (c_debug)
-		{
+	{
 		SSL_set_debug(con, 1);
 		BIO_set_callback(sbio,bio_dump_callback);
 		BIO_set_callback_arg(sbio,(char *)bio_c_out);
-		}
+	}
+
 	if (c_msg)
-		{
+	{
 		SSL_set_msg_callback(con, msg_cb);
 		SSL_set_msg_callback_arg(con, bio_c_out);
-		}
+	}
+
 #ifndef OPENSSL_NO_TLSEXT
 	if (c_tlsextdebug)
-		{
+	{
 		SSL_set_tlsext_debug_callback(con, tlsext_cb);
 		SSL_set_tlsext_debug_arg(con, bio_c_out);
-		}
+	}
 	if (c_status_req)
-		{
+	{
 		SSL_set_tlsext_status_type(con, TLSEXT_STATUSTYPE_ocsp);
 		SSL_CTX_set_tlsext_status_cb(ctx, ocsp_resp_cb);
 		SSL_CTX_set_tlsext_status_arg(ctx, bio_c_out);
-#if 0
-{
-STACK_OF(OCSP_RESPID) *ids = sk_OCSP_RESPID_new_null();
-OCSP_RESPID *id = OCSP_RESPID_new();
-id->value.byKey = ASN1_OCTET_STRING_new();
-id->type = V_OCSP_RESPID_KEY;
-ASN1_STRING_set(id->value.byKey, "Hello World", -1);
-sk_OCSP_RESPID_push(ids, id);
-SSL_set_tlsext_status_ids(con, ids);
-}
+	}
 #endif
-		}
-#endif
+
 #ifndef OPENSSL_NO_JPAKE
 	if (jpake_secret)
 		jpake_client_auth(bio_c_out, sbio, jpake_secret);
@@ -1505,7 +1500,7 @@ SSL_set_tlsext_status_ids(con, ids);
 		}
 
 	for (;;)
-		{
+	{
 		FD_ZERO(&readfds);
 		FD_ZERO(&writefds);
 
@@ -1516,26 +1511,18 @@ SSL_set_tlsext_status_ids(con, ids);
 			timeoutp = NULL;
 
 		if (SSL_in_init(con) && !SSL_total_renegotiations(con))
-			{
+		{
 			in_init=1;
 			tty_on=0;
-			}
+		}
 		else
-			{
+		{
 			tty_on=1;
 			if (in_init)
-				{
+			{
 				in_init=0;
-#if 0 /* This test doesn't really work as intended (needs to be fixed) */
-#ifndef OPENSSL_NO_TLSEXT
-				if (servername != NULL && !SSL_session_reused(con))
-					{
-					BIO_printf(bio_c_out,"Server did %sacknowledge servername extension.\n",tlsextcbp.ack?"":"not ");
-					}
-#endif
-#endif
 				if (sess_out)
-					{
+				{
 					BIO *stmp = BIO_new_file(sess_out, "w");
 					if (stmp)
 						{
@@ -1544,28 +1531,28 @@ SSL_set_tlsext_status_ids(con, ids);
 						}
 					else 
 						BIO_printf(bio_err, "Error writing session file %s\n", sess_out);
-					}
-				print_stuff(bio_c_out,con,full_log);
+				}
+				mini_print_stuff(bio_c_out,con,full_log);
 				if (full_log > 0) full_log--;
 
 				if (starttls_proto)
-					{
+				{
 					BIO_printf(bio_err,"%s",mbuf);
 					/* We don't need to know any more */
 					starttls_proto = PROTO_OFF;
-					}
+				}
 
 				if (reconnect)
-					{
+				{
 					reconnect--;
 					BIO_printf(bio_c_out,"drop connection and then reconnect\n");
 					SSL_shutdown(con);
 					SSL_set_connect_state(con);
 					SHUTDOWN(SSL_get_fd(con));
 					goto re_start;
-					}
 				}
 			}
+		}
 
 		ssl_pending = read_ssl && SSL_pending(con);
 
@@ -1892,19 +1879,19 @@ printf("read=%d pending=%d peek=%d\n",k,SSL_pending(con),SSL_peek(con,zbuf,10240
 			write_ssl=1;
 			read_tty=0;
 			}
-		}
+	}
 
 	ret=0;
 shut:
 	if (in_init)
-		print_stuff(bio_c_out,con,full_log);
+		mini_print_stuff(bio_c_out,con,full_log);
 	SSL_shutdown(con);
 	SHUTDOWN(SSL_get_fd(con));
 end:
 	if (con != NULL)
 		{
 		if (prexit != 0)
-			print_stuff(bio_c_out,con,1);
+			mini_print_stuff(bio_c_out,con,1);
 		SSL_free(con);
 		}
 #if !defined(OPENSSL_NO_TLSEXT) && !defined(OPENSSL_NO_NEXTPROTONEG)
@@ -1933,6 +1920,73 @@ end:
 }
 
 
+
+
+static void mini_print_stuff(BIO *bio, SSL *s, int full)
+{
+	X509 *peer=NULL;
+	char *p;
+	static const char *space="                ";
+	char buf[BUFSIZ];
+	STACK_OF(X509) *sk;
+	const SSL_CIPHER *c;
+	char	*ecname = NULL;
+	int i;
+
+#if 0
+	sk=SSL_get_peer_cert_chain(s);
+	if (sk != NULL)
+	{
+		BIO_printf(bio,"---\nCertificate chain\n");
+		for (i=0; i<sk_X509_num(sk); i++)
+		{
+			X509_NAME_oneline(X509_get_subject_name(
+				sk_X509_value(sk,i)),buf,sizeof buf);
+			BIO_printf(bio,"%2d s:%s\n",i,buf);
+			X509_NAME_oneline(X509_get_issuer_name(
+				sk_X509_value(sk,i)),buf,sizeof buf);
+			BIO_printf(bio,"   i:%s\n",buf);
+			if (c_showcerts)
+				PEM_write_bio_X509(bio,sk_X509_value(sk,i));
+		}
+	}
+	BIO_printf(bio,"---\n");
+#endif
+
+	peer=SSL_get_peer_certificate(s);
+	if (peer != NULL)
+	{
+		EVP_PKEY *pktmp;
+
+		/**************************************************
+		BIO_printf(bio,"Server certificate\n");
+		X509_NAME_oneline(X509_get_subject_name(peer),buf,sizeof buf);
+		BIO_printf(bio,"subject=%s\n",buf);
+
+		X509_NAME_oneline(X509_get_issuer_name(peer),buf,sizeof buf);
+		BIO_printf(bio,"issuer=%s\n",buf);
+		**************************************************/
+
+		pktmp = X509_get_pubkey(peer);
+		BIO_printf(bio,"Pubkey (%d) bit ", EVP_PKEY_bits(pktmp));
+		EVP_PKEY_free(pktmp);
+
+		X509_signature_print(bio,peer->sig_alg,NULL);
+
+	}
+	else
+		BIO_printf(bio,"no peer certificate available\n");
+
+	c=SSL_get_current_cipher(s);
+	BIO_printf(bio,"%s, Cipher is %s\n",
+				SSL_CIPHER_get_version(c),
+				SSL_CIPHER_get_name(c));
+	if((ecname = get_ecc_curvename(s)) )
+		BIO_printf(bio,"ECC Curve: %s\n", ecname);
+}
+
+
+
 static void print_stuff(BIO *bio, SSL *s, int full)
 {
 	X509 *peer=NULL;
@@ -1950,17 +2004,17 @@ static void print_stuff(BIO *bio, SSL *s, int full)
 	unsigned char *exportedkeymat;
 
 	if (full)
-		{
+	{
 		int got_a_chain = 0;
 
 		sk=SSL_get_peer_cert_chain(s);
 		if (sk != NULL)
-			{
+		{
 			got_a_chain = 1; /* we don't have it for SSL2 (yet) */
 
 			BIO_printf(bio,"---\nCertificate chain\n");
 			for (i=0; i<sk_X509_num(sk); i++)
-				{
+			{
 				X509_NAME_oneline(X509_get_subject_name(
 					sk_X509_value(sk,i)),buf,sizeof buf);
 				BIO_printf(bio,"%2d s:%s\n",i,buf);
@@ -1969,13 +2023,13 @@ static void print_stuff(BIO *bio, SSL *s, int full)
 				BIO_printf(bio,"   i:%s\n",buf);
 				if (c_showcerts)
 					PEM_write_bio_X509(bio,sk_X509_value(sk,i));
-				}
 			}
+		}
 
 		BIO_printf(bio,"---\n");
 		peer=SSL_get_peer_certificate(s);
 		if (peer != NULL)
-			{
+		{
 			BIO_printf(bio,"Server certificate\n");
 			if (!(c_showcerts && got_a_chain)) /* Redundant if we showed the whole chain */
 				PEM_write_bio_X509(bio,peer);
@@ -1985,29 +2039,30 @@ static void print_stuff(BIO *bio, SSL *s, int full)
 			X509_NAME_oneline(X509_get_issuer_name(peer),
 				buf,sizeof buf);
 			BIO_printf(bio,"issuer=%s\n",buf);
-			}
+		}
 		else
 			BIO_printf(bio,"no peer certificate available\n");
 
 		sk2=SSL_get_client_CA_list(s);
 		if ((sk2 != NULL) && (sk_X509_NAME_num(sk2) > 0))
-			{
+		{
 			BIO_printf(bio,"---\nAcceptable client certificate CA names\n");
 			for (i=0; i<sk_X509_NAME_num(sk2); i++)
-				{
+			{
 				xn=sk_X509_NAME_value(sk2,i);
 				X509_NAME_oneline(xn,buf,sizeof(buf));
 				BIO_write(bio,buf,strlen(buf));
 				BIO_write(bio,"\n",1);
-				}
 			}
+		}
 		else
-			{
+		{
 			BIO_printf(bio,"---\nNo client certificate CA names sent\n");
-			}
+		}
+
 		p=SSL_get_shared_ciphers(s,buf,sizeof buf);
 		if (p != NULL)
-			{
+		{
 			/* This works only for SSL 2.  In later protocol
 			 * versions, the client does not know what other
 			 * ciphers (in addition to the one to be used
@@ -2016,7 +2071,7 @@ static void print_stuff(BIO *bio, SSL *s, int full)
 			BIO_printf(bio,"---\nCiphers common between both SSL endpoints:\n");
 			j=i=0;
 			while (*p)
-				{
+			{
 				if (*p == ':')
 					{
 					BIO_write(bio,space,15-j%25);
@@ -2030,28 +2085,31 @@ static void print_stuff(BIO *bio, SSL *s, int full)
 					j++;
 					}
 				p++;
-				}
-			BIO_write(bio,"\n",1);
 			}
-
-		BIO_printf(bio,"---\nSSL handshake has read %ld bytes and written %ld bytes\n",
-			BIO_number_read(SSL_get_rbio(s)),
-			BIO_number_written(SSL_get_wbio(s)));
+			BIO_write(bio,"\n",1);
 		}
+
+		BIO_printf(bio,"---\nSSL handshake has read %ld bytes and written %ld bytes\n", BIO_number_read(SSL_get_rbio(s)), BIO_number_written(SSL_get_wbio(s)));
+	}
+
 	BIO_printf(bio,(SSL_cache_hit(s)?"---\nReused, ":"---\nNew, "));
 	c=SSL_get_current_cipher(s);
 	BIO_printf(bio,"%s, Cipher is %s\n",
 		SSL_CIPHER_get_version(c),
 		SSL_CIPHER_get_name(c));
-	if (peer != NULL) {
+
+	if (peer != NULL) 
+	{
 		EVP_PKEY *pktmp;
 		pktmp = X509_get_pubkey(peer);
 		BIO_printf(bio,"Server public key is %d bit\n",
 							 EVP_PKEY_bits(pktmp));
 		EVP_PKEY_free(pktmp);
 	}
+
 	BIO_printf(bio, "Secure Renegotiation IS%s supported\n",
 			SSL_get_secure_renegotiation_support(s) ? "" : " NOT");
+
 #ifndef OPENSSL_NO_COMP
 	comp=SSL_get_current_compression(s);
 	expansion=SSL_get_current_expansion(s);
@@ -2074,7 +2132,8 @@ static void print_stuff(BIO *bio, SSL *s, int full)
 #endif
 
 #if !defined(OPENSSL_NO_TLSEXT) && !defined(OPENSSL_NO_NEXTPROTONEG)
-	if (next_proto.status != -1) {
+	if (next_proto.status != -1) 
+	{
 		const unsigned char *proto;
 		unsigned int proto_len;
 		SSL_get0_next_proto_negotiated(s, &proto, &proto_len);
@@ -2096,38 +2155,45 @@ static void print_stuff(BIO *bio, SSL *s, int full)
  
 	SSL_SESSION_print(bio,SSL_get_session(s));
 	if (keymatexportlabel != NULL)
-		{
+	{
 		BIO_printf(bio, "Keying material exporter:\n");
 		BIO_printf(bio, "    Label: '%s'\n", keymatexportlabel);
 		BIO_printf(bio, "    Length: %i bytes\n", keymatexportlen);
 		exportedkeymat = OPENSSL_malloc(keymatexportlen);
+
 		if (exportedkeymat != NULL)
-			{
+		{
 			if (!SSL_export_keying_material(s, exportedkeymat,
 						        keymatexportlen,
 						        keymatexportlabel,
 						        strlen(keymatexportlabel),
 						        NULL, 0, 0))
-				{
+			{
 				BIO_printf(bio, "    Error\n");
-				}
+			}
 			else
-				{
+			{
 				BIO_printf(bio, "    Keying material: ");
 				for (i=0; i<keymatexportlen; i++)
 					BIO_printf(bio, "%02X",
 						   exportedkeymat[i]);
 				BIO_printf(bio, "\n");
-				}
-			OPENSSL_free(exportedkeymat);
 			}
+			OPENSSL_free(exportedkeymat);
 		}
+	}
 	BIO_printf(bio,"---\n");
 	if (peer != NULL)
 		X509_free(peer);
+
 	/* flush, or debugging output gets mixed with http response */
 	(void)BIO_flush(bio);
 }
+
+
+
+
+
 
 #ifndef OPENSSL_NO_TLSEXT
 

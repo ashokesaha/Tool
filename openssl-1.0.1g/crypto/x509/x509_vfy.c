@@ -139,16 +139,10 @@ const char X509_version[]="X.509" OPENSSL_VERSION_PTEXT;
 
 
 static int null_callback(int ok, X509_STORE_CTX *e)
-	{
+{
 	return ok;
-	}
+}
 
-#if 0
-static int x509_subject_cmp(X509 **a, X509 **b)
-	{
-	return X509_subject_name_cmp(*a,*b);
-	}
-#endif
 
 int X509_verify_cert(X509_STORE_CTX *ctx)
 {
@@ -400,11 +394,11 @@ static X509 *find_issuer(X509_STORE_CTX *ctx, STACK_OF(X509) *sk, X509 *x)
 	int i;
 	X509 *issuer;
 	for (i = 0; i < sk_X509_num(sk); i++)
-		{
+	{
 		issuer = sk_X509_value(sk, i);
 		if (ctx->check_issued(ctx, x, issuer))
 			return issuer;
-		}
+	}
 	return NULL;
 }
 
@@ -2005,7 +1999,7 @@ void X509_STORE_CTX_free(X509_STORE_CTX *ctx)
 
 int X509_STORE_CTX_init(X509_STORE_CTX *ctx, X509_STORE *store, X509 *x509,
 	     STACK_OF(X509) *chain)
-	{
+{
 	int ret = 1;
 	ctx->ctx=store;
 	ctx->current_method=0;
@@ -2128,7 +2122,7 @@ int X509_STORE_CTX_init(X509_STORE_CTX *ctx, X509_STORE *store, X509 *x509,
 		return 0;
 		}
 	return 1;
-	}
+}
 
 /* Set alternative lookup method: just a STACK of trusted certificates.
  * This avoids X509_STORE nastiness where it isn't needed.
@@ -2141,7 +2135,7 @@ void X509_STORE_CTX_trusted_stack(X509_STORE_CTX *ctx, STACK_OF(X509) *sk)
 }
 
 void X509_STORE_CTX_cleanup(X509_STORE_CTX *ctx)
-	{
+{
 	if (ctx->cleanup) ctx->cleanup(ctx);
 	if (ctx->param != NULL)
 		{
@@ -2161,59 +2155,59 @@ void X509_STORE_CTX_cleanup(X509_STORE_CTX *ctx)
 		}
 	CRYPTO_free_ex_data(CRYPTO_EX_INDEX_X509_STORE_CTX, ctx, &(ctx->ex_data));
 	memset(&ctx->ex_data,0,sizeof(CRYPTO_EX_DATA));
-	}
+}
 
 void X509_STORE_CTX_set_depth(X509_STORE_CTX *ctx, int depth)
-	{
+{
 	X509_VERIFY_PARAM_set_depth(ctx->param, depth);
-	}
+}
 
 void X509_STORE_CTX_set_flags(X509_STORE_CTX *ctx, unsigned long flags)
-	{
+{
 	X509_VERIFY_PARAM_set_flags(ctx->param, flags);
-	}
+}
 
 void X509_STORE_CTX_set_time(X509_STORE_CTX *ctx, unsigned long flags, time_t t)
-	{
+{
 	X509_VERIFY_PARAM_set_time(ctx->param, t);
-	}
+}
 
 void X509_STORE_CTX_set_verify_cb(X509_STORE_CTX *ctx,
 				  int (*verify_cb)(int, X509_STORE_CTX *))
-	{
+{
 	ctx->verify_cb=verify_cb;
-	}
+}
 
 X509_POLICY_TREE *X509_STORE_CTX_get0_policy_tree(X509_STORE_CTX *ctx)
-	{
+{
 	return ctx->tree;
-	}
+}
 
 int X509_STORE_CTX_get_explicit_policy(X509_STORE_CTX *ctx)
-	{
+{
 	return ctx->explicit_policy;
-	}
+}
 
 int X509_STORE_CTX_set_default(X509_STORE_CTX *ctx, const char *name)
-	{
+{
 	const X509_VERIFY_PARAM *param;
 	param = X509_VERIFY_PARAM_lookup(name);
 	if (!param)
 		return 0;
 	return X509_VERIFY_PARAM_inherit(ctx->param, param);
-	}
+}
 
 X509_VERIFY_PARAM *X509_STORE_CTX_get0_param(X509_STORE_CTX *ctx)
-	{
+{
 	return ctx->param;
-	}
+}
 
 void X509_STORE_CTX_set0_param(X509_STORE_CTX *ctx, X509_VERIFY_PARAM *param)
-	{
+{
 	if (ctx->param)
 		X509_VERIFY_PARAM_free(ctx->param);
 	ctx->param = param;
-	}
+}
 
 IMPLEMENT_STACK_OF(X509)
 IMPLEMENT_ASN1_SET_OF(X509)

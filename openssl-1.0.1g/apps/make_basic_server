@@ -1,0 +1,5 @@
+gcc -g  -I../ssl -I ../include -c basic_server_1.c
+gcc -g  -I../ssl -I ../include -c basic_server_2.c
+gcc -g  -c cJSON.c
+gcc -o basic_server_1 basic_server_1.o cJSON.o ../libssl.a ../libcrypto.a -lm 
+gcc -o basic_server_2 basic_server_2.o cJSON.o ../libssl.a ../libcrypto.a -lm 

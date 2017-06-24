@@ -673,7 +673,7 @@ int PEM_read(FILE *fp, char **name, char **header, unsigned char **data,
 
 int PEM_read_bio(BIO *bp, char **name, char **header, unsigned char **data,
 	     long *len)
-	{
+{
 	EVP_ENCODE_CTX ctx;
 	int end=0,i,k,bl=0,hl=0,nohead=0;
 	char buf[256];
@@ -685,24 +685,24 @@ int PEM_read_bio(BIO *bp, char **name, char **header, unsigned char **data,
 	headerB=BUF_MEM_new();
 	dataB=BUF_MEM_new();
 	if ((nameB == NULL) || (headerB == NULL) || (dataB == NULL))
-		{
+	{
 		BUF_MEM_free(nameB);
 		BUF_MEM_free(headerB);
 		BUF_MEM_free(dataB);
 		PEMerr(PEM_F_PEM_READ_BIO,ERR_R_MALLOC_FAILURE);
 		return(0);
-		}
+	}
 
 	buf[254]='\0';
 	for (;;)
-		{
+	{
 		i=BIO_gets(bp,buf,254);
 
 		if (i <= 0)
-			{
-			PEMerr(PEM_F_PEM_READ_BIO,PEM_R_NO_START_LINE);
+		{
+			//PEMerr(PEM_F_PEM_READ_BIO,PEM_R_NO_START_LINE);
 			goto err;
-			}
+		}
 
 		while ((i >= 0) && (buf[i] <= ' ')) i--;
 		buf[++i]='\n'; buf[++i]='\0';
@@ -722,7 +722,7 @@ int PEM_read_bio(BIO *bp, char **name, char **header, unsigned char **data,
 			nameB->data[i-6]='\0';
 			break;
 			}
-		}
+	}
 	hl=0;
 	if (!BUF_MEM_grow(headerB,256))
 		{ PEMerr(PEM_F_PEM_READ_BIO,ERR_R_MALLOC_FAILURE); goto err; }
@@ -834,7 +834,7 @@ err:
 	BUF_MEM_free(headerB);
 	BUF_MEM_free(dataB);
 	return(0);
-	}
+}
 
 /* Check pem string and return prefix length.
  * If for example the pem_str == "RSA PRIVATE KEY" and suffix = "PRIVATE KEY"

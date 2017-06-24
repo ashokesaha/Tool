@@ -1208,11 +1208,11 @@ int ssl3_get_client_hello(SSL *s)
 			/* check if some cipher was preferred by call back */
 			pref_cipher=pref_cipher ? pref_cipher : ssl3_choose_cipher(s, s->session->ciphers, SSL_get_ciphers(s));
 			if (pref_cipher == NULL)
-				{
+			{
 				al=SSL_AD_HANDSHAKE_FAILURE;
 				SSLerr(SSL_F_SSL3_GET_CLIENT_HELLO,SSL_R_NO_SHARED_CIPHER);
 				goto f_err;
-				}
+			}
 
 			s->session->cipher=pref_cipher;
 
@@ -3349,7 +3349,7 @@ int ssl3_send_server_certificate(SSL *s)
 	X509 *x;
 
 	if (s->state == SSL3_ST_SW_CERT_A)
-		{
+	{
 		x=ssl_get_server_send_cert(s);
 		if (x == NULL)
 			{
@@ -3366,7 +3366,7 @@ int ssl3_send_server_certificate(SSL *s)
 		s->state=SSL3_ST_SW_CERT_B;
 		s->init_num=(int)l;
 		s->init_off=0;
-		}
+	}
 
 	/* SSL3_ST_SW_CERT_B */
 	return(ssl3_do_write(s,SSL3_RT_HANDSHAKE));

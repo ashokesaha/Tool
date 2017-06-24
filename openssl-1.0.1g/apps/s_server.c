@@ -1703,7 +1703,7 @@ bad:
 
 #ifndef OPENSSL_NO_ECDH
 	if (!no_ecdhe)
-		{
+	{
 		EC_KEY *ecdh=NULL;
 
 		if (named_curve)
@@ -1726,52 +1726,55 @@ bad:
 			}
 
 		if (ecdh != NULL)
-			{
+		{
 			BIO_printf(bio_s_out,"Setting temp ECDH parameters\n");
-			}
+		}
 		else
-			{
+		{
 			BIO_printf(bio_s_out,"Using default temp ECDH parameters\n");
 			ecdh = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1);
 			if (ecdh == NULL) 
-				{
+			{
 				BIO_printf(bio_err, "unable to create curve (nistp256)\n");
 				goto end;
-				}
 			}
+		}
 		(void)BIO_flush(bio_s_out);
 
 		SSL_CTX_set_tmp_ecdh(ctx,ecdh);
+
 #ifndef OPENSSL_NO_TLSEXT
 		if (ctx2) 
 			SSL_CTX_set_tmp_ecdh(ctx2,ecdh);
 #endif
 		EC_KEY_free(ecdh);
-		}
+	}
 #endif
 	
 	if (!set_cert_key_stuff(ctx, s_cert, s_key))
 		goto end;
+
 #ifndef OPENSSL_NO_TLSEXT
 	if (ctx2 && !set_cert_key_stuff(ctx2,s_cert2,s_key2))
 		goto end; 
 #endif
+
 	if (s_dcert != NULL)
-		{
+	{
 		if (!set_cert_key_stuff(ctx, s_dcert, s_dkey))
 			goto end;
-		}
+	}
 
 #ifndef OPENSSL_NO_RSA
 #if 1
 	if (!no_tmp_rsa)
-		{
+	{
 		SSL_CTX_set_tmp_rsa_callback(ctx,tmp_rsa_cb);
 #ifndef OPENSSL_NO_TLSEXT
 		if (ctx2) 
 			SSL_CTX_set_tmp_rsa_callback(ctx2,tmp_rsa_cb);
 #endif		
-		}
+	}
 #else
 	if (!no_tmp_rsa && SSL_CTX_need_tmp_RSA(ctx))
 	{
@@ -2086,27 +2089,27 @@ static int sv_body(char *hostname, int s, unsigned char *context)
 	/* SSL_set_fd(con,s); */
 
 	if (s_debug)
-		{
+	{
 		SSL_set_debug(con, 1);
 		BIO_set_callback(SSL_get_rbio(con),bio_dump_callback);
 		BIO_set_callback_arg(SSL_get_rbio(con),(char *)bio_s_out);
-		}
+	}
 	if (s_msg)
-		{
+	{
 		SSL_set_msg_callback(con, msg_cb);
 		SSL_set_msg_callback_arg(con, bio_s_out);
-		}
+	}
 #ifndef OPENSSL_NO_TLSEXT
 	if (s_tlsextdebug)
-		{
+	{
 		SSL_set_tlsext_debug_callback(con, tlsext_cb);
 		SSL_set_tlsext_debug_arg(con, bio_s_out);
-		}
+	}
 #endif
 
 	width=s+1;
 	for (;;)
-		{
+	{
 		int read_from_terminal;
 		int read_from_sslcon;
 
@@ -2114,7 +2117,7 @@ static int sv_body(char *hostname, int s, unsigned char *context)
 		read_from_sslcon = SSL_pending(con);
 
 		if (!read_from_sslcon)
-			{
+		{
 			FD_ZERO(&readfds);
 #if !defined(OPENSSL_SYS_WINDOWS) && !defined(OPENSSL_SYS_MSDOS) && !defined(OPENSSL_SYS_NETWARE) && !defined(OPENSSL_SYS_BEOS_R5)
 			openssl_fdset(fileno(stdin),&readfds);
@@ -2126,30 +2129,6 @@ static int sv_body(char *hostname, int s, unsigned char *context)
 			 * the compiler: if you do have a cast then you can either
 			 * go for (int *) or (void *).
 			 */
-#if defined(OPENSSL_SYS_WINDOWS) || defined(OPENSSL_SYS_MSDOS) || defined(OPENSSL_SYS_NETWARE)
-                        /* Under DOS (non-djgpp) and Windows we can't select on stdin: only
-			 * on sockets. As a workaround we timeout the select every
-			 * second and check for any keypress. In a proper Windows
-			 * application we wouldn't do this because it is inefficient.
-			 */
-			tv.tv_sec = 1;
-			tv.tv_usec = 0;
-			i=select(width,(void *)&readfds,NULL,NULL,&tv);
-			if((i < 0) || (!i && !_kbhit() ) )continue;
-			if(_kbhit())
-				read_from_terminal = 1;
-#elif defined(OPENSSL_SYS_BEOS_R5)
-			/* Under BeOS-R5 the situation is similar to DOS */
-			tv.tv_sec = 1;
-			tv.tv_usec = 0;
-			(void)fcntl(fileno(stdin), F_SETFL, O_NONBLOCK);
-			i=select(width,(void *)&readfds,NULL,NULL,&tv);
-			if ((i < 0) || (!i && read(fileno(stdin), buf, 0) < 0))
-				continue;
-			if (read(fileno(stdin), buf, 0) >= 0)
-				read_from_terminal = 1;
-			(void)fcntl(fileno(stdin), F_SETFL, 0);
-#else
 			if ((SSL_version(con) == DTLS1_VERSION) &&
 				DTLSv1_get_timeout(con, &timeout))
 				timeoutp = &timeout;
@@ -2158,22 +2137,21 @@ static int sv_body(char *hostname, int s, unsigned char *context)
 
 			i=select(width,(void *)&readfds,NULL,NULL,timeoutp);
 
-			if ((SSL_version(con) == DTLS1_VERSION) && DTLSv1_handle_timeout(con) > 0)
-				{
+			if ((SSL_version(con)==DTLS1_VERSION) && DTLSv1_handle_timeout(con) > 0)
+			{
 				BIO_printf(bio_err,"TIMEOUT occured\n");
-				}
+			}
 
 			if (i <= 0) continue;
 			if (FD_ISSET(fileno(stdin),&readfds))
 				read_from_terminal = 1;
-#endif
 			if (FD_ISSET(s,&readfds))
 				read_from_sslcon = 1;
-			}
+		}
 		if (read_from_terminal)
-			{
+		{
 			if (s_crlf)
-				{
+			{
 				int j, lf_num;
 
 				i=raw_read_stdin(buf, bufsize/2);
@@ -2183,62 +2161,60 @@ static int sv_body(char *hostname, int s, unsigned char *context)
 					if (buf[j] == '\n')
 						lf_num++;
 				for (j = i-1; j >= 0; j--)
-					{
+				{
 					buf[j+lf_num] = buf[j];
 					if (buf[j] == '\n')
-						{
+					{
 						lf_num--;
 						i++;
 						buf[j+lf_num] = '\r';
-						}
 					}
-				assert(lf_num == 0);
 				}
+				assert(lf_num == 0);
+			}
 			else
 				i=raw_read_stdin(buf,bufsize);
+
 			if (!s_quiet)
-				{
+			{
 				if ((i <= 0) || (buf[0] == 'Q'))
-					{
+				{
 					BIO_printf(bio_s_out,"DONE\n");
 					SHUTDOWN(s);
 					close_accept_socket();
 					ret= -11;
 					goto err;
-					}
+				}
 				if ((i <= 0) || (buf[0] == 'q'))
-					{
+				{
 					BIO_printf(bio_s_out,"DONE\n");
 					if (SSL_version(con) != DTLS1_VERSION)
                         SHUTDOWN(s);
-	/*				close_accept_socket();
-					ret= -11;*/
 					goto err;
-					}
+				}
 
 #ifndef OPENSSL_NO_HEARTBEATS
 				if ((buf[0] == 'B') &&
 					((buf[1] == '\n') || (buf[1] == '\r')))
-					{
+				{
 					BIO_printf(bio_err,"HEARTBEATING\n");
 					SSL_heartbeat(con);
 					i=0;
 					continue;
-					}
+				}
 #endif
 				if ((buf[0] == 'r') && 
 					((buf[1] == '\n') || (buf[1] == '\r')))
-					{
+				{
 					SSL_renegotiate(con);
 					i=SSL_do_handshake(con);
 					printf("SSL_do_handshake -> %d\n",i);
 					i=0; /*13; */
 					continue;
-					/* strcpy(buf,"server side RE-NEGOTIATE\n"); */
-					}
+				}
 				if ((buf[0] == 'R') &&
 					((buf[1] == '\n') || (buf[1] == '\r')))
-					{
+				{
 					SSL_set_verify(con,
 						SSL_VERIFY_PEER|SSL_VERIFY_CLIENT_ONCE,NULL);
 					SSL_renegotiate(con);
@@ -2247,23 +2223,23 @@ static int sv_body(char *hostname, int s, unsigned char *context)
 					i=0; /* 13; */
 					continue;
 					/* strcpy(buf,"server side RE-NEGOTIATE asking for client cert\n"); */
-					}
+				}
 				if (buf[0] == 'P')
-					{
+				{
 					static const char *str="Lets print some clear text\n";
 					BIO_write(SSL_get_wbio(con),str,strlen(str));
-					}
-				if (buf[0] == 'S')
-					{
-					print_stats(bio_s_out,SSL_get_SSL_CTX(con));
-					}
 				}
+				if (buf[0] == 'S')
+				{
+					print_stats(bio_s_out,SSL_get_SSL_CTX(con));
+				}
+			}
 #ifdef CHARSET_EBCDIC
 			ebcdic2ascii(buf,buf,i);
 #endif
 			l=k=0;
 			for (;;)
-				{
+			{
 				/* should do a select for the write */
 #ifdef RENEG
 { static count=0; if (++count == 100) { count=0; SSL_renegotiate(con); } }
@@ -2282,7 +2258,7 @@ static int sv_body(char *hostname, int s, unsigned char *context)
 					}
 #endif
 				switch (SSL_get_error(con,k))
-					{
+				{
 				case SSL_ERROR_NONE:
 					break;
 				case SSL_ERROR_WANT_WRITE:
@@ -2301,36 +2277,36 @@ static int sv_body(char *hostname, int s, unsigned char *context)
 					BIO_printf(bio_s_out,"DONE\n");
 					ret=1;
 					goto err;
-					}
+				}
 				l+=k;
 				i-=k;
 				if (i <= 0) break;
-				}
 			}
+		}
 		if (read_from_sslcon)
-			{
+		{
 			if (!SSL_is_init_finished(con))
-				{
+			{
 				i=init_ssl_connection(con);
 				
 				if (i < 0)
-					{
+				{
 					ret=0;
 					goto err;
-					}
+				}
 				else if (i == 0)
-					{
+				{
 					ret=1;
 					goto err;
-					}
 				}
+			}
 			else
-				{
+			{
 again:	
 				i=SSL_read(con,(char *)buf,bufsize);
 #ifndef OPENSSL_NO_SRP
 				while (SSL_get_error(con,i) == SSL_ERROR_WANT_X509_LOOKUP)
-					{
+				{
 					BIO_printf(bio_s_out,"LOOKUP renego during read\n");
 					srp_callback_parm.user = SRP_VBASE_get_by_user(srp_callback_parm.vb, srp_callback_parm.login); 
 					if (srp_callback_parm.user) 
@@ -2338,10 +2314,10 @@ again:
 					else 
 						BIO_printf(bio_s_out,"LOOKUP not successful\n");
 					i=SSL_read(con,(char *)buf,bufsize);
-					}
+				}
 #endif
 				switch (SSL_get_error(con,i))
-					{
+				{
 				case SSL_ERROR_NONE:
 #ifdef CHARSET_EBCDIC
 					ascii2ebcdic(buf,buf,i);
@@ -2364,13 +2340,13 @@ again:
 					BIO_printf(bio_s_out,"DONE\n");
 					ret=1;
 					goto err;
-					}
 				}
 			}
 		}
+	}
 err:
 	if (con != NULL)
-		{
+	{
 		BIO_printf(bio_s_out,"shutting down SSL\n");
 #if 1
 		SSL_set_shutdown(con,SSL_SENT_SHUTDOWN|SSL_RECEIVED_SHUTDOWN);
@@ -2378,7 +2354,7 @@ err:
 		SSL_shutdown(con);
 #endif
 		SSL_free(con);
-		}
+	}
 	BIO_printf(bio_s_out,"CONNECTION CLOSED\n");
 	if (buf != NULL)
 		{
