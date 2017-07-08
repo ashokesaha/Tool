@@ -6,7 +6,10 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <netinet/in.h>
+#include <signal.h>
+#include <errno.h>
 
 #include <sys/wait.h>
 #include <sys/time.h>
@@ -16,6 +19,8 @@
 #include <openssl/dh.h>
 #include <openssl/ec.h>
 #include <openssl/bio.h>
+#include <sys/select.h>
+#include "cJSON.h"
 
 
 const SSL_METHOD        *v30Method = NULL;
@@ -62,15 +67,24 @@ SSL_CTX 				*newCTX();
 int						loadCerts();
 int 					initSocket(char *ip, int port);
 int						ProcessChildStat(CHILD_STAT_t *stat, int status);
-EC_KEY					*getNextECDH(void);
-DH						*getNextDH();
-const SSL_METHOD		*getNextMethod();
-const SSL_CIPHER		*getNextCipher(const SSL_METHOD *meth);
-int						getNextCertKey(X509 **certpp, EVP_PKEY **keypp);
+EC_KEY					*getNextECDH(int reset);
+DH						*getNextDH(int reset);
+const SSL_METHOD		*getNextMethod(int reset);
+const SSL_CIPHER		*getNextCipher(const SSL_METHOD *meth,int reset);
+int						getNextCertKey(X509 **certpp,EVP_PKEY **keypp,int reset);
+int						ResetState();
 static 	DH 				*load_dh_param(const char *dhfile);
-int						doResponse(SSL *s);
+int						doResponseHandshakeDetails(SSL *s);
 int						FailMessage();
 int						CipherFilter(const SSL_CIPHER *c);
+int	 					readCmdData(int fd,unsigned char *buf,int *len);
+int						WriteResponse(char *format, ...);
+int     				CloseResponse();
+char 					*Create1MBRespData();
+int						doResponseBySize(SSL *s);
+int  					WaitForChild(int kill);
+int	 					CleanChild();
+static int				HandleArgs(char * buf);
 
 
 extern	X509 			*ssl_get_server_send_cert(const SSL *s);
@@ -88,8 +102,17 @@ int						gNumDH = 0;
 CHILD_STAT_t 			*curChildStat = NULL;
 CHILD_STAT_t			*childStatFreeQ = NULL;
 CHILD_STAT_t			*childStatActiveQ = NULL;
+char					*CIPHERFILTER = NULL;
 
-char					*glbCipherFilter = NULL;
+char					*IP = NULL;
+int						PORT = 0;
+int						REUSE = 0;
+int						RENEG = 0;
+int						CAUTH = 0;
+int						RESPSIZE = 0;
+int						RECORDSIZE = 0;
+int						DELAY = 0;
+
 
 #define			MAXCHILD		4
 
@@ -107,30 +130,58 @@ char			*ECCURVES[] = { "secp256r1",
 								"secp224r1",
 								"secp521r1" };
 
+char			*glbRespBuf = NULL;
+char			*glbRespCurPtr = NULL;
+int				glbRespLen = 0;
+
+
+#define		printf		WriteResponse
 
 int main(int argc, char **argv)
 {
-	char	*IP = argv[1];
-	int		PORT = atoi(argv[2]);
-	int		asd, sd;
-	int		len, childCount;
-	int		i,pid = -1;
-	int		status = 0, ret;
-	int		curCert,curDH,curMethod,curCiphIdx;
-	char	namebuf[256];
-
+	int						asd, sd;
+	int						len, childCount=0;
+	int						i,pid = -1;
+	int						status = 0, ret;
+	int						curCert,curDH,curMethod,curCiphIdx;
+	char					namebuf[256];
+	char					buf[1024];
 	const SSL_METHOD		*meth;
 	const SSL_CIPHER		*cipher;
-	DH				*dh;
-	EC_KEY			*ecKey;
-	X509			*cert;
-	EVP_PKEY		*pkey;
+	DH						*dh;
+	EC_KEY					*ecKey;
+	X509					*cert;
+	EVP_PKEY				*pkey;
+	CHILD_STAT_t			*tChildStat;
+	struct	sockaddr_in		from;
+	fd_set					readfds;
+	struct	timeval			tv;
+	volatile int			main_debug = 1;
 
-	CHILD_STAT_t	*tChildStat;
-	struct			sockaddr_in	from;
+	//while(main_debug);
 
-	if(argv[3])
-		glbCipherFilter = argv[3];
+	chdir("/mnt/ToolPkg/Server");
+	glbRespBuf = Create1MBRespData();
+	glbRespCurPtr = glbRespBuf;
+
+	len =  sizeof(buf) - 1;
+	ret = readCmdData(0, buf, &len);
+	if(ret <= 0)
+		return 0;
+
+	if(strcmp(buf,"twinkletwinkle"))
+		return 0;
+	WriteResponse("%s","howiwonder");
+
+	len =  sizeof(buf) - 1;
+	ret = readCmdData(0, buf, &len);
+	if(ret <= 0)
+		return ret;
+	HandleArgs(buf);
+
+	asd = initSocket(IP,PORT);
+	listen(asd,5);
+
 
 	for(ret=0; ret < MAXCHILD * 2; ret++)
 	{
@@ -165,14 +216,38 @@ int main(int argc, char **argv)
 		ECKeyList[i] = EC_KEY_new_by_curve_name(OBJ_sn2nid(ECCurveNameList[i]));
 	}
 
-
-	asd = initSocket(IP,PORT);
-	listen(asd,5);
-	len = sizeof(from);
-
-	childCount = 0;
+	tv.tv_sec = 0;
+	tv.tv_usec = 500 * 1024;
 	while(1)
 	{
+		FD_ZERO(&readfds);
+		FD_SET(0,&readfds);
+		FD_SET(asd,&readfds);
+
+		select(asd+1,&readfds,NULL,NULL,&tv);
+
+		childCount -= CleanChild();
+
+		if(FD_ISSET(0,&readfds))
+		{
+			len =  sizeof(buf) - 1;
+			ret = readCmdData(0, buf, &len);
+			if((ret <= 0) || (len == 0))
+			{
+				WriteResponse("Parent:: exiting after cleaning child.\n");
+				WaitForChild(1);
+				return 0;
+			}
+
+			HandleArgs(buf);
+		}
+
+		if(!FD_ISSET(asd,&readfds))
+			continue;
+
+		len = sizeof(from);
+
+		childCount = 0;
 		meth = NULL;
 		cipher = NULL;
 		dh = NULL;
@@ -181,34 +256,39 @@ int main(int argc, char **argv)
 		pkey = NULL;
 
 
-		while((meth = getNextMethod()))
+RESET:
+		while((meth = getNextMethod(0)))
 		{
-		while((cipher = getNextCipher(meth)))
+		while((cipher = getNextCipher(meth,0)))
 		{
 			if(CipherFilter(cipher))
 				continue;
-		while(getNextCertKey(&cert,&pkey))
+		while(getNextCertKey(&cert,&pkey,0))
 		{
 			do
 			{
 
 			if(cipher->algorithm_mkey & SSL_kEDH)
 			{
-				dh = getNextDH();
+				dh = getNextDH(0);
 				if(!dh)
 					continue;
 				ecKey = NULL;
 			}
 			else if(cipher->algorithm_mkey & SSL_kEECDH)
 			{
-				ecKey = getNextECDH();
+				ecKey = getNextECDH(0);
 				if(!ecKey)
 					continue;
 				dh = NULL;
 			}
 
 			while(!childStatFreeQ)
+			{
+				WriteResponse("Waiting for childStatFreeQ");
 				sleep(1);
+				childCount -= CleanChild();
+			}
 
 			curChildStat		= childStatFreeQ;
 			childStatFreeQ		= childStatFreeQ->next;
@@ -226,7 +306,37 @@ int main(int argc, char **argv)
 			curChildStat->childECDH			= ecKey;
 
 
+			while(1)
+			{
+				FD_ZERO(&readfds);
+				FD_SET(asd,&readfds);
+				FD_SET(0,&readfds);
+				select(asd+1,&readfds,NULL,NULL,&tv);
+				childCount -= CleanChild();
+
+				if(FD_ISSET(0,&readfds))
+				{
+					len =  sizeof(buf) - 1;
+					ret = readCmdData(0, buf, &len);
+					if((ret <= 0) || (len == 0))
+					{
+						WaitForChild(1);
+						return 0;
+					}
+					HandleArgs(buf);
+					ResetState();
+					goto RESET;
+				}
+
+				if(FD_ISSET(asd,&readfds))
+				{
+					break;
+				}
+			}
+
+			listen(asd,5);
 			sd = accept(asd,(struct sockaddr *)&from,(void *)&len);
+
 			if(sd <= 0)
 			{
 				perror("accept::");
@@ -264,14 +374,22 @@ int main(int argc, char **argv)
 				continue;
 			}
 			else if (pid == 0)
-			{
+			{ 
 				ret = doChild(sd);
 				exit(ret);
 			}
 
+			childCount -= CleanChild();
 			} while(dh ||  ecKey);
 		}
 		}
+		}
+
+		if(glbRespCurPtr !=  glbRespBuf)
+		{
+			*glbRespCurPtr = 0;
+			WriteResponse("%s",glbRespBuf);
+			glbRespCurPtr = glbRespBuf;
 		}
 	
 	}
@@ -291,7 +409,6 @@ int	doChild(int sd)
 	volatile int		childDebug = 1;
 
 	//while(childDebug);
-
 
 	ctx = newCTX();
 	if(!ctx)
@@ -326,7 +443,7 @@ int	doChild(int sd)
 	if(ret <= 0)
 		return -6;
 
-	doResponse(con);
+	doResponseHandshakeDetails(con);
 
 	SSL_shutdown(con);
 	return 0;
@@ -511,17 +628,23 @@ err:
 
 int 	initSocket(char *ip, int port)
 {
-	int	s = -1;
+	int	s = -1, val;
 	struct sockaddr_in server;
 
 	s = socket(AF_INET,SOCK_STREAM,IPPROTO_TCP);
 	memset((char *)&server,0,sizeof(server));
 	server.sin_family=AF_INET;
 	server.sin_port=htons((unsigned short)port);
-	server.sin_addr.s_addr = inet_addr(ip);	
+	//server.sin_addr.s_addr = inet_addr(ip);	
+	server.sin_addr.s_addr = INADDR_ANY;	
+
+	val = 1;
+	setsockopt(s,SOL_SOCKET,SO_REUSEADDR,&val,sizeof(val));
 
 	if (bind(s,(struct sockaddr *)&server,sizeof(server)) == -1)
 	{
+		char	*errstr = strerror(errno);
+		WriteResponse("bind:: %s\n",errstr);
 		perror("bind::");
 		s = -1;
 	}
@@ -543,6 +666,7 @@ int	ProcessChildStat(CHILD_STAT_t *stat, int status)
 	char	*curvename = NULL;
 	char	*sigalg = NULL;
 	char	*pass = NULL;
+	char	respBuf[2048];
 
 	if(status)
 		pass = "Fail";
@@ -582,18 +706,29 @@ int	ProcessChildStat(CHILD_STAT_t *stat, int status)
 		dhbit = BN_num_bits(stat->childDH->p);
 
 	
-	printf("%02x %24s %04d %28s %04d %12s %d %d %04d %d\n", 
-					ver,ciphername,certbit,sigalg,dhbit,curvename,reuse,reneg,
-					clntcertbit,status);
+	glbRespCurPtr += sprintf(glbRespCurPtr,"%02x %30s %04d %26s %04d %12s %d %d %04d %d\n", ver,ciphername,certbit,sigalg,dhbit,curvename,reuse,reneg, clntcertbit,status);
+	if((glbRespCurPtr - glbRespBuf) >= 8192)
+	{
+		*glbRespCurPtr = 0;
+		WriteResponse("%s",glbRespBuf);
+		glbRespCurPtr = glbRespBuf;
+	}
+
 
 	return 0;
 }
 
 
-EC_KEY	*getNextECDH(void)
+EC_KEY	*getNextECDH(int reset)
 {
 	static int nextKey = 0;
 	EC_KEY	*key = NULL;
+
+	if(reset)
+	{
+		nextKey = 0;
+		return NULL;
+	}
 	
 	if(nextKey >= (sizeof(ECKeyList)/sizeof(ECKeyList[0])) )
 	{
@@ -607,10 +742,16 @@ EC_KEY	*getNextECDH(void)
 }
 
 
-DH	*getNextDH()
+DH	*getNextDH(int reset)
 {
 	static int nextDH = 0;
 	DH	*dh;
+
+	if(reset)
+	{
+		nextDH = 0;
+		return NULL;
+	}
 
 	if(nextDH >= gNumDH) 
 	{
@@ -623,10 +764,16 @@ DH	*getNextDH()
 }
 
 
-const SSL_METHOD	*getNextMethod()
+const SSL_METHOD	*getNextMethod(int reset)
 {
 	static int nextMethod = 0;
 	const SSL_METHOD	*meth;
+
+	if(reset)
+	{
+		nextMethod = 0;
+		return NULL;
+	}
 
 	if(nextMethod >= (sizeof(MethodList)/sizeof(MethodList[0])) )
 	{
@@ -638,9 +785,15 @@ const SSL_METHOD	*getNextMethod()
 }
 
 
-int		getNextCertKey(X509 **certpp, EVP_PKEY **keypp)
+int		getNextCertKey(X509 **certpp, EVP_PKEY **keypp,int reset)
 {
 	static int nextCertKey = 0;
+
+	if(reset)
+	{
+		nextCertKey = 0;
+		return 0;
+	}
 
 	if(nextCertKey >= gNumCertKey)
 	{
@@ -656,7 +809,7 @@ int		getNextCertKey(X509 **certpp, EVP_PKEY **keypp)
 }
 
 
-const SSL_CIPHER	*getNextCipher(const SSL_METHOD *meth)
+const SSL_CIPHER	*getNextCipher(const SSL_METHOD *meth,int reset)
 {
 	static int m0Idx = 0;
 	static int m1Idx = 0;
@@ -664,6 +817,12 @@ const SSL_CIPHER	*getNextCipher(const SSL_METHOD *meth)
 	static int m3Idx = 0;
 	int					*idxp = NULL;
 	const SSL_CIPHER	*cipher = NULL;
+
+	if(reset)
+	{
+		m0Idx = m1Idx = m2Idx = m3Idx = 0;
+		return NULL;
+	}
 
 	if(meth == MethodList[0])
 		idxp = &m0Idx;
@@ -713,6 +872,16 @@ CONT :
 	return cipher;
 }
 
+int		ResetState()
+{
+	getNextECDH(1);
+	getNextDH(1);
+	getNextMethod(1);
+	getNextCertKey(NULL,NULL,1);
+	getNextCipher(NULL,1);
+	return 0;
+}
+
 
 int		FailMessage()
 {
@@ -720,36 +889,86 @@ int		FailMessage()
 	BIO			*bp;
 	X509		*x = curChildStat->childServerCert;
 	char		tbuf[256];
+	char		fbuf[8192];
+	char		*ptr = fbuf;
 
-	printf("Error Case :\n");
-	printf("------------\n");
-	printf("Version : %x\n", curChildStat->childMethod->version);
-	printf("Cipher  : %s\n", curChildStat->childCipher->name);
-	printf("Subject : %s\n", X509_NAME_oneline(x->cert_info->subject,NULL,0) );
+	ptr += sprintf(ptr,"Error Case :\n");
+	ptr += sprintf(ptr,"------------\n");
+	ptr += sprintf(ptr,"Version : %x\n", curChildStat->childMethod->version);
+	ptr += sprintf(ptr,"Cipher  : %s\n", curChildStat->childCipher->name);
+	ptr += sprintf(ptr,"Subject : %s\n", X509_NAME_oneline(x->cert_info->subject,NULL,0) );
 
 	pktmp = X509_get_pubkey(x);
-	printf("Server Cert : %d  ",EVP_PKEY_bits(pktmp));
+	ptr += sprintf(ptr,"Server Cert : %d  ",EVP_PKEY_bits(pktmp));
 	EVP_PKEY_free(pktmp);
 
 	bp = BIO_new(BIO_s_mem());
 	X509_signature_print(bp,x->sig_alg,NULL);
 	BIO_gets(bp,tbuf,sizeof(tbuf)-1);
-	printf("%s", tbuf);
-	printf("\n");
+	ptr += sprintf(ptr,"%s", tbuf);
+	ptr += sprintf(ptr,"\n");
 	BIO_flush(bp);
 
 	if(curChildStat->childDH)
-		printf("DH : %d\n", BN_num_bits(curChildStat->childDH->p));
+		ptr += sprintf(ptr,"DH : %d\n", BN_num_bits(curChildStat->childDH->p));
 
 	if(curChildStat->childECDH)
-		printf("ECC : %s\n", SSL_get_curvename2(curChildStat->childECDH));
+		ptr += sprintf(ptr,"ECC : %s\n", SSL_get_curvename2(curChildStat->childECDH));
 
 	return 0;
 }
 
 
 
-int		doResponse(SSL *s)
+int	doResponseBySize(SSL *s)
+{
+	int		len,iter,recsize,rem,ret;
+	char	*ptr = glbRespBuf;
+
+	len = sprintf(glbRespBuf,"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n", RESPSIZE);
+	glbRespBuf[len] = 'X';
+
+	iter = RESPSIZE / RECORDSIZE;
+	rem  = RESPSIZE % RECORDSIZE;
+
+	while(iter)
+	{
+		recsize = RECORDSIZE;
+
+		while(recsize)
+		{
+			ret = SSL_write(s,ptr,RECORDSIZE);
+			if(ret <= 0)
+				break;
+			ptr += ret;
+			recsize -= ret;
+		}
+		if(ret <= 0)
+			break;
+		
+		iter--;
+	}
+	
+	if((ret > 0) && rem)
+	{
+		recsize = rem;
+		while(recsize)
+		{
+			ret = SSL_write(s,ptr,RECORDSIZE);
+			if(ret <= 0)
+				break;
+			ptr += ret;
+			recsize -= ret;
+		}
+	}
+	SSL_shutdown(s);
+	return 0;
+}
+
+
+
+
+int		doResponseHandshakeDetails(SSL *s)
 {
 	char	*buf;
 	char	*ptr;
@@ -832,10 +1051,11 @@ int		doResponse(SSL *s)
 int		CipherFilter(const SSL_CIPHER *c)
 {
 	char	*excludefilerStr[] = {"NULL","ECDSA"};	
-	int		excludefilterCount = sizeof(excludefilerStr)/sizeof(excludefilerStr[0]);
+	int		excludefilterCount = 
+				sizeof(excludefilerStr)/sizeof(excludefilerStr[0]);
 	int		i;
 
-	if(glbCipherFilter && strstr(c->name,glbCipherFilter))
+	if(CIPHERFILTER && strstr(c->name,CIPHERFILTER))
 		return 0;
 	else
 		return 1;
@@ -845,4 +1065,202 @@ int		CipherFilter(const SSL_CIPHER *c)
 			return 1;
 
 	return 0;
+}
+
+
+
+int	 readCmdData(int fd, unsigned char * buf, int *len)
+{
+	int	ret,rlen;
+	unsigned char *p = buf;
+
+	ret = recv(fd,buf,4,0);
+	if(ret <= 0)
+		return 0;
+	
+	rlen = *(int *)buf;	
+	rlen = ntohl(rlen);
+	if(*len < rlen)
+		return 0;
+	
+	*len = rlen;
+	while(rlen > 0)
+	{
+		ret = recv(fd,p,rlen,0);
+		if(ret <= 0)
+			break;
+		p += ret;
+		rlen -= ret;
+	}
+	
+	if(rlen)
+		*len = 0; //error
+	return *len;
+}
+
+
+
+int	WriteResponse(char *format, ...)
+{
+	char	buf[1024];
+	char	tbuf[1024];
+	int		len;
+	va_list valist;
+	
+	buf[0] = 0;
+	va_start(valist, format);
+	vsnprintf(tbuf,sizeof(tbuf) - strlen(buf) - 1, format,valist);
+	strcat(buf,tbuf);
+	len = strlen(buf);
+
+	va_end(valist);
+	fwrite((unsigned char *)&len,sizeof(len),1,stdout);
+	fwrite((unsigned char *)buf,len,1,stdout);
+	fflush(stdout);
+	return len;
+}
+
+
+int     CloseResponse()
+{
+	int             len = 0;
+	fwrite((unsigned char *)&len,sizeof(len),1,stdout);
+	fflush(stdout);
+	return len;
+}
+
+
+
+static int	HandleArgs(char * buf)
+{
+	int	ret;
+	cJSON	*cJ, *cJc;
+	int		i;
+
+	if(buf[0] == '[')
+		bcopy(buf+1,buf,strlen(buf)-1);
+
+	cJ  = cJSON_Parse(buf);
+	if(!cJ)
+	{
+		WriteResponse("cJSON_Parse failed\n");
+		fflush(stderr);
+		exit(0);
+	}
+
+	cJc = cJ->child;
+	while(cJc)
+	{
+		if(strcmp(cJc->string,"listen_port") == 0)
+		{
+			PORT = atoi(cJc->valuestring);
+		}
+		else if(strcmp(cJc->string,"reuse") == 0)
+		{
+			REUSE = cJc->valueint;
+		}
+		else if(strcmp(cJc->string,"reneg") == 0)
+		{
+			RENEG = cJc->valueint;
+		}
+		else if(strcmp(cJc->string,"cauth") == 0)
+		{
+			CAUTH = cJc->valueint;
+		}
+		else if(strcmp(cJc->string,"cipher_filter") == 0)
+		{
+			CIPHERFILTER = strdup(cJc->valuestring);
+			WriteResponse("CIPHERFILTER : %s\n", CIPHERFILTER);
+		}
+		else if(strcmp(cJc->string,"resp_size") == 0)
+		{
+			RESPSIZE = atoi(cJc->valuestring);
+		}
+		else if(strcmp(cJc->string,"record_size") == 0)
+		{
+			RECORDSIZE = atoi(cJc->valuestring);
+		}
+		else if(strcmp(cJc->string,"delay") == 0)
+		{
+			DELAY = cJc->valueint;
+		}
+		cJc = cJc->next;
+	}
+	return 0;
+}
+
+
+
+char *Create1MBRespData()
+{
+	char Alpha[] = {'0','1','2','3','4','5','6','7',
+					'8','9','A','B','C','D','E','F' };
+	char	*Resp1MB = malloc(1024 * 1024);
+	char	*ptr = Resp1MB;
+	int		iter = (1024 * 1024)/sizeof(Alpha);
+	int		i;
+
+	if(!Resp1MB)
+		return NULL;
+
+	for(i=0; i<iter; i++)
+	{
+		bcopy(Alpha,ptr,sizeof(Alpha));
+		ptr += sizeof(Alpha);
+	}
+	return Resp1MB;
+}
+
+
+
+int  WaitForChild(int killl)
+{
+	CHILD_STAT_t	*p, **pp;
+	int				pid,status = 0;
+
+	if(killl)
+	{
+		for(p=childStatActiveQ; p; p = p->next)
+			kill(p->pid,9);
+	}
+
+	while(childStatActiveQ)
+	{
+		pid=wait4(-1,&status,0,NULL);
+		if(pid <= 0)
+			break;
+		for(pp=&childStatActiveQ; p=*pp; pp = &p->next)
+		{
+			if(p->pid == pid)	
+			{
+				ProcessChildStat(p,status);
+				*pp = p->next;
+			}
+		}
+	}
+	return 0;
+}
+
+
+int	 CleanChild()
+{
+	int				count = 0;
+	int				status, pid;
+	CHILD_STAT_t	**pp, *p;
+
+	while( (pid=wait4(-1,&status,WNOHANG,NULL)) > 0 )
+	{
+		for(pp=&childStatActiveQ; p=*pp; pp = &p->next)
+		{
+			if(p->pid == pid)	
+			{
+				ProcessChildStat(p,status);
+				*pp = p->next;
+				p->next = childStatFreeQ;
+				childStatFreeQ = p;
+				count++;
+			}
+		}
+	}
+	return count;
 }
