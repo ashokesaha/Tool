@@ -50,16 +50,17 @@ def	GenerateNumbers(first,num=0) :
 
 
 # Files: nitro_service.py
-def	Login(nsip,name='nsroot',passwd='nsroot',timeout=10000) :
+def	Login(nsip,name='nsroot',passwd='nsroot',timeout=5) :
         print 'Login {}'.format(nsip)
         try :
                 ns = NITROSVC.nitro_service(nsip)
-                ns.timeout = 10000
+                ns.timeout = timeout
                 ns.set_credential(name,passwd)
                 ns.login()
 
                 DUT.SESSION = ns
-                GetIPS(ns)
+                if not GetIPS(ns) :
+                        return None
 
                 if not DUT.NSIP :
                         raise TestException(103)
@@ -74,6 +75,9 @@ def	Login(nsip,name='nsroot',passwd='nsroot',timeout=10000) :
                 ns = None
         except TestException as e:
                 ns = None
+        except ValueError as e:
+                ns = None
+
 
 	return ns
 
@@ -82,8 +86,24 @@ def	Login(nsip,name='nsroot',passwd='nsroot',timeout=10000) :
 
 # Return one NSIP,SNIP,VIP in a dictionary keys by ip type string
 def	GetIPS(session) :
+        ret =  True
 	ips = NS.nsip.get(session)
 	d = {x.type:x.ipaddress for x in ips}
+	#print d
+
+	if  NS.nsip.Type.NSIP not in d:
+                print 'NSIP not found'
+                return False
+        
+        if  NS.nsip.Type.VIP not in d:
+                print 'VIP not found'
+                return False
+
+        if  NS.nsip.Type.SNIP not in d:
+                print 'SNIP not found'
+                return False
+
+        
 
 	DUT.NSIP 	= d[NS.nsip.Type.NSIP]
 	DUT.VIP 	= d[NS.nsip.Type.VIP]
@@ -347,5 +367,4 @@ def     GetCurlClients() :
 #print J
 #J = zip(A,B)
 #print J
-
 

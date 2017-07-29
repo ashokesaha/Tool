@@ -53,4 +53,3 @@ class	DUT(object) :
 	def SESSION(self,session) :
 		self.__class__._session = session
 
-

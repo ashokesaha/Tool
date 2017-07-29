@@ -77,8 +77,8 @@ static 	DH 				*load_dh_param(const char *dhfile);
 int						doResponseHandshakeDetails(SSL *s);
 int						FailMessage();
 int						CipherFilter(const SSL_CIPHER *c);
-int	 					readCmdData(int fd,unsigned char *buf,int *len);
-int						WriteResponse(char *format, ...);
+static int				readCmdData(int fd,unsigned char *buf,int *len);
+static int				WriteResponse(char *format, ...);
 int     				CloseResponse();
 char 					*Create1MBRespData();
 int						doResponseBySize(SSL *s);
@@ -177,6 +177,7 @@ int main(int argc, char **argv)
 	ret = readCmdData(0, buf, &len);
 	if(ret <= 0)
 		return ret;
+	WriteResponse("%s",buf);
 	HandleArgs(buf);
 
 	asd = initSocket(IP,PORT);
@@ -1069,7 +1070,7 @@ int		CipherFilter(const SSL_CIPHER *c)
 
 
 
-int	 readCmdData(int fd, unsigned char * buf, int *len)
+static int	 readCmdData(int fd, unsigned char * buf, int *len)
 {
 	int	ret,rlen;
 	unsigned char *p = buf;
@@ -1100,7 +1101,7 @@ int	 readCmdData(int fd, unsigned char * buf, int *len)
 
 
 
-int	WriteResponse(char *format, ...)
+static int	WriteResponse(char *format, ...)
 {
 	char	buf[1024];
 	char	tbuf[1024];

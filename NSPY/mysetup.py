@@ -9,7 +9,7 @@ sys.path.append('C:\\Users\\ashokes\\Miniconda2\\ashoke-miniconda2\\nitro-python
 from test_util import *
 from nssrc.com.citrix.netscaler.nitro.resource.config.ssl.sslservice import sslservice as SSLSVC
 import nssrc.com.citrix.netscaler.nitro.exception.nitro_exception as NITROEXCEPTION
-
+import ServerControl
 
 
 import pip
@@ -74,9 +74,15 @@ def     Test10() :
 
 
 
-from ssltest.backend.BECipherIter import *
-BECipherIter.Test()
+    
+
+#from ssltest.backend.BECipherIter import *
+#BECipherIter.Test()
 
 #from curlClient import *
 #curlClient.Test()
+
+ServerControl.Test()
+
+
 

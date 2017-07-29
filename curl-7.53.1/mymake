@@ -1,5 +1,8 @@
 cc -g -c -I ./include curlGetPut.c
 cc -o curlGetPut curlGetPut.o ./cJSON.o lib/.libs/libcurl.a  -lssl -lm
 
+cc -g -c -I ./include curlGet.c
+cc -o curlGet curlGet.o ./cJSON.o lib/.libs/libcurl.a  -lssl -lm
+
 cc -g -c jsonTest.c
 cc -o jsonTest jsonTest.o ./cJSON.o -lm

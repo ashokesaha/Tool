@@ -30,5 +30,3 @@ def	StartFn(bt) :
 
 to = TestOne('10.102.28.201')
 to.Start()
-
-

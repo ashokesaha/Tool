@@ -1761,7 +1761,7 @@ unsigned long SSL_CIPHER_get_id(const SSL_CIPHER *c)
 }
 
 SSL_COMP *ssl3_comp_find(STACK_OF(SSL_COMP) *sk, int n)
-	{
+{
 	SSL_COMP *ctmp;
 	int i,nn;
 
@@ -1774,31 +1774,31 @@ SSL_COMP *ssl3_comp_find(STACK_OF(SSL_COMP) *sk, int n)
 			return(ctmp);
 		}
 	return(NULL);
-	}
+}
 
 #ifdef OPENSSL_NO_COMP
 void *SSL_COMP_get_compression_methods(void)
-	{
+{
 	return NULL;
-	}
+}
 int SSL_COMP_add_compression_method(int id, void *cm)
-	{
+{
 	return 1;
-	}
+}
 
 const char *SSL_COMP_get_name(const void *comp)
-	{
+{
 	return NULL;
-	}
+}
 #else
 STACK_OF(SSL_COMP) *SSL_COMP_get_compression_methods(void)
-	{
+{
 	load_builtin_compressions();
 	return(ssl_comp_methods);
-	}
+}
 
 int SSL_COMP_add_compression_method(int id, COMP_METHOD *cm)
-	{
+{
 	SSL_COMP *comp;
 
         if (cm == NULL || cm->type == NID_undef)
@@ -1842,13 +1842,13 @@ int SSL_COMP_add_compression_method(int id, COMP_METHOD *cm)
 		MemCheck_on();
 		return(0);
 		}
-	}
+}
 
 const char *SSL_COMP_get_name(const COMP_METHOD *comp)
-	{
+{
 	if (comp)
 		return comp->name;
 	return NULL;
-	}
+}
 
 #endif

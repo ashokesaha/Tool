@@ -1205,7 +1205,7 @@ long SSL_CTX_ctrl(SSL_CTX *ctx,int cmd,long larg,void *parg)
 }
 
 long SSL_CTX_callback_ctrl(SSL_CTX *ctx, int cmd, void (*fp)(void))
-	{
+{
 	switch(cmd)
 		{
 	case SSL_CTRL_SET_MSG_CALLBACK:
@@ -1215,10 +1215,10 @@ long SSL_CTX_callback_ctrl(SSL_CTX *ctx, int cmd, void (*fp)(void))
 	default:
 		return(ctx->method->ssl_ctx_callback_ctrl(ctx,cmd,fp));
 		}
-	}
+}
 
 int ssl_cipher_id_cmp(const SSL_CIPHER *a, const SSL_CIPHER *b)
-	{
+{
 	long l;
 
 	l=a->id-b->id;
@@ -1226,11 +1226,11 @@ int ssl_cipher_id_cmp(const SSL_CIPHER *a, const SSL_CIPHER *b)
 		return(0);
 	else
 		return((l > 0)?1:-1);
-	}
+}
 
 int ssl_cipher_ptr_id_cmp(const SSL_CIPHER * const *ap,
 			const SSL_CIPHER * const *bp)
-	{
+{
 	long l;
 
 	l=(*ap)->id-(*bp)->id;
@@ -1238,7 +1238,7 @@ int ssl_cipher_ptr_id_cmp(const SSL_CIPHER * const *ap,
 		return(0);
 	else
 		return((l > 0)?1:-1);
-	}
+}
 
 /** return a STACK of the ciphers available for the SSL and in order of
  * preference */
@@ -1261,7 +1261,7 @@ STACK_OF(SSL_CIPHER) *SSL_get_ciphers(const SSL *s)
 /** return a STACK of the ciphers available for the SSL and in order of
  * algorithm id */
 STACK_OF(SSL_CIPHER) *ssl_get_ciphers_by_id(SSL *s)
-	{
+{
 	if (s != NULL)
 		{
 		if (s->cipher_list_by_id != NULL)
@@ -1275,7 +1275,7 @@ STACK_OF(SSL_CIPHER) *ssl_get_ciphers_by_id(SSL *s)
 			}
 		}
 	return(NULL);
-	}
+}
 
 /** The old interface to get the same thing as SSL_get_ciphers() */
 const char *SSL_get_cipher_list(const SSL *s,int n)

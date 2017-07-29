@@ -19,3 +19,4 @@ class	TestException(Exception) :
 	def	message(self) :
 		return self.emsg
 
+

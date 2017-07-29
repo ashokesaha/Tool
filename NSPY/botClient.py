@@ -32,6 +32,7 @@ class  BotConfig() :
         self.cipher = None
         self.reuse = None
         self.reneg = None
+        self.cauth = None
         self.timeout = None
         self.ckv = None
         self.prnt = None
@@ -50,6 +51,9 @@ class  BotConfig() :
         self.portlist = None
         self.peeripport = None
         self.testid = None
+        self.respsize = None
+        self.recordsize = None
+        self.delay = None
 
     def Clear(self) :
         self.ip = None
@@ -183,13 +187,18 @@ class  BotClient(object) :
         self.textio = None
         self.harness = None
         self.id = self.__class__.id
+        self.matchtoken = None
         self.__class__.id = self.__class__.id + 1
 
+    def  SetMatchToken(self,token) :
+        self.matchtoken = token
 
-    def Connect(self) :
+
+    def Connect(self, timeout=5.0) :
         ret = True
         try :
             self.sd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.sd.settimeout(timeout)
             self.sd.connect ((self.ip, self.port))
 
             str = 'twinkletwinkle'
@@ -201,7 +210,9 @@ class  BotClient(object) :
             if not data :
                 ret = False
                 return ret
-            if not data.__eq__('littlestar'):
+            #if not data.__eq__('littlestar'):
+            print 'data read {}'.format(data)
+            if not data.__eq__(self.matchtoken):
                 ret = False
                 return ret
             
@@ -222,7 +233,7 @@ class  BotClient(object) :
     def SendCMD(self) :
         #self.OpenLog(self.ip)
         str = self.bc.ToJson()
-        #print 'sendCmd::{}'.format(str)
+        print 'sendCmd::{}'.format(str)
         lstr = struct.pack(">I", len(str))
         self.sd.sendall(lstr)
         self.sd.sendall(str)
@@ -331,5 +342,8 @@ def Test() :
 
     bt.SendConfig(bc)
     bt.Read(0)
+    
 
 
+
+    

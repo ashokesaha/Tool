@@ -34,6 +34,7 @@ int		gCMD = 0;
 
 static size_t GET_callback(char *ptr, size_t size, size_t nmemb, void *userdata)
 {
+	printf("%s",ptr);
 	return nmemb;
 }
 
@@ -192,35 +193,46 @@ main()
 	int	ret,len;
 	unsigned char buf[1024];
 	volatile int debug = 1;
-	//while(debug);
 
-	ret = readCmdData(0, buf, &len);
-	HandleArgs(buf);
-
-	if(gCMD == mGET)
-		GET_Action();
-	if(gCMD == mPUT)
-		PUT_Action();
+	GET_Action();
 }
 
 
 int GET_Action()
 {
 	CURL		*curl;
+	CURL		*curl2;
+	int			pid;
 	CURLcode	res;
 	char		url[1024];
 	
-	sprintf(url,"http://%s:%d/",gIP,(gPORT ? gPORT : 80));
+	sprintf(url,"https://10.102.28.237:443/f.html");
 
 	curl = curl_easy_init();
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, GET_callback);
 	curl_easy_setopt(curl, CURLOPT_URL, url);
-	res = curl_easy_perform(curl);
+	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
 
-	if(res != CURLE_OK)
-		printf("curl_easy_perform() failed: %s\n",curl_easy_strerror(res));
- 
-    curl_easy_cleanup(curl);
+	curl2 = curl_easy_init();
+	curl_easy_setopt(curl2, CURLOPT_WRITEFUNCTION, GET_callback);
+	curl_easy_setopt(curl2, CURLOPT_URL, url);
+	curl_easy_setopt(curl2, CURLOPT_SSL_VERIFYPEER, 0);
+	curl_easy_setopt(curl2, CURLOPT_SSL_VERIFYHOST, 0);
+
+	pid = fork();
+
+	if(pid > 0)
+	{
+		res = curl_easy_perform(curl);
+    	curl_easy_cleanup(curl);
+	}
+	else if (pid == 0)
+	{
+		res = curl_easy_perform(curl2);
+    	curl_easy_cleanup(curl2);
+	}
+
 	return 0;
 }
 
@@ -228,11 +240,16 @@ int GET_Action()
 
 int PUT_Action()
 {
-	CURL		*curl;
+	CURLM		*curlm;
+	CURL		*curl, *curl2;
 	CURLcode	res;
 	char		url[1024];
+	int		pid;
 
-	sprintf(url,"http://%s:%d/",gIP,(gPORT ? gPORT : 80));
+	//sprintf(url,"http://%s:%d/",gIP,(gPORT ? gPORT : 80));
+	sprintf(url,"https://10.102.28.237:443/f.html");
+
+	curlm = curl_multi_init();
 
 	curl = curl_easy_init();
 	curl_easy_setopt(curl, CURLOPT_READFUNCTION, PUT_callback);
@@ -240,11 +257,32 @@ int PUT_Action()
 	curl_easy_setopt(curl, CURLOPT_PUT, 1L);
 	curl_easy_setopt(curl, CURLOPT_URL, url);
 	curl_easy_setopt(curl, CURLOPT_INFILESIZE_LARGE,64);
-	res = curl_easy_perform(curl);
 
-	if(res != CURLE_OK)
-		printf("curl_easy_perform() failed: %s\n",curl_easy_strerror(res));
- 
-    curl_easy_cleanup(curl);
+	curl2 = curl_easy_init();
+	curl_easy_setopt(curl2, CURLOPT_READFUNCTION, PUT_callback);
+	curl_easy_setopt(curl2, CURLOPT_UPLOAD, 1L);
+	curl_easy_setopt(curl2, CURLOPT_PUT, 1L);
+	curl_easy_setopt(curl2, CURLOPT_URL, url);
+	curl_easy_setopt(curl2, CURLOPT_INFILESIZE_LARGE,64);
+
+	curl_multi_add_handle(curlm,curl);
+	curl_multi_add_handle(curlm,curl2);
+
+	pid = fork();
+	if(pid > 0)
+	{
+		res = curl_easy_perform(curl);
+		if(res != CURLE_OK)
+			printf("curl_easy_perform() failed: %s\n",curl_easy_strerror(res));
+    	curl_easy_cleanup(curl);
+	}
+	else if (pid == 0)
+	{
+		res = curl_easy_perform(curl2);
+		if(res != CURLE_OK)
+			printf("curl_easy_perform() failed: %s\n",curl_easy_strerror(res));
+    	curl_easy_cleanup(curl2);
+	}
+
 	return 0;
 }

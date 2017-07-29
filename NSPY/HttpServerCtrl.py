@@ -1,6 +1,7 @@
+import socket
 import time
 import paramiko
-from test_config import *
+from   test_config import *
 
 
 class  HttpServerCtrl (object) :
@@ -28,25 +29,18 @@ class  HttpServerCtrl (object) :
         self.ferr   = None
 
     def connect(self) :
-        #self.pkey = pkey = paramiko.RSAKey.from_private_key_file('id_rsa')
-        #if not self.pkey :
-        #   raise TestException(104)
-        
-        self.client = paramiko.client.SSHClient()
-        self.client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        
-        #self.client.connect(self.ip, username='root', pkey=self.pkey, look_for_keys=False)
-        #print 'HTTPDUSER {} HTTPDPASSWD {}'.format(HTTPDUSER,HTTPDPASSWD)
-        self.client.connect(self.ip, username=HTTPDUSER, password=HTTPDPASSWD)
-        #self.command('cd /usr/local/apache2/conf')
-        #self.command('cd /home/ashokes/HTTPD/conf')
-
-                
+        ret = True
+        try :
+            self.client = paramiko.client.SSHClient()
+            self.client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            self.client.connect(self.ip, username=HTTPDUSER, password=HTTPDPASSWD, timeout=2.0)
+        except socket.error :
+            ret = False
         
         self.fin    = None
         self.fout   = None
         self.ferr   = None
-        
+        return ret
         
     def command(self,cmdstr) :
         if self.fin :
@@ -71,7 +65,6 @@ class  HttpServerCtrl (object) :
         rdstr = self.ferr.read()
         if(len(rdstr) > 0) :
             ret = False
-
         return ret
 
 
@@ -79,11 +72,9 @@ class  HttpServerCtrl (object) :
     def StartStop(self, isstop=0) :
         ret = 0
         if(isstop) :
-            self.command('export LD_LIBRARY_PATH=/usr/local/ssl/lib; cd /usr/local/apache2/bin; ./apachectl stop 2>/dev/null')
+            self.command('export LD_LIBRARY_PATH=/home/ashokes/OPENSSL/lib; cd /usr/local/apache2/bin; ./apachectl stop 2>/dev/null')
             self.command('export LD_LIBRARY_PATH=/home/ashokes/OPENSSL/lib; cd /home/ashokes/HTTPD/bin; ./apachectl stop 2>/dev/null')
         else :
-            #self.command('export LD_LIBRARY_PATH=/usr/local/ssl/lib; cd /usr/local/apache2/bin; ./apachectl start 2>/dev/null')
-            #self.command('export LD_LIBRARY_PATH=/usr/local/ssl/lib; cd /usr/local/apache2/bin; ./apachectl start 2>/dev/null')
             self.command('export LD_LIBRARY_PATH=/home/ashokes/OPENSSL/lib; cd /home/ashokes/HTTPD/bin; ./apachectl start 2>/dev/null')
 
         rdstr = self.ferr.read()
@@ -144,4 +135,8 @@ class  HttpServerCtrl (object) :
             self.StartStop(isstop=0)
             time.sleep(1)
 
-
+        
+        
+        
+            
+    
