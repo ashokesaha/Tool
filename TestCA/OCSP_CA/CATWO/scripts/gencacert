@@ -1,4 +1,0 @@
-OPENSSL=/home/ashokes/openssl-1.0.1g/apps/openssl
-
-$OPENSSL req -new -newkey rsa:2048 -x509 -days 3650 -extensions ca_ext -keyout   ocspcatwo_cert.pem -out ocspcatwo_key.pem -config ./root.cnf -sha256 -nodes 
-

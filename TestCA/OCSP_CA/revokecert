@@ -1,8 +1,0 @@
-for name in BHOPALCA CALCUTTACA CHENNAICA DELHICA GOACA KOCHICA MUMBAICA MYSORECA OOTYCA PATNACA RANCHICA SHILLONGCA  
-do 
-cd $name; 
-openssl ca -revoke 101_${name}_cert.pem -keyfile ${name}_cakey.pem  -cert ${name}_cacert.pem -config ./myconf.cnf
-openssl ca -revoke 103_${name}_cert.pem -keyfile ${name}_cakey.pem  -cert ${name}_cacert.pem -config ./myconf.cnf 
-openssl ca -revoke 105_${name}_cert.pem -keyfile ${name}_cakey.pem  -cert ${name}_cacert.pem -config ./myconf.cnf
-cd ..
-done

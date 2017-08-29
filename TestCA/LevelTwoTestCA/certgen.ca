@@ -1,6 +1,0 @@
-OPENSSL=../../openssl-1.0.1g/apps/openssl
-
-$OPENSSL req -newkey rsa:2048  -out LevelTwoTestCA_req.pem -keyout LevelTwoTestCA_key.pem -config ./myconf.cnf -subj /CN=LevelTwoTestCA/C=IN/O=CITRIX/OU=ANG/ST=KA/emailAddress=LevelTwoTestCA@test_ca.com -nodes
-
-$OPENSSL ca -out LevelTwoTestCA_cert.pem -config ./myconf.cnf -infiles LevelTwoTestCA_req.pem 
-

@@ -1,6 +1,0 @@
-OPENSSL=../../openssl-1.0.1g/apps/openssl
-
-$OPENSSL req -newkey rsa:2048  -out ClientOneLevelOneCAReq.pem -keyout ClientOneLevelOneCAKey.pem -config ./myconf.cnf -subj /CN=ClientOneLevelOneCA/C=IN/O=CITRIX/OU=ANG/ST=KA/emailAddress=ClientOneLevelOnetCA@test_ca.com -nodes
-
-$OPENSSL ca -out ClientOneLevelOneCACert.pem -config ./myconf.cnf -infiles ClientOneLevelOneCAReq.pem 
-
