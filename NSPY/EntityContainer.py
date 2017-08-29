@@ -38,10 +38,10 @@ class Ui_Form(object):
         #w.setStyleSheet("background-color: qlineargradient(spread:reflect, x1:0.496401, y1:0, x2:0.017, y2:0, stop:0.909605 rgba(60, 60, 60, 250), stop:1 rgba(250, 250, 250, 255));")
 
 
-        w1 = CustomWidget.MyWidget(1)
-        w2 = CustomWidget.MyWidget(2)
-        w3 = CustomWidget.MyWidget(3)
-        w4 = CustomWidget.MyWidget(4)
+        w1 = CustomWidget.MyWidget()
+        w2 = CustomWidget.MyWidget()
+        w3 = CustomWidget.MyWidget()
+        w4 = CustomWidget.MyWidget()
 
         w.verticalLayout.addWidget(w1)
         w.verticalLayout.addWidget(w2)
@@ -79,13 +79,13 @@ class Ui_Form(object):
 
         self.verticalLayout.setSizeConstraint(0)
 
-        w1 = CustomWidget.MyWidget(1)
-        w2 = CustomWidget.MyWidget(2)
-        w3 = CustomWidget.MyWidget(3)
-        w4 = CustomWidget.MyWidget(4)
-        w5 = CustomWidget.MyWidget(5)
-        w6 = CustomWidget.MyWidget(6)
-        w7 = CustomWidget.MyWidget(7)
+        w1 = CustomWidget.MyWidget()
+        w2 = CustomWidget.MyWidget()
+        w3 = CustomWidget.MyWidget()
+        w4 = CustomWidget.MyWidget()
+        w5 = CustomWidget.MyWidget()
+        w6 = CustomWidget.MyWidget()
+        w7 = CustomWidget.MyWidget()
 
 
 

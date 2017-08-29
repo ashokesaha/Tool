@@ -63,7 +63,7 @@ extern	int		aesni_pad_byte_test;
 
 #define		REQLEN		strlen(REQUEST)
 
-#define		ENDTOKEN	"I AM DONE\n"
+#define		ENDTOKEN	"I AM DONE"
 //#define		ENDTOKEN	"</html>\n"
 #define		ENDTOKLEN	strlen(ENDTOKEN)
 

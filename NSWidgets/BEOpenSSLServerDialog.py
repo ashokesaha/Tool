@@ -9,15 +9,13 @@
 import socket
 import struct
 import json
-from PyQt5 import QtCore, QtGui, QtWidgets
-from GenericContainer import *
-from TestException import *
+from PyQt5            import QtCore, QtGui, QtWidgets
+import GenericContainer
+from TestException    import *
 
 class BEOpenSSLServerDialog(object):
     def  __init__(self,container) :
         self.container = container
-        #self.dialog = QtWidgets.QDialog()
-        #self.setupUi(self.dialog)
 
     
     def setupUi(self, dialog):
@@ -82,17 +80,16 @@ class BEOpenSSLServerDialog(object):
         self.gridLayout.addWidget(self.buttonBox, 4, 0, 1, 3)
 
         self.retranslateUi(dialog)
-        #self.buttonBox.accepted.connect(dialog.accept)
-        #self.buttonBox.rejected.connect(dialog.reject)
-        self.buttonBox.accepted.connect(self.accept)
         self.buttonBox.rejected.connect(self.reject)
-        QtCore.QMetaObject.connectSlotsByName(dialog)
 
-        if (self.container.GetType() == GenericContainer.TYPE_BE_OPENSSL_SERVER) :
+        if (self.container.GetType() == GenericContainer.GenericContainer.TYPE_BE_OPENSSL_SERVER):
+            self.buttonBox.accepted.connect(self.acceptSave)
             obj = self.container.GetBackendObj()
             if  obj :
                 self.FillFromObj(obj)
-            
+        else :
+            self.buttonBox.accepted.connect(self.accept)
+
 
 
     def retranslateUi(self, dialog):
@@ -112,7 +109,6 @@ class BEOpenSSLServerDialog(object):
 
 
     def  accept(self) :
-        #print 'accept called'
 
         try :
             e = self.BuildEntity()
@@ -124,10 +120,6 @@ class BEOpenSSLServerDialog(object):
                 raise TestException(1)
 
             e.SendOnce()
-            data = e.ReadOnce()
-            if data :
-                print data
-            
 
         except TestException as e :
             plt = self.lineEdit.palette()
@@ -138,22 +130,35 @@ class BEOpenSSLServerDialog(object):
             self.lineEdit.cursorPositionChanged.connect(self.cursorPositionChanged)
             return
 
-
-        #e = self.BuildEntity()
-        #print 'entity created {}'.format(e)
         ew = self.container.AddEntity(e.entity_type)
         ew.SetBackendObj(e)
         self.dialog.accept()
         
 
+
+
+    def acceptSave(self) :
+        obj = self.container.GetBackendObj()
+        obj.resp_size = self.lineEdit_4.text()
+        obj.record_size = self.lineEdit_5.text()
+        obj.record_delay = self.lineEdit_6.text()
+        obj.cipher_delay = self.lineEdit_7.text()
+
+        obj.reuse = self.checkBox.isChecked()
+        obj.reneg = self.checkBox_2.isChecked()
+        obj.cauth = self.checkBox_2.isChecked()
+
+        obj.SendOnce()
+        self.dialog.accept()
+
+
+
     def  reject(self) :
-        #print 'reject called'
         self.dialog.reject()
 
 
 
     def cursorPositionChanged(self,old,new) :
-        print 'cursorPositionChanged called'
         plt = self.lineEdit.palette()
         brush = QtGui.QBrush(QtGui.QColor(0, 0, 0))
         brush.setStyle(QtCore.Qt.SolidPattern)
@@ -231,7 +236,6 @@ class BEOpenSSLServerEntity(object):
         self.cauth = cauth
         self.entity_type = GenericContainer.TYPE_BE_OPENSSL_SERVER
         self.sd = None
-        print 'entity created {}'.format(self)
 
 
     #=====================================================#
@@ -301,7 +305,8 @@ class BEOpenSSLServerEntity(object):
             data = self.sd.recv(len[0])
         except socket.error as e :
             data = None
-                                       
+
+        print data                        
         return data
 
 

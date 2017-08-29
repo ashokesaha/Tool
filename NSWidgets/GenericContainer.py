@@ -1,9 +1,11 @@
-import sys
+import  sys
 sys.path.append('C:\\Users\\ashokes\\Miniconda2\\NSPY')
-from PyQt5 import QtCore, QtGui, QtWidgets
+from    PyQt5 import QtCore, QtGui, QtWidgets
 import  CustomWidget
-from BEOpenSSLServerDialog import *
-
+import  CertInstaller
+from    BEOpenSSLServerDialog import *
+from    BasicClientDialog     import *
+from    DUTDialog import *
 
 class  GenericContainer (QtWidgets.QWidget)  :
     TYPE_SSL_VSERVER = 1
@@ -33,6 +35,11 @@ class  GenericContainer (QtWidgets.QWidget)  :
     TYPE_CONTAINER_R2 = 103
     TYPE_CONTAINER_R1 = 104
     TYPE_CONTAINER_T1 = 105
+    TYPE_CONTAINER_NS = 105
+
+    TYPE_NS_INSTALL_CERT = 201
+    TYPE_NS_CLEAR_CONFIG = 202
+    TYPE_NS_SELECT_DUT = 203
 
 
     CONTAINER_L1 = 1
@@ -40,10 +47,11 @@ class  GenericContainer (QtWidgets.QWidget)  :
     CONTAINER_R2 = 3
     CONTAINER_R1 = 4
     CONTAINER_T1 = 5
+    CONTAINER_NS = 6
 
     widgetTypeMap = [None, TYPE_CONTAINER_L1, CONTAINER_L2,
                         TYPE_CONTAINER_R2, TYPE_CONTAINER_R1,
-                        TYPE_CONTAINER_T1]
+                        TYPE_CONTAINER_T1,TYPE_CONTAINER_NS]
     
 
     typeMap = dict()
@@ -56,6 +64,20 @@ class  GenericContainer (QtWidgets.QWidget)  :
     typeMap[CONTAINER_R1] = [TYPE_BE_OPENSSL_SERVER, TYPE_BE_APACHE_SERVER,
                              TYPE_BE_HTTP_DATA]
     typeMap[CONTAINER_T1] = [TYPE_OCSP_OPENSSL_SERVER, TYPE_CRL_OPENSSL_SERVER]
+    typeMap[CONTAINER_NS] = [TYPE_NS_SELECT_DUT, TYPE_NS_INSTALL_CERT, TYPE_NS_CLEAR_CONFIG]
+
+
+
+    colorMap = []
+    colorMap.append(QtGui.QColor(0,0,0,250))
+    colorMap.append(QtGui.QColor(50,50,50,250))
+    colorMap.append(QtGui.QColor(50,50,50,250))
+    colorMap.append(QtGui.QColor(50,50,50,250))
+    colorMap.append(QtGui.QColor(50,50,50,250))
+    colorMap.append(QtGui.QColor(50,50,50,250))
+    colorMap.append(QtGui.QColor(50,50,50,250))
+   
+
 
 
     nameMap = dict()
@@ -76,6 +98,9 @@ class  GenericContainer (QtWidgets.QWidget)  :
     nameMap[TYPE_FE_PIPELINE_SSL_CLIENT]= 'Pipeline Client'
     nameMap[TYPE_CRL_OPENSSL_SERVER]    = 'CRL Server'
     nameMap[TYPE_OCSP_OPENSSL_SERVER]   = 'OCSP Server'
+    nameMap[TYPE_NS_INSTALL_CERT]       = 'Install Cert'
+    nameMap[TYPE_NS_CLEAR_CONFIG]       = 'Clear Config'
+    nameMap[TYPE_NS_SELECT_DUT]         = 'Select DUT'
 
 
     def SetupContextMenuDialogMap(self) :
@@ -83,37 +108,64 @@ class  GenericContainer (QtWidgets.QWidget)  :
         self.contextMenuDialogMap[GenericContainer.TYPE_SSL_TCP_VSERVER] = None
         self.contextMenuDialogMap[GenericContainer.TYPE_HTTP_VSERVER] = None
         self.contextMenuDialogMap[GenericContainer.TYPE_TCP_VSERVER] = None
+        
         self.contextMenuDialogMap[GenericContainer.TYPE_SSL_SERVICE] = None
         self.contextMenuDialogMap[GenericContainer.TYPE_SSL_TCP_SERVICE] = None
         self.contextMenuDialogMap[GenericContainer.TYPE_HTTP_SERVICE] = None
         self.contextMenuDialogMap[GenericContainer.TYPE_TCP_SERVICE] = None
+        
         self.contextMenuDialogMap[GenericContainer.TYPE_BE_OPENSSL_SERVER] = BEOpenSSLServerDialog(self)
         self.contextMenuDialogMap[GenericContainer.TYPE_BE_APACHE_SERVER] = None
         self.contextMenuDialogMap[GenericContainer.TYPE_BE_HTTP_DATA] = None
-        self.contextMenuDialogMap[GenericContainer.TYPE_FE_OPENSSL_CLIENT] = None
+        
+        self.contextMenuDialogMap[GenericContainer.TYPE_FE_OPENSSL_CLIENT] = BasicClientDialog(self)
         self.contextMenuDialogMap[GenericContainer.TYPE_FE_CURL_HTTPCLIENT] = None
         self.contextMenuDialogMap[GenericContainer.TYPE_FE_CURL_SSL_CLIENT] = None
         self.contextMenuDialogMap[GenericContainer.TYPE_FE_PIPELINE_SSL_CLIENT] = None
+        
         self.contextMenuDialogMap[GenericContainer.TYPE_CRL_OPENSSL_SERVER ] = None
         self.contextMenuDialogMap[GenericContainer.TYPE_OCSP_OPENSSL_SERVER] = None
 
     
 
     def  __init__(self,containerType,parent=None) :
-        super(self.__class__,self).__init__(parent)
+        super(self.__class__,self).__init__(None)
         self.container_type = containerType
+        self.parent = parent
         self.entityList = []
-        self.contextMenuDialogMap = dict()
-        self.SetupContextMenuDialogMap()
-        self.setFixedWidth(80)
         self.verticalLayout = QtWidgets.QVBoxLayout(self)
         self.verticalLayout.setSizeConstraint(0)
-        #self.setStyleSheet("background-color: qlineargradient(spread:reflect, x1:0.496401, y1:0, x2:0.017, y2:0, stop:0.909605 rgba(120, 120, 120, 250), stop:1 rgba(20, 20, 20, 220));")
         self.setStyleSheet("background-color: qlineargradient(spread:reflect, x1:0.496401, y1:0, x2:0.017, y2:0, stop:0.909605 rgba(150, 150, 150, 250), stop:1 rgba(20, 20, 20, 220));")
+        self.backend_obj = None
 
+
+    def paintEvent(self, event=None) :
+        qP = QtGui.QPainter(self)
+        qP.setRenderHint(QtGui.QPainter.Antialiasing)
+        brush = QtGui.QBrush(GenericContainer.colorMap[self.container_type])
+        qP.setBrush(brush)
+        qP.drawRect(self.rect())
+
+
+    def SetBackendObj(self,obj) :
+        self.backend_obj = obj
+
+
+    def GetBackendObj(self) :
+        return self.backend_obj
+    
 
     def GetType(self) :
         return GenericContainer.widgetTypeMap[self.container_type]
+
+
+    def GetSess(self) :
+        if (self.container_type == GenericContainer.CONTAINER_NS) :
+            obj = self.GetBackendObj()
+            return obj.GetSess()
+        else :
+            return self.parent.GetSess()
+
     
 
     def AddEntity(self,entityType) :
@@ -121,7 +173,6 @@ class  GenericContainer (QtWidgets.QWidget)  :
         self.verticalLayout.addWidget(W)
         W.container = self
         self.entityList.append(W)
-        #print 'entity widget created {}'.format(W)
         return W
 
 
@@ -137,13 +188,60 @@ class  GenericContainer (QtWidgets.QWidget)  :
             actionList.append(act)
 
         act = menu.exec_(event.globalPos())
-        t = act.data()
-        dialog = QtWidgets.QDialog()
-        self.contextMenuDialogMap[t].setupUi(dialog)
-        dialog.exec_()
-        #for w in self.entityList :
-        #    print 'widget {} backend {}'.format(w,w.backend_obj)
 
+        w = None
+        if act :
+            t = act.data()
+            dialog = QtWidgets.QDialog()
+
+            if t == GenericContainer.TYPE_BE_OPENSSL_SERVER :
+                w = BEOpenSSLServerDialog(self)
+
+            elif t == GenericContainer.TYPE_FE_OPENSSL_CLIENT :
+                w = BasicClientDialog(self)
+
+            elif t == GenericContainer.TYPE_NS_SELECT_DUT :
+                print 'TYPE_NS_SELECT'
+                w = DUTDialog(self)
+
+            elif t == GenericContainer.TYPE_NS_INSTALL_CERT :
+                print 'TYPE_NS_INSTALL_CERT'
+                obj = self.GetBackendObj()
+                if not obj :
+                    print 'No NS attached'
+                    return
+                if not obj.sess :
+                    print 'No session with NS'
+                    return
+                ci = CertInstaller.CertInstall()
+                ci.SetCertDir('C:\\Users\\ashokes\\Miniconda2\\NSPY\\Certs')
+                #if obj.sess.isLogin() :
+                #    obj.Logout()
+
+                ci.PushToNS(obj.nsip)
+                obj.Login()
+                ci.Link(obj.sess)
+
+            elif t == GenericContainer.TYPE_NS_CLEAR_CONFIG :
+                print 'TYPE_NS_CLEAR_CONFIG'
+                obj = self.GetBackendObj()
+                if not obj :
+                    print 'No NS attached'
+                    return
+##                if not obj.sess :
+##                    print 'No session with NS'
+##                    return
+##                if not obj.sess.isLogin() :
+##                    print 'Not logged in to NS'
+##                    return
+##                print 'clear config sess {} login {}'.format(obj.sess, obj.sess.isLogin())
+                obj.Login()
+                obj.sess.clear_config(level='basic')
+
+            if w :
+                w.setupUi(dialog)
+                dialog.exec_()
+        
 
     def  RegisterContextMenuDialog(self,type,W) :
         GenericContainer.contextMenuDialogMap[type] = W
@@ -171,14 +269,22 @@ class Ui_Form(object):
 if __name__ == "__main__":
     import sys
     app = QtWidgets.QApplication(sys.argv)
-    Form = GenericContainer(GenericContainer.CONTAINER_R1)
+
+    Form = GenericContainer(GenericContainer.CONTAINER_L1)
     ui = Ui_Form()
     ui.setupUi(Form)
+    Form.show()
+
+    Form2 = GenericContainer(GenericContainer.CONTAINER_L2)
+    ui2 = Ui_Form()
+    ui2.setupUi(Form2)
+    Form2.show()
+    
     #Form.AddEntity(GenericContainer.TYPE_SSL_VSERVER)
     #Form.AddEntity(GenericContainer.TYPE_SSL_TCP_VSERVER)
     #Form.AddEntity(GenericContainer.TYPE_HTTP_VSERVER)
     #Form.AddEntity(GenericContainer.TYPE_TCP_VSERVER)
-    Form.show()
+    #Form.show()
     sys.exit(app.exec_())
     
 

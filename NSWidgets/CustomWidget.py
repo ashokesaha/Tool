@@ -6,7 +6,11 @@
 #
 # WARNING! All changes made in this file will be lost!
 
+import os
 from PyQt5 import QtCore, QtGui, QtWidgets
+from BEOpenSSLServerDialog import *
+import BasicClientDialog
+
 
 class Ui_Form(object):
     def setupUi(self, Form):
@@ -173,9 +177,13 @@ class  EntityColor() :
 
 
 class  MyRectWidget(QtWidgets.QWidget) :
+
+    INSTANCE_COUNT = 0
     
     def  __init__(self, type, parent=None):
         super(self.__class__,self).__init__(parent)
+        MyRectWidget.INSTANCE_COUNT += 1
+        self.instanceId = MyRectWidget.INSTANCE_COUNT
         self.type = type
         self.container = None
         qsz = QtCore.QSize(64,32)
@@ -199,6 +207,8 @@ class  MyRectWidget(QtWidgets.QWidget) :
         self.styleSheets.append("background-color: qlineargradient(spread:reflect, x1:0, y1:0, x2:1, y2:1, stop:0.367232 rgba(0, 200, 0, 255), stop:1 rgba(200, 255, 200, 255));")
 
         self.backend_obj = None
+        self.up = 0
+        self.Th = None
 
 
     def GetType(self) :
@@ -209,14 +219,81 @@ class  MyRectWidget(QtWidgets.QWidget) :
         qsz = QtCore.QSize(64,32)
         return qsz
 
-    def mousePressEvent(self,event) :
-        pass
+##    def mousePressEvent(self,event) :
+##        print 'mousePressEvent..'
+##        if self.up :
+##            self.up = 0
+##        else :
+##            self.up = 1
+##        self.repaint(self.rect())
+
 
     def contextMenuEvent(self, event) :
-        print 'MyRectWidget contextMenu'
-    
-    
+        menu = QtWidgets.QMenu(self)
+        stopAct = startAct = None
+        delAct = menu.addAction('Delete')
+        propAct = menu.addAction('Properties')
+
+        obj = self.GetBackendObj()
+        if obj :
+            if obj.isrunning :
+                stopAct = menu.addAction('Stop')
+            else :
+                startAct = menu.addAction('Start')
+        
+
+        act = menu.exec_(event.globalPos())
+
+        if act == startAct :
+            print 'selected startAct'
+            self.Th = CustomWidgetThread(self)
+            obj.Start()
+            self.Th.start()
+            
+        elif act == stopAct :
+            print 'selected stopAct'
+            obj.Stop()
+            self.Th.StopRunning()
+            self.Th = None
+            
+        elif (act == delAct) :
+            print 'selected delAct'
+            pass
+        
+        elif (act == propAct) :
+            print 'selected propAct'
+            dialog = QtWidgets.QDialog()
+            if (self.type == GenericContainer.GenericContainer.TYPE_BE_OPENSSL_SERVER) :
+                w = BEOpenSSLServerDialog(self)
+            elif (self.type == GenericContainer.GenericContainer.TYPE_FE_OPENSSL_CLIENT) :
+                w = BasicClientDialog.BasicClientDialog(self)
+        
+            w.setupUi(dialog)
+            dialog.exec_()
+
+
+    def GetInstanceId(self) :
+        return self.instanceId
+
+
+
     def paintEvent(self, event=None) :
+        if self.up :
+            self.UpPaintEvent(event)
+        else :
+            self.DownPaintEvent(event)
+    
+
+    def SetUp(self) :
+        self.up = 1
+        self.repaint(self.rect())
+
+    def SetDown(self) :
+        self.up = 0
+        self.repaint(self.rect())
+        
+    
+    def DownPaintEvent(self, event=None) :
         gd = QtGui.QLinearGradient(0,0,self.width(),self.height())
         gd.setStart(0,0)
         gd.setFinalStop(self.width()*3/4, self.height()*3/4)
@@ -235,17 +312,96 @@ class  MyRectWidget(QtWidgets.QWidget) :
         qP.drawRect(self.rect())
 
 
+
+
+    def UpPaintEvent(self, event=None) :
+        qP = QtGui.QPainter(self)
+        brush = QtGui.QBrush(QtGui.QColor(0,0,0,250))
+        qP.setBrush(brush)
+        qP.drawRect(self.rect())
+        
+        gd = QtGui.QLinearGradient(0,0,self.width(),self.height())
+        gd.setStart(0,0)
+        gd.setFinalStop(self.width()*3/4, self.height()*3/4)
+        gd.setSpread(1)
+        c1 = QtGui.QColor(0,0,200,250)
+        c2 = QtGui.QColor(40,40,200,250)
+        gd.setColorAt(0,c1)
+        gd.setColorAt(1,c2)
+
+        #qP = QtGui.QPainter(self)
+        qP.setPen(QtCore.Qt.NoPen)
+        qP.setRenderHint(QtGui.QPainter.Antialiasing)
+
+        brush = QtGui.QBrush(gd)
+        qP.setBrush(brush)
+        r = self.rect()
+        #r.adjust(-5,-5,-5,-5)
+        qP.drawRect(2,2,r.width()-6,r.height()-6)
+
+
+    def mousePressEvent(self,event) :
+        self.CheckMyThread()
+    
+
+
     def SetBackendObj(self,obj) :
         self.backend_obj = obj
     
 
     def GetBackendObj(self) :
         return self.backend_obj
+
+
+    def CheckMyThread(sel) :
+        th = QtCore.QThread.currentThreadId()
+        print 'CheckMyThread : ThreadId {}'.format(th)
+    
     
     def __del__(self) :
         print 'entity widget destroyed {}'.format(self)
 
-    
+
+
+
+
+class  CustomWidgetThread(QtCore.QThread) :
+    def __init__(self,wdgt) :
+        super(self.__class__,self).__init__()
+        #self.sig = QtCore.pyqtSignal(str)
+        self.wdgt = wdgt
+        self.stopRunning = False
+        print str(101)
+
+    def StopRunning(self) :
+        self.stopRunning = True
+
+
+    def run(self) :
+        obj = self.wdgt.GetBackendObj()
+        if not obj :
+            return
+
+        thid = self.wdgt.GetInstanceId()
+        fname = 'C:\\Users\\ashokes\\Miniconda2\\PyLogs\' + obj.name + '_' + str(thid) + '.log'
+
+        t0 = obj.GetSockTimeout()
+        obj.SetSockTimeout(0.2)
+        
+        with open(fname,'a') as fp  :
+            while not self.stopRunning :
+                s = obj.ReadOnce()
+                #print 'obj {}  s {}{}'.format(obj,type(s),s)
+                if s :
+                    fp.write(s)    
+                QtCore.QThread.sleep(1)
+
+        obj.SetSockTimeout(t0)
+        
+
+
+
+
 if __name__ == "__main__":
     import sys
     app = QtWidgets.QApplication(sys.argv)

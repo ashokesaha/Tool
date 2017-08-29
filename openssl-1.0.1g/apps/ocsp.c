@@ -144,6 +144,7 @@ int MAIN(int argc, char **argv)
 	BIO *derbio = NULL;
 	BIO *out = NULL;
 	int req_timeout = -1;
+	int	resp_Delay = 0;
 	int req_text = 0, resp_text = 0;
 	long nsec = MAX_VALIDITY_PERIOD, maxage = -1;
 	char *CAfile = NULL, *CApath = NULL;
@@ -154,7 +155,7 @@ int MAIN(int argc, char **argv)
 	int ret = 1;
 	int accept_count = -1;
 	int badarg = 0;
-	int i;
+	int i,resp_delay=0;
 	int ignore_err = 0;
 	STACK_OF(OPENSSL_STRING) *reqnames = NULL;
 	STACK_OF(OCSP_CERTID) *ids = NULL;
@@ -170,24 +171,26 @@ int MAIN(int argc, char **argv)
 
 	if (!load_config(bio_err, NULL))
 		goto end;
+
 	SSL_load_error_strings();
 	OpenSSL_add_ssl_algorithms();
 	args = argv + 1;
 	reqnames = sk_OPENSSL_STRING_new_null();
 	ids = sk_OCSP_CERTID_new_null();
+
 	while (!badarg && *args && *args[0] == '-')
-		{
+	{
 		if (!strcmp(*args, "-out"))
-			{
+		{
 			if (args[1])
-				{
+			{
 				args++;
 				outfile = *args;
-				}
-			else badarg = 1;
 			}
+			else badarg = 1;
+		}
 		else if (!strcmp(*args, "-timeout"))
-			{
+		{
 			if (args[1])
 				{
 				args++;
@@ -201,9 +204,9 @@ int MAIN(int argc, char **argv)
 					}
 				}
 			else badarg = 1;
-			}
+		}
 		else if (!strcmp(*args, "-url"))
-			{
+		{
 			if (args[1])
 				{
 				args++;
@@ -214,27 +217,27 @@ int MAIN(int argc, char **argv)
 					}
 				}
 			else badarg = 1;
-			}
+		}
 		else if (!strcmp(*args, "-host"))
-			{
+		{
 			if (args[1])
 				{
 				args++;
 				host = *args;
 				}
 			else badarg = 1;
-			}
+		}
 		else if (!strcmp(*args, "-port"))
-			{
+		{
 			if (args[1])
 				{
 				args++;
 				port = *args;
 				}
 			else badarg = 1;
-			}
+		}
 		else if (!strcmp(*args, "-header"))
-			{
+		{
 			if (args[1] && args[2])
 				{
 				if (!X509V3_add_value(args[1], args[2], &headers))
@@ -242,7 +245,7 @@ int MAIN(int argc, char **argv)
 				args += 2;
 				}
 			else badarg = 1;
-			}
+		}
 		else if (!strcmp(*args, "-ignore_err"))
 			ignore_err = 1;
 		else if (!strcmp(*args, "-noverify"))
@@ -272,43 +275,43 @@ int MAIN(int argc, char **argv)
 		else if (!strcmp(*args, "-no_intern"))
 			verify_flags |= OCSP_NOINTERN;
 		else if (!strcmp(*args, "-text"))
-			{
+		{
 			req_text = 1;
 			resp_text = 1;
-			}
+		}
 		else if (!strcmp(*args, "-req_text"))
 			req_text = 1;
 		else if (!strcmp(*args, "-resp_text"))
 			resp_text = 1;
 		else if (!strcmp(*args, "-reqin"))
-			{
+		{
 			if (args[1])
 				{
 				args++;
 				reqin = *args;
 				}
 			else badarg = 1;
-			}
+		}
 		else if (!strcmp(*args, "-respin"))
-			{
+		{
 			if (args[1])
 				{
 				args++;
 				respin = *args;
 				}
 			else badarg = 1;
-			}
+		}
 		else if (!strcmp(*args, "-signer"))
-			{
+		{
 			if (args[1])
 				{
 				args++;
 				signfile = *args;
 				}
 			else badarg = 1;
-			}
+		}
 		else if (!strcmp (*args, "-VAfile"))
-			{
+		{
 			if (args[1])
 				{
 				args++;
@@ -316,45 +319,45 @@ int MAIN(int argc, char **argv)
 				verify_flags |= OCSP_TRUSTOTHER;
 				}
 			else badarg = 1;
-			}
+		}
 		else if (!strcmp(*args, "-sign_other"))
-			{
+		{
 			if (args[1])
 				{
 				args++;
 				sign_certfile = *args;
 				}
 			else badarg = 1;
-			}
+		}
 		else if (!strcmp(*args, "-verify_other"))
-			{
+		{
 			if (args[1])
 				{
 				args++;
 				verify_certfile = *args;
 				}
 			else badarg = 1;
-			}
+		}
 		else if (!strcmp (*args, "-CAfile"))
-			{
+		{
 			if (args[1])
 				{
 				args++;
 				CAfile = *args;
 				}
 			else badarg = 1;
-			}
+		}
 		else if (!strcmp (*args, "-CApath"))
-			{
+		{
 			if (args[1])
 				{
 				args++;
 				CApath = *args;
 				}
 			else badarg = 1;
-			}
+		}
 		else if (!strcmp (*args, "-validity_period"))
-			{
+		{
 			if (args[1])
 				{
 				args++;
@@ -368,9 +371,9 @@ int MAIN(int argc, char **argv)
 					}
 				}
 			else badarg = 1;
-			}
+		}
 		else if (!strcmp (*args, "-status_age"))
-			{
+		{
 			if (args[1])
 				{
 				args++;
@@ -384,45 +387,45 @@ int MAIN(int argc, char **argv)
 					}
 				}
 			else badarg = 1;
-			}
-		 else if (!strcmp(*args, "-signkey"))
-			{
+		}
+		else if (!strcmp(*args, "-signkey"))
+		{
 			if (args[1])
 				{
 				args++;
 				keyfile = *args;
 				}
 			else badarg = 1;
-			}
+		}
 		else if (!strcmp(*args, "-reqout"))
-			{
+		{
 			if (args[1])
 				{
 				args++;
 				reqout = *args;
 				}
 			else badarg = 1;
-			}
+		}
 		else if (!strcmp(*args, "-respout"))
-			{
+		{
 			if (args[1])
 				{
 				args++;
 				respout = *args;
 				}
 			else badarg = 1;
-			}
-		 else if (!strcmp(*args, "-path"))
-			{
+		}
+		else if (!strcmp(*args, "-path"))
+		{
 			if (args[1])
 				{
 				args++;
 				path = *args;
 				}
 			else badarg = 1;
-			}
+		}
 		else if (!strcmp(*args, "-issuer"))
-			{
+		{
 			if (args[1])
 				{
 				args++;
@@ -432,9 +435,9 @@ int MAIN(int argc, char **argv)
 				if(!issuer) goto end;
 				}
 			else badarg = 1;
-			}
+		}
 		else if (!strcmp (*args, "-cert"))
-			{
+		{
 			if (args[1])
 				{
 				args++;
@@ -449,9 +452,9 @@ int MAIN(int argc, char **argv)
 					goto end;
 				}
 			else badarg = 1;
-			}
+		}
 		else if (!strcmp(*args, "-serial"))
-			{
+		{
 			if (args[1])
 				{
 				args++;
@@ -462,27 +465,27 @@ int MAIN(int argc, char **argv)
 					goto end;
 				}
 			else badarg = 1;
-			}
+		}
 		else if (!strcmp(*args, "-index"))
-			{
+		{
 			if (args[1])
 				{
 				args++;
 				ridx_filename = *args;
 				}
 			else badarg = 1;
-			}
+		}
 		else if (!strcmp(*args, "-CA"))
-			{
+		{
 			if (args[1])
 				{
 				args++;
 				rca_filename = *args;
 				}
 			else badarg = 1;
-			}
+		}
 		else if (!strcmp (*args, "-nmin"))
-			{
+		{
 			if (args[1])
 				{
 				args++;
@@ -498,9 +501,9 @@ int MAIN(int argc, char **argv)
 				if (ndays == -1)
 					ndays = 0;
 			else badarg = 1;
-			}
+		}
 		else if (!strcmp (*args, "-nrequest"))
-			{
+		{
 			if (args[1])
 				{
 				args++;
@@ -514,9 +517,9 @@ int MAIN(int argc, char **argv)
 					}
 				}
 			else badarg = 1;
-			}
+		}
 		else if (!strcmp (*args, "-ndays"))
-			{
+		{
 			if (args[1])
 				{
 				args++;
@@ -530,46 +533,55 @@ int MAIN(int argc, char **argv)
 					}
 				}
 			else badarg = 1;
-			}
+		}
 		else if (!strcmp(*args, "-rsigner"))
-			{
+		{
 			if (args[1])
 				{
 				args++;
 				rsignfile = *args;
 				}
 			else badarg = 1;
-			}
+		}
 		else if (!strcmp(*args, "-rkey"))
-			{
+		{
 			if (args[1])
 				{
 				args++;
 				rkeyfile = *args;
 				}
 			else badarg = 1;
-			}
+		}
 		else if (!strcmp(*args, "-rother"))
-			{
+		{
 			if (args[1])
 				{
 				args++;
 				rcertfile = *args;
 				}
 			else badarg = 1;
-			}
-		else if ((cert_id_md = EVP_get_digestbyname((*args)+1))==NULL)
-			{
-			badarg = 1;
-			}
-		args++;
 		}
+		else if (!strcmp(*args, "-resp_Delay"))
+		{
+			if (args[1])
+				{
+				args++;
+				resp_delay = atoi(*args);
+				}
+			else badarg = 1;
+		}
+		else if ((cert_id_md = EVP_get_digestbyname((*args)+1))==NULL)
+		{
+			badarg = 1;
+		}
+		args++;
+	}
 
 	/* Have we anything to do? */
 	if (!req && !reqin && !respin && !(port && ridx_filename)) badarg = 1;
 
 	if (badarg)
-		{
+	{
 		BIO_printf (bio_err, "OCSP utility\n");
 		BIO_printf (bio_err, "Usage ocsp [options]\n");
 		BIO_printf (bio_err, "where options are\n");
@@ -619,82 +631,82 @@ int MAIN(int argc, char **argv)
 		BIO_printf (bio_err, "-nrequest n        number of requests to accept (default unlimited)\n");
 		BIO_printf (bio_err, "-<dgst alg>     use specified digest in the request\n");
 		goto end;
-		}
+	}
 
 	if(outfile) out = BIO_new_file(outfile, "w");
 	else out = BIO_new_fp(stdout, BIO_NOCLOSE);
 
 	if(!out)
-		{
+	{
 		BIO_printf(bio_err, "Error opening output file\n");
 		goto end;
-		}
+	}
 
 	if (!req && (add_nonce != 2)) add_nonce = 0;
 
 	if (!req && reqin)
-		{
+	{
 		derbio = BIO_new_file(reqin, "rb");
 		if (!derbio)
-			{
+		{
 			BIO_printf(bio_err, "Error Opening OCSP request file\n");
 			goto end;
-			}
+		}
 		req = d2i_OCSP_REQUEST_bio(derbio, NULL);
 		BIO_free(derbio);
 		if(!req)
-			{
+		{
 			BIO_printf(bio_err, "Error reading OCSP request\n");
 			goto end;
-			}
 		}
+	}
 
 	if (!req && port)
-		{
+	{
 		acbio = init_responder(port);
 		if (!acbio)
 			goto end;
-		}
+	}
 
 	if (rsignfile && !rdb)
-		{
+	{
 		if (!rkeyfile) rkeyfile = rsignfile;
 		rsigner = load_cert(bio_err, rsignfile, FORMAT_PEM,
 			NULL, e, "responder certificate");
 		if (!rsigner)
-			{
+		{
 			BIO_printf(bio_err, "Error loading responder certificate\n");
 			goto end;
-			}
+		}
 		rca_cert = load_cert(bio_err, rca_filename, FORMAT_PEM,
 			NULL, e, "CA certificate");
 		if (rcertfile)
-			{
+		{
 			rother = load_certs(bio_err, rcertfile, FORMAT_PEM,
 				NULL, e, "responder other certificates");
 			if (!rother) goto end;
-			}
+		}
 		rkey = load_key(bio_err, rkeyfile, FORMAT_PEM, 0, NULL, NULL,
 			"responder private key");
 		if (!rkey)
 			goto end;
-		}
+	}
 	if(acbio)
 		BIO_printf(bio_err, "Waiting for OCSP client connections...\n");
 
 	redo_accept:
 
 	if (acbio)
-		{
+	{
 		if (!do_responder(&req, &cbio, acbio, port))
 			goto end;
 		if (!req)
-			{
+		{
 			resp = OCSP_response_create(OCSP_RESPONSE_STATUS_MALFORMEDREQUEST, NULL);
 			send_ocsp_response(cbio, resp);
 			goto done_resp;
-			}
 		}
+	}
 
 	if (!req && (signfile || reqout || host || add_nonce || ridx_filename))
 		{
@@ -1215,44 +1227,44 @@ static int do_responder(OCSP_REQUEST **preq, BIO **pcbio, BIO *acbio, char *port
 	BIO *cbio = NULL;
 
 	if (BIO_do_accept(acbio) <= 0)
-		{
+	{
 			BIO_printf(bio_err, "Error accepting connection\n");
 			ERR_print_errors(bio_err);
 			return 0;
-		}
+	}
 
 	cbio = BIO_pop(acbio);
 	*pcbio = cbio;
 
 	for(;;)
-		{
+	{
 		len = BIO_gets(cbio, inbuf, sizeof inbuf);
 		if (len <= 0)
 			return 1;
 		/* Look for "POST" signalling start of query */
 		if (!have_post)
-			{
+		{
 			if(strncmp(inbuf, "POST", 4))
-				{
+			{
 				BIO_printf(bio_err, "Invalid request\n");
 				return 1;
-				}
-			have_post = 1;
 			}
+			have_post = 1;
+		}
 		/* Look for end of headers */
 		if ((inbuf[0] == '\r') || (inbuf[0] == '\n'))
 			break;
-		}
+	}
 
 	/* Try to read OCSP request */
 
 	req = d2i_OCSP_REQUEST_bio(cbio, NULL);
 
 	if (!req)
-		{
+	{
 		BIO_printf(bio_err, "Error parsing OCSP request\n");
 		ERR_print_errors(bio_err);
-		}
+	}
 
 	*preq = req;
 

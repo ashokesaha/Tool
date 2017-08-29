@@ -177,7 +177,6 @@ int main(int argc, char **argv)
 	ret = readCmdData(0, buf, &len);
 	if(ret <= 0)
 		return ret;
-	WriteResponse("%s",buf);
 	HandleArgs(buf);
 
 	asd = initSocket(IP,PORT);
@@ -1171,7 +1170,6 @@ static int	HandleArgs(char * buf)
 		else if(strcmp(cJc->string,"cipher_filter") == 0)
 		{
 			CIPHERFILTER = strdup(cJc->valuestring);
-			WriteResponse("CIPHERFILTER : %s\n", CIPHERFILTER);
 		}
 		else if(strcmp(cJc->string,"resp_size") == 0)
 		{

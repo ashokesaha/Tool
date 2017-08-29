@@ -1668,14 +1668,14 @@ bad:
 			dh = load_dh_param(s_cert_file);
 
 		if (dh != NULL)
-			{
-			BIO_printf(bio_s_out,"Setting temp DH parameters\n");
-			}
+		{
+			//BIO_printf(bio_s_out,"Setting temp DH parameters\n");
+		}
 		else
-			{
-			BIO_printf(bio_s_out,"Using default temp DH parameters\n");
+		{
+			//BIO_printf(bio_s_out,"Using default temp DH parameters\n");
 			dh=get_dh512();
-			}
+		}
 		(void)BIO_flush(bio_s_out);
 
 		SSL_CTX_set_tmp_dh(ctx,dh);
@@ -1731,7 +1731,7 @@ bad:
 		}
 		else
 		{
-			BIO_printf(bio_s_out,"Using default temp ECDH parameters\n");
+			//BIO_printf(bio_s_out,"Using default temp ECDH parameters\n");
 			ecdh = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1);
 			if (ecdh == NULL) 
 			{
@@ -1894,7 +1894,7 @@ bad:
 #endif
 	}
 
-	BIO_printf(bio_s_out,"ACCEPT\n");
+	BIO_printf(bio_s_out,"ACCEPT:: ");
 	(void)BIO_flush(bio_s_out);
 
 	if (www)
@@ -2362,7 +2362,7 @@ err:
 		OPENSSL_free(buf);
 		}
 	if (ret >= 0)
-		BIO_printf(bio_s_out,"ACCEPT\n");
+		BIO_printf(bio_s_out,"ACCEPT:: ");
 	return(ret);
 }
 
@@ -2685,11 +2685,12 @@ static int www_body(char *hostname, int s, unsigned char *context)
 			SSL_write(con,NULL,0);
 		}
 
+		/******************
 		i=SSL_accept(con);
-printf("SSL_accept returned %d\n",i);
-
 		if(i<=0)
 			goto err;
+		******************/
+
 		i=BIO_gets(io,buf,bufsize-1);
 		if (i < 0) /* error */
 		{
@@ -2712,6 +2713,12 @@ printf("SSL_accept returned %d\n",i);
 			ret=1;
 			goto end;
 		}
+
+{
+char *cname = SSL_get_current_cipher_name(con);
+char	*ver = SSL_get_version(con);
+printf("%7s %28s  %2d\n",ver,cname,i);
+}
 
 		/* else we have data */
 		if (((www == 1) && (strncmp("GET ",buf,4) == 0)) ||
@@ -2973,7 +2980,7 @@ end:
 err:
 
 	if (ret >= 0)
-		BIO_printf(bio_s_out,"ACCEPT\n");
+		BIO_printf(bio_s_out,"ACCEPT:: ");
 
 	if (buf != NULL) OPENSSL_free(buf);
 	if (io != NULL) BIO_free_all(io);

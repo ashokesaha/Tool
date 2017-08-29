@@ -215,14 +215,14 @@ int ssl3_connect(SSL *s)
 	 * Heartbeats don't make sense during handshakes anyway.
 	 */
 	if (s->tlsext_hb_pending)
-		{
+	{
 		s->tlsext_hb_pending = 0;
 		s->tlsext_hb_seq++;
-		}
+	}
 #endif
 
 	for (;;)
-		{
+	{
 		state=s->state;
 
 		switch(s->state)
@@ -640,11 +640,11 @@ int ssl3_connect(SSL *s)
 			ret= -1;
 			goto end;
 			/* break; */
-			}
+		}
 
 		/* did we do anything */
 		if (!s->s3->tmp.reuse_message && !skip)
-			{
+		{
 			if (s->debug)
 				{
 				if ((ret=BIO_flush(s->wbio)) <= 0)
@@ -658,7 +658,7 @@ int ssl3_connect(SSL *s)
 				cb(s,SSL_CB_CONNECT_LOOP,1);
 				s->state=new_state;
 				}
-			}
+		}
 		skip=0;
 		}
 end:
