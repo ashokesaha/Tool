@@ -1,0 +1,8 @@
+export x=$1
+export y=$2
+while [ $x -le $y ]
+do
+export name=intercept_$x
+./certgen $name 2048
+let "x = x+1"
+done

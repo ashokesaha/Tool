@@ -1,0 +1,7 @@
+V	270820015547Z		A0B0D0C0F6	unknown	/ST=KA/C=IN/CN=news.abc.com/emailAddress=news.abc.com@test_ca.com/O=CITRIX
+V	270820015631Z		A0B0D0C0F7	unknown	/ST=KA/C=IN/CN=sports.abc.com/emailAddress=sports.abc.com@test_ca.com/O=CITRIX
+V	270820015932Z		A0B0D0C0F8	unknown	/ST=KA/C=IN/CN=*.abc.com/emailAddress=*.abc.com@test_ca.com/O=CITRIX
+V	270820020046Z		A0B0D0C0F9	unknown	/ST=KA/C=IN/CN=*.news.abc.com/emailAddress=*.news.abc.com@test_ca.com/O=CITRIX
+V	270820020119Z		A0B0D0C0FA	unknown	/ST=KA/C=IN/CN=*.sports.abc.com/emailAddress=*.sports.abc.com@test_ca.com/O=CITRIX
+V	270820020533Z		A0B0D0C0FB	unknown	/ST=KA/C=IN/CN=dupcheck.abc.com/emailAddress=dupcheck.abc.com@test_ca.com/O=CITRIX
+V	270820055641Z		A0B0D0C0FC	unknown	/ST=KA/C=IN/CN=www.bac.com/emailAddress=www.bac.com@test_ca.com/O=CITRIX

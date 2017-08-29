@@ -1,0 +1,4 @@
+openssl rsa -in $1.pem -out key.pem
+cp key.pem $1.pem
+rm key.pem
+
