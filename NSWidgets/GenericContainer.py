@@ -30,6 +30,9 @@ class  GenericContainer (QtWidgets.QWidget)  :
     TYPE_OCSP_OPENSSL_SERVER = 16
     TYPE_CRL_OPENSSL_SERVER = 17
 
+    TYPE_SAVE = 18
+    TYPE_LOAD = 19
+
     TYPE_CONTAINER_L1 = 101
     TYPE_CONTAINER_L2 = 102
     TYPE_CONTAINER_R2 = 103
@@ -56,26 +59,40 @@ class  GenericContainer (QtWidgets.QWidget)  :
 
     typeMap = dict()
     typeMap[CONTAINER_L1] = [TYPE_FE_OPENSSL_CLIENT, TYPE_FE_CURL_HTTPCLIENT,
-                             TYPE_FE_CURL_SSL_CLIENT,TYPE_FE_PIPELINE_SSL_CLIENT]
+                             TYPE_FE_CURL_SSL_CLIENT,TYPE_FE_PIPELINE_SSL_CLIENT,
+                             TYPE_SAVE, TYPE_LOAD]
     typeMap[CONTAINER_L2] = [TYPE_SSL_VSERVER,TYPE_SSL_TCP_VSERVER,
-                             TYPE_HTTP_VSERVER,TYPE_TCP_VSERVER]
+                             TYPE_HTTP_VSERVER,TYPE_TCP_VSERVER,
+                             TYPE_SAVE, TYPE_LOAD]
     typeMap[CONTAINER_R2] = [TYPE_SSL_SERVICE, TYPE_SSL_TCP_SERVICE,
-                             TYPE_HTTP_SERVICE,TYPE_TCP_SERVICE]
+                             TYPE_HTTP_SERVICE,TYPE_TCP_SERVICE,
+                             TYPE_SAVE, TYPE_LOAD]
     typeMap[CONTAINER_R1] = [TYPE_BE_OPENSSL_SERVER, TYPE_BE_APACHE_SERVER,
-                             TYPE_BE_HTTP_DATA]
+                             TYPE_BE_HTTP_DATA,TYPE_SAVE, TYPE_LOAD]
     typeMap[CONTAINER_T1] = [TYPE_OCSP_OPENSSL_SERVER, TYPE_CRL_OPENSSL_SERVER]
     typeMap[CONTAINER_NS] = [TYPE_NS_SELECT_DUT, TYPE_NS_INSTALL_CERT, TYPE_NS_CLEAR_CONFIG]
 
 
 
+    saveFileName = dict()
+    saveFileName[CONTAINER_L1] = 'L1.save'
+    saveFileName[CONTAINER_L2] = 'L2.save'
+    saveFileName[CONTAINER_R1] = 'R1.save'
+    saveFileName[CONTAINER_R2] = 'R2.save'
+    saveFileName[CONTAINER_T1] = 'T1.save'
+    saveFileName[CONTAINER_NS] = 'NS.save'
+
+
+
+
     colorMap = []
-    colorMap.append(QtGui.QColor(0,0,0,250))
-    colorMap.append(QtGui.QColor(50,50,50,250))
-    colorMap.append(QtGui.QColor(50,50,50,250))
-    colorMap.append(QtGui.QColor(50,50,50,250))
-    colorMap.append(QtGui.QColor(50,50,50,250))
-    colorMap.append(QtGui.QColor(50,50,50,250))
-    colorMap.append(QtGui.QColor(50,50,50,250))
+    colorMap.append(QtGui.QColor(0,100,100,150))
+    colorMap.append(QtGui.QColor(0,100,100,150))
+    colorMap.append(QtGui.QColor(0,100,100,150))
+    colorMap.append(QtGui.QColor(0,100,100,150))
+    colorMap.append(QtGui.QColor(0,100,100,150))
+    colorMap.append(QtGui.QColor(0,100,100,150))
+    colorMap.append(QtGui.QColor(0,100,100,150))
    
 
 
@@ -101,6 +118,10 @@ class  GenericContainer (QtWidgets.QWidget)  :
     nameMap[TYPE_NS_INSTALL_CERT]       = 'Install Cert'
     nameMap[TYPE_NS_CLEAR_CONFIG]       = 'Clear Config'
     nameMap[TYPE_NS_SELECT_DUT]         = 'Select DUT'
+    nameMap[TYPE_SAVE]                  = 'Save'
+    nameMap[TYPE_LOAD]                  = 'Load'
+
+
 
 
     def SetupContextMenuDialogMap(self) :
@@ -135,7 +156,8 @@ class  GenericContainer (QtWidgets.QWidget)  :
         self.entityList = []
         self.verticalLayout = QtWidgets.QVBoxLayout(self)
         self.verticalLayout.setSizeConstraint(0)
-        self.setStyleSheet("background-color: qlineargradient(spread:reflect, x1:0.496401, y1:0, x2:0.017, y2:0, stop:0.909605 rgba(150, 150, 150, 250), stop:1 rgba(20, 20, 20, 220));")
+        self.verticalLayout.setSpacing(16)
+        self.verticalLayout.setAlignment(QtCore.Qt.AlignCenter)
         self.backend_obj = None
 
 
@@ -201,11 +223,9 @@ class  GenericContainer (QtWidgets.QWidget)  :
                 w = BasicClientDialog(self)
 
             elif t == GenericContainer.TYPE_NS_SELECT_DUT :
-                print 'TYPE_NS_SELECT'
                 w = DUTDialog(self)
 
             elif t == GenericContainer.TYPE_NS_INSTALL_CERT :
-                print 'TYPE_NS_INSTALL_CERT'
                 obj = self.GetBackendObj()
                 if not obj :
                     print 'No NS attached'
@@ -215,29 +235,41 @@ class  GenericContainer (QtWidgets.QWidget)  :
                     return
                 ci = CertInstaller.CertInstall()
                 ci.SetCertDir('C:\\Users\\ashokes\\Miniconda2\\NSPY\\Certs')
-                #if obj.sess.isLogin() :
-                #    obj.Logout()
 
                 ci.PushToNS(obj.nsip)
                 obj.Login()
                 ci.Link(obj.sess)
 
             elif t == GenericContainer.TYPE_NS_CLEAR_CONFIG :
-                print 'TYPE_NS_CLEAR_CONFIG'
                 obj = self.GetBackendObj()
                 if not obj :
-                    print 'No NS attached'
                     return
-##                if not obj.sess :
-##                    print 'No session with NS'
-##                    return
-##                if not obj.sess.isLogin() :
-##                    print 'Not logged in to NS'
-##                    return
-##                print 'clear config sess {} login {}'.format(obj.sess, obj.sess.isLogin())
                 obj.Login()
                 obj.sess.clear_config(level='basic')
 
+            elif t == GenericContainer.TYPE_SAVE :
+                fname = 'C:\\Users\\ashokes\\Miniconda2\\PyLogs\\' + GenericContainer.saveFileName[self.container_type]
+                saveFp = open(fname,'w')
+                for e in self.entityList :
+                    o = e.GetBackendObj()
+                    s = o.ToFileStr() + '\n'
+                    saveFp.write(s)
+                saveFp.close()
+
+            elif t == GenericContainer.TYPE_LOAD :
+                fname = 'C:\\Users\\ashokes\\Miniconda2\\PyLogs\\' + GenericContainer.saveFileName[self.container_type]
+                print 'load file name {}'.format(fname)
+                try :
+                    with open(fname) as f:
+                        for line in f :
+                            o = GenericContainer.FromFileStr(line)
+                            print 'loaded {} {}'.format(o.name,o.ip)
+                            w = self.AddEntity(o.GetType())
+                            w.SetBackendObj(o)
+                    w = None
+                except IOError as e :
+                    print 'IOError happened'
+            
             if w :
                 w.setupUi(dialog)
                 dialog.exec_()
@@ -246,6 +278,62 @@ class  GenericContainer (QtWidgets.QWidget)  :
     def  RegisterContextMenuDialog(self,type,W) :
         GenericContainer.contextMenuDialogMap[type] = W
     
+
+
+    @classmethod
+    def FromFileStr(cls,jstring) :
+        d = json.loads(jstring)
+        typ = d['type']
+        print 'Load typ {}'.format(typ)
+
+        if typ == GenericContainer.TYPE_SSL_VSERVER  :
+            pass
+        elif typ == GenericContainer.TYPE_SSL_TCP_VSERVER  :
+            pass
+        elif typ == GenericContainer.TYPE_HTTP_VSERVER  :
+            pass
+        elif typ == GenericContainer.TYPE_TCP_VSERVER  :
+            pass
+        elif typ == GenericContainer.TYPE_SSL_SERVICE  :
+            pass
+        elif typ == GenericContainer.TYPE_SSL_TCP_SERVICE  :
+            pass
+        elif typ == GenericContainer.TYPE_HTTP_SERVICE  :
+            pass
+        elif typ == GenericContainer.TYPE_TCP_SERVICE  :
+            pass
+        elif typ == GenericContainer.TYPE_BE_OPENSSL_SERVER  :
+            o = BEOpenSSLServerEntity.FromFileStr(jstring)
+
+        elif typ == GenericContainer.TYPE_BE_APACHE_SERVER  :
+            pass
+        elif typ == GenericContainer.TYPE_BE_HTTP_DATA  :
+            pass
+        elif typ == GenericContainer.TYPE_FE_OPENSSL_CLIENT  :
+            o = BasicClientEntity.FromFileStr(jstring)
+
+##            o = BasicClientEntity(d['name'],d['ip'],d['port'],
+##                    d['targetip'], d['targetport'],
+##                    d['cert'], d['key'],d['certlink'],
+##                    d['version'],d['cipher'],
+##                    d['reuse'],d['reneg'],d['iter'],d['childcount'],
+##                    d['recboundary'])
+        elif typ == GenericContainer.TYPE_FE_CURL_HTTPCLIENT  :
+            pass
+        elif typ == GenericContainer.TYPE_FE_CURL_SSL_CLIENT  :
+            pass
+        elif typ == GenericContainer.TYPE_FE_PIPELINE_SSL_CLIENT  :
+            pass
+        elif typ == GenericContainer.TYPE_OCSP_OPENSSL_SERVER  :
+            pass
+        elif typ == GenericContainer.TYPE_CRL_OPENSSL_SERVER  :
+            pass
+
+        return o
+
+
+
+
 
 
 

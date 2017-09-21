@@ -235,7 +235,7 @@ class  MyRectWidget(QtWidgets.QWidget) :
         propAct = menu.addAction('Properties')
 
         obj = self.GetBackendObj()
-        if obj :
+        if obj and obj.IsStartStop():
             if obj.isrunning :
                 stopAct = menu.addAction('Stop')
             else :
@@ -245,19 +245,17 @@ class  MyRectWidget(QtWidgets.QWidget) :
         act = menu.exec_(event.globalPos())
 
         if act == startAct :
-            print 'selected startAct'
             self.Th = CustomWidgetThread(self)
             obj.Start()
             self.Th.start()
             
         elif act == stopAct :
-            print 'selected stopAct'
             obj.Stop()
-            self.Th.StopRunning()
-            self.Th = None
+            if self.Th :
+                self.Th.StopRunning()
+                self.Th = None
             
         elif (act == delAct) :
-            print 'selected delAct'
             pass
         
         elif (act == propAct) :
@@ -282,6 +280,18 @@ class  MyRectWidget(QtWidgets.QWidget) :
             self.UpPaintEvent(event)
         else :
             self.DownPaintEvent(event)
+
+        o = self.GetBackendObj()
+        if not o :
+            return
+        
+        pen = QtGui.QPen(QtGui.QColor(200,200,200,255))
+        pen.setWidth(2)
+        qP = QtGui.QPainter(self)
+        qP.setPen(pen)
+        r = self.rect()
+        qP.drawText(r,QtCore.Qt.AlignCenter,o.name)
+
     
 
     def SetUp(self) :
@@ -355,7 +365,6 @@ class  MyRectWidget(QtWidgets.QWidget) :
 
     def CheckMyThread(sel) :
         th = QtCore.QThread.currentThreadId()
-        print 'CheckMyThread : ThreadId {}'.format(th)
     
     
     def __del__(self) :
@@ -368,7 +377,8 @@ class  MyRectWidget(QtWidgets.QWidget) :
 class  CustomWidgetThread(QtCore.QThread) :
     def __init__(self,wdgt) :
         super(self.__class__,self).__init__()
-        #self.sig = QtCore.pyqtSignal(str)
+        self.sigStr = QtCore.pyqtSignal(str)
+        self.sigIntList = QtCore.pyqtSignal([])
         self.wdgt = wdgt
         self.stopRunning = False
         print str(101)
@@ -383,7 +393,7 @@ class  CustomWidgetThread(QtCore.QThread) :
             return
 
         thid = self.wdgt.GetInstanceId()
-        fname = 'C:\\Users\\ashokes\\Miniconda2\\PyLogs\' + obj.name + '_' + str(thid) + '.log'
+        fname = 'C:\\Users\\ashokes\\Miniconda2\\PyLogs\\' + obj.name + '_' + str(thid) + '.log'
 
         t0 = obj.GetSockTimeout()
         obj.SetSockTimeout(0.2)
@@ -393,6 +403,7 @@ class  CustomWidgetThread(QtCore.QThread) :
                 s = obj.ReadOnce()
                 #print 'obj {}  s {}{}'.format(obj,type(s),s)
                 if s :
+                    #print 'CustomWidgetThread : run : writing to file'
                     fp.write(s)    
                 QtCore.QThread.sleep(1)
 

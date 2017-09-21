@@ -46,7 +46,7 @@ def URLTest(ll) :
 
     for l in ll :
         Req += ';' + l
-    print Req
+    #print Req
 
     h1.putrequest('GET',Req)
     h1.putheader('X-NITRO-USER','nsroot')
@@ -55,15 +55,24 @@ def URLTest(ll) :
     h1.send('')
     h2 = h1.getresponse()
     d = h2.read()
-    print d
+    #print d
     dd = json.loads(d)
     d = dd['nsglobalcntr']
-    print 'nsglobalcntr::'
-    print type(d)
-    print d
+    #print 'nsglobalcntr::'
+    #print type(d)
+    #print d
+    s =  ':'.join(d.values())
+    print s
     o = One(d)
-    #print o.errorcode
+    print o.ssl_cur_sslInfo_SPCBAllocCount
     print o.ssl_cur_sslInfo_SPCBFreeCount
+    print o.sys_cur_nsbs
+    print o.pcb_cur_alloc
+    print o.pcb_cur_free
+    
+    #print o
+    #print o.errorcode
+    #print o.ssl_cur_sslInfo_SPCBFreeCount
     
     
     
@@ -72,9 +81,7 @@ def URLTest(ll) :
 class  One(object) :
     def __init__(self,j=None) :
         if not j :
-            self.f1 = None
-            self.f2 = None
-            self.f3 = None
+            pass
         elif j.__class__.__name__ == 'dict' :
             self.__dict__ = j
         else :
@@ -91,14 +98,21 @@ def  CTest() :
     print ll
    
 
-dd = NSStats.__dict__
-ddd = dict(dd)
-del ddd['__doc__']
-del ddd['__module__']
-del ddd['__weakref__']
+##dd = NSStats.__dict__
+##ddd = dict(dd)
+##del ddd['__doc__']
+##del ddd['__module__']
+##del ddd['__weakref__']
+##
+##print ddd
+##print type(ddd)
+##o = One(ddd)
+##print o.ssl_cur_sslInfo_SPCBAllocCount
 
-print ddd
-print type(ddd)
-o = One(ddd)
-print o.ssl_cur_sslInfo_SPCBAllocCount
+
+
+ll = ['pcb_cur_alloc','pcb_cur_free','ssl_cur_sslInfo_SPCBAllocCount',
+      'ssl_cur_sslInfo_SPCBFreeCount','sys_cur_nsbs']
+
+URLTest(ll)
 

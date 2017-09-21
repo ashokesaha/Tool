@@ -39,12 +39,6 @@ class BasicClientDialog(object):
         self.lineedit_ip.setText('')
         self.gridLayout.addWidget(self.lineedit_ip, 0, 1, 1, 1)
 
-        #self.lineedit_port = QtWidgets.QLineEdit(dialog)
-        #self.lineedit_port.setStyleSheet("background-color: rgb(238, 238, 238);")
-        #self.lineedit_port.setObjectName("lineedit_port")
-        #self.lineedit_port.setText('')
-        #self.gridLayout.addWidget(self.lineedit_port, 0, 2, 1, 1)
-
 
         self.lineedit_targetip = QtWidgets.QLineEdit(dialog)
         self.lineedit_targetip.setStyleSheet("background-color: rgb(238, 238, 238);")
@@ -163,10 +157,12 @@ class BasicClientDialog(object):
         self.lineedit_renegcount.setPlaceholderText(_translate("BasicClientDialog", "Reneg Count"))
         self.lineedit_itercount.setPlaceholderText(_translate("BasicClientDialog", "Iter Count"))
         self.lineedit_childcount.setPlaceholderText(_translate("BasicClientDialog", "Child Count"))
-        self.recboundary_comboBox.setItemText(0, _translate("BasicClientDialog", "All One"))
-        self.recboundary_comboBox.setItemText(1, _translate("BasicClientDialog", "All Separate"))
-        self.recboundary_comboBox.setItemText(2, _translate("BasicClientDialog", "[CKE+CC] [CCV]"))
-        self.recboundary_comboBox.setItemText(3, _translate("BasicClientDialog", "[CKE] [CC+CCV]"))
+
+        self.recboundary_comboBox.setItemText(0, _translate("BasicClientDialog", "All Separate"))
+        self.recboundary_comboBox.setItemText(1, _translate("BasicClientDialog", "[CC+CKE] [CCV]"))
+        self.recboundary_comboBox.setItemText(2, _translate("BasicClientDialog", "All Together"))
+        self.recboundary_comboBox.setItemText(3, _translate("BasicClientDialog", "[CC] [CKE+CCV]"))
+
         self.lineedit_targetip.setPlaceholderText(_translate("BasicClientDialog", "Target ip"))
         self.lineedit_targetport.setPlaceholderText(_translate("BasicClientDialog", "Target port"))
 
@@ -211,7 +207,7 @@ class BasicClientDialog(object):
         obj.childcount = int(self.lineedit_childcount.text())
         obj.recboundary = self.recboundary_comboBox.currentIndex()
       
-        obj.SendOnce()
+        #obj.SendOnce()
         self.dialog.accept()
  
 
@@ -258,7 +254,6 @@ class BasicClientDialog(object):
         entity = BasicClientEntity(self.lineedit_name.text(),
                                         self.lineedit_ip.text(),
                                         2345,
-                                        #int(self.lineedit_port.text()),
                                         self.lineedit_targetip.text(),
                                         int(self.lineedit_targetport.text()),
                                         self.lineedit_certfile.text(),
@@ -274,8 +269,7 @@ class BasicClientDialog(object):
 
     def FillFromObj(self,obj) :
         self.lineedit_name.setText(obj.name)
-        #self.lineedit_targetip.setText(obj.ip)
-        #self.lineedit_targetport.setText(str(obj.port))
+        self.lineedit_ip.setText(obj.ip)
         self.lineedit_targetip.setText(obj.targetip)
         self.lineedit_targetport.setText(str(obj.targetport))
         self.lineedit_certfile.setText(obj.certfile)
@@ -289,8 +283,6 @@ class BasicClientDialog(object):
         self.lineedit_childcount.setText(str(obj.childcount))
         self.recboundary_comboBox.setCurrentIndex(obj.recboundary)
         self.lineedit_name.setReadOnly(True)
-        #self.lineedit_ip.setReadOnly(True)
-        #self.lineedit_port.setReadOnly(True)
         self.lineedit_targetip.setReadOnly(True)
         self.lineedit_targetport.setReadOnly(True)
 
@@ -352,8 +344,9 @@ class BasicClientEntity(object):
 
     def ToJson(self) :
         d = dict()
-        #d['ip'] =  self.ip
-        #d['port'] =  self.port
+        d['name'] = self.name
+        d['ip'] =  self.ip
+        d['port'] =  self.port
         d['targetip'] =  self.targetip
         d['targetport'] =  self.targetport
         d['cipher']   = self.cipherfilter
@@ -367,10 +360,34 @@ class BasicClientEntity(object):
         d['iter'] = self.itercount
         if self.childcount > 0 :
             d['childcount'] = self.childcount
+        else :
+            d['childcount'] = 1
         d['recboundary'] = self.recboundary
         
         s = json.dumps(d)
         return s
+
+
+    def ToFileStr(self) :
+        js = self.ToJson()
+        d = dict()
+        d['type'] = GenericContainer.GenericContainer.TYPE_FE_OPENSSL_CLIENT
+        d['val'] = js
+        s = json.dumps(d)
+        return s
+
+
+    @classmethod
+    def FromFileStr(cls,jstring) :
+        d = json.loads(jstring)
+        d = json.loads(d['val'])
+        o = BasicClientEntity(d['name'],d['ip'],d['port'],
+                    d['targetip'], d['targetport'],
+                    d['cert'], d['key'],d['certlink'],
+                    d['version'],d['cipher'],
+                    d['reuse'],d['reneg'],d['iter'],d['childcount'],
+                    d['recboundary'])
+        return o
 
 
     def Connect(self, timeout=2.0) :
@@ -432,13 +449,17 @@ class BasicClientEntity(object):
         except socket.error as e :
             data = None
 
-        #print data                        
         return data
 
 
     def  SendOnce(self) :
+        if not self.sd :
+            self.Connect()
+        if not self.sd :
+            print 'try again later..'
+            return
+        
         str = self.ToJson()
-        print 'basic client json {}'.format(str)
         lstr = struct.pack(">I", len(str))
         self.sd.sendall(lstr)
         self.sd.sendall(str)
@@ -451,8 +472,8 @@ class BasicClientEntity(object):
         self.sd.close()
         self.sd = None
 
+
     def Start(self) :
-        print 'basic client Start . running {}'.format(self.isrunning)
         if not self.isrunning :
             if not self.sd :
                 self.Connect()
@@ -465,6 +486,16 @@ class BasicClientEntity(object):
         if self.isrunning :
             self.Terminate()
             self.isrunning = False
+
+
+
+    # Not all bots has meaning for start and stop. Like BE Server. It
+    # is always on. Only way to disble it is to delete it.
+    # But client entities has start stop.
+
+    def IsStartStop(self) :
+        return True
+
 
 
 

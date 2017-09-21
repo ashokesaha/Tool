@@ -234,7 +234,8 @@ class BEOpenSSLServerEntity(object):
         self.reuse = reuse
         self.reneg = reneg
         self.cauth = cauth
-        self.entity_type = GenericContainer.TYPE_BE_OPENSSL_SERVER
+        self.inter_record_delay = delay
+        self.entity_type = GenericContainer.GenericContainer.TYPE_BE_OPENSSL_SERVER
         self.sd = None
 
 
@@ -246,6 +247,8 @@ class BEOpenSSLServerEntity(object):
     #=====================================================#
     def ToJson(self) :
         d = dict()
+        d['name'] = self.name
+        d['ip'] = self.ip
         d['listen_port'] =  self.listen_port
         d['resp_size']   = self.resp_size
         d['record_size'] = self.record_size
@@ -254,9 +257,31 @@ class BEOpenSSLServerEntity(object):
         d['reuse'] = self.reuse
         d['reneg'] = self.reneg
         d['cauth'] = self.cauth
-        
+        d['delay'] = self.inter_record_delay
         s = json.dumps(d)
         return s
+
+
+    def ToFileStr(self) :
+        js = self.ToJson()
+        d = dict()
+        d['type'] = GenericContainer.GenericContainer.TYPE_BE_OPENSSL_SERVER
+        d['val'] = js
+        s = json.dumps(d)
+        return s
+
+
+    @classmethod
+    def FromFileStr(cls,jstring) :
+        d = json.loads(jstring)
+        d = json.loads(d['val'])
+        o =  BEOpenSSLServerEntity(d['name'], d['ip'], d['listen_port'],
+                                   d['resp_size'],d['record_size'],
+                                   d['delay'],d['cipher_filter'],
+                                   d['reuse'],d['reneg'],d['cauth'])
+
+        return o
+
 
 
     #=====================================================#
@@ -325,6 +350,14 @@ class BEOpenSSLServerEntity(object):
         self.sd.sendall(lstr)
         self.sd.close()
         self.sd = None
+
+
+    # Not all bots has meaning for start and stop. Like BE Server. It
+    # is always on. Only way to disble it is to delete it.
+    # But client entities has start stop.
+    def IsStartStop(self) :
+        return False
+
 
 
     def __del__(self) :
