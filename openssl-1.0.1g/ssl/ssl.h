@@ -2100,6 +2100,7 @@ int SSL_cache_hit(SSL *s);
 int SSL_set_buf_cc(SSL *);
 int SSL_set_buf_cke(SSL *);
 int SSL_set_buf_ccv(SSL *);
+int SSL_set_buf_ckeccv(SSL *);
 int SSL_set_reuse_count(SSL *,int);
 #endif
 

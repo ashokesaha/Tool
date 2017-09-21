@@ -62,6 +62,9 @@
 #include <openssl/objects.h>
 #include <openssl/x509.h>
 #include <openssl/buffer.h>
+#include "ssl/ssl_locl.h"
+
+int	GetServerCertDetails(SSL *con,char *CN,char *type);
 
 char *X509_NAME_oneline(X509_NAME *a, char *buf, int len)
 {
@@ -227,5 +230,47 @@ err:
 	X509err(X509_F_X509_NAME_ONELINE,ERR_R_MALLOC_FAILURE);
 	if (b != NULL) BUF_MEM_free(b);
 	return(NULL);
+}
+
+
+
+
+int	GetServerCertDetails(SSL *con,char *CN,char *type)
+{
+	SESS_CERT 	*sc;
+	CERT_PKEY	*pkey;
+	X509 		*x;
+	X509_NAME	*name;
+	char		buf[128];
+	char		*ptr;
+
+	strcpy(CN,"None");
+	strcpy(type,"None");
+
+	if(con->session && con->session->sess_cert)
+		sc = con->session->sess_cert;
+	else
+		return 0;
+
+	if( (sc->peer_cert_type >= 0) && (sc->peer_cert_type < SSL_PKEY_NUM) && 
+		(pkey = &sc->peer_pkeys[sc->peer_cert_type]) && (x = pkey->x509))
+	{
+		if(sc->peer_cert_type  <= 1)  strcpy(type,"RSA");
+		else  if(sc->peer_cert_type  == 2) strcpy(type,"DSA");
+		else  if(sc->peer_cert_type  == 5) strcpy(type,"ECC");
+		else type = "Unknown";
+
+		name = X509_get_subject_name(x);
+		X509_NAME_oneline(name,buf,127);
+		ptr = strstr(buf,"CN=");
+		if(ptr)
+		{
+			char *ptr2 = ptr;
+			while(*ptr2 != '/') ptr2++;
+			if(*ptr2) *ptr2 = 0;
+			strcpy(CN,ptr);
+		}
+	}
+	return 0;
 }
 

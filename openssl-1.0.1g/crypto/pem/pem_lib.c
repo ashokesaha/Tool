@@ -700,7 +700,7 @@ int PEM_read_bio(BIO *bp, char **name, char **header, unsigned char **data,
 
 		if (i <= 0)
 		{
-			//PEMerr(PEM_F_PEM_READ_BIO,PEM_R_NO_START_LINE);
+			PEMerr(PEM_F_PEM_READ_BIO,PEM_R_NO_START_LINE);
 			goto err;
 		}
 

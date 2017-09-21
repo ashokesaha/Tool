@@ -117,7 +117,7 @@ static BIO_METHOD methods_filep=
 	};
 
 BIO *BIO_new_file(const char *filename, const char *mode)
-	{
+{
 	BIO  *ret;
 	FILE *file=NULL;
 
@@ -183,10 +183,10 @@ BIO *BIO_new_file(const char *filename, const char *mode)
 	BIO_clear_flags(ret,BIO_FLAGS_UPLINK); /* we did fopen -> we disengage UPLINK */
 	BIO_set_fp(ret,file,BIO_CLOSE);
 	return(ret);
-	}
+}
 
 BIO *BIO_new_fp(FILE *stream, int close_flag)
-	{
+{
 	BIO *ret;
 
 	if ((ret=BIO_new(BIO_s_file())) == NULL)
@@ -195,24 +195,24 @@ BIO *BIO_new_fp(FILE *stream, int close_flag)
 	BIO_set_flags(ret,BIO_FLAGS_UPLINK); /* redundant, left for documentation puposes */
 	BIO_set_fp(ret,stream,close_flag);
 	return(ret);
-	}
+}
 
 BIO_METHOD *BIO_s_file(void)
-	{
+{
 	return(&methods_filep);
-	}
+}
 
 static int MS_CALLBACK file_new(BIO *bi)
-	{
+{
 	bi->init=0;
 	bi->num=0;
 	bi->ptr=NULL;
 	bi->flags=BIO_FLAGS_UPLINK; /* default to UPLINK */
 	return(1);
-	}
+}
 
 static int MS_CALLBACK file_free(BIO *a)
-	{
+{
 	if (a == NULL) return(0);
 	if (a->shutdown)
 		{
@@ -228,10 +228,10 @@ static int MS_CALLBACK file_free(BIO *a)
 		a->init=0;
 		}
 	return(1);
-	}
+}
 	
 static int MS_CALLBACK file_read(BIO *b, char *out, int outl)
-	{
+{
 	int ret=0;
 
 	if (b->init && (out != NULL))
@@ -248,10 +248,10 @@ static int MS_CALLBACK file_read(BIO *b, char *out, int outl)
 			}
 		}
 	return(ret);
-	}
+}
 
 static int MS_CALLBACK file_write(BIO *b, const char *in, int inl)
-	{
+{
 	int ret=0;
 
 	if (b->init && (in != NULL))
@@ -268,10 +268,10 @@ static int MS_CALLBACK file_write(BIO *b, const char *in, int inl)
 		 * some stupid stdio implementations (VMS) */
 		}
 	return(ret);
-	}
+}
 
 static long MS_CALLBACK file_ctrl(BIO *b, int cmd, long num, void *ptr)
-	{
+{
 	long ret=1;
 	FILE *fp=(FILE *)b->ptr;
 	FILE **fpp;
@@ -394,13 +394,13 @@ static long MS_CALLBACK file_ctrl(BIO *b, int cmd, long num, void *ptr)
 #endif
 		fp=fopen(ptr,p);
 		if (fp == NULL)
-			{
+		{
 			SYSerr(SYS_F_FOPEN,get_last_sys_error());
 			ERR_add_error_data(5,"fopen('",ptr,"','",p,"')");
 			BIOerr(BIO_F_FILE_CTRL,ERR_R_SYS_LIB);
 			ret=0;
 			break;
-			}
+		}
 		b->ptr=fp;
 		b->init=1;
 		BIO_clear_flags(b,BIO_FLAGS_UPLINK); /* we did fopen -> we disengage UPLINK */
@@ -438,7 +438,7 @@ static long MS_CALLBACK file_ctrl(BIO *b, int cmd, long num, void *ptr)
 		break;
 		}
 	return(ret);
-	}
+}
 
 static int MS_CALLBACK file_gets(BIO *bp, char *buf, int size)
 	{

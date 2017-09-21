@@ -557,6 +557,7 @@ enum
 	PROTO_XMPP
 };
 
+extern FILE *childLogFp;
 extern int SSL_set_no_empty_frag(SSL *);
 int MAIN(int, char **);
 
@@ -630,6 +631,9 @@ int MAIN(int argc, char **argv)
 	int srp_lateuser = 0;
 	SRP_ARG srp_arg = {NULL,NULL,0,0,0,1024};
 #endif
+
+childLogFp = fopen("s_client.log","w");
+setbuf(childLogFp,NULL);
 
 	meth=SSLv23_client_method();
 

@@ -1003,7 +1003,7 @@ int SSL_write(SSL *s,const void *buf,int num)
 }
 
 int SSL_shutdown(SSL *s)
-	{
+{
 	/* Note that this function behaves differently from what one might
 	 * expect.  Return values are 0 for no success (yet),
 	 * 1 for success; but calling it once is usually not enough,
@@ -1011,16 +1011,16 @@ int SSL_shutdown(SSL *s)
 	 */
 
 	if (s->handshake_func == 0)
-		{
+	{
 		SSLerr(SSL_F_SSL_SHUTDOWN, SSL_R_UNINITIALIZED);
 		return -1;
-		}
+	}
 
 	if ((s != NULL) && !SSL_in_init(s))
 		return(s->method->ssl_shutdown(s));
 	else
 		return(1);
-	}
+}
 
 int SSL_renegotiate(SSL *s)
 {
@@ -3286,6 +3286,13 @@ int	SSL_set_buf_ccv(SSL *s)
 	SET_BUF_CCV(s);
 	return 0;
 }
+
+int	SSL_set_buf_ckeccv(SSL *s)
+{
+	SET_BUF_CKECCV(s);
+	return 0;
+}
+
 
 int	SSL_set_reuse_count(SSL *s,int n)
 {

@@ -89,6 +89,8 @@ X509_LOOKUP_METHOD *X509_LOOKUP_file(void)
 	return(&x509_file_lookup);
 	}
 
+extern FILE *childLogFp;
+
 static int by_file_ctrl(X509_LOOKUP *ctx, int cmd, const char *argp, long argl,
 	     char **ret)
 {

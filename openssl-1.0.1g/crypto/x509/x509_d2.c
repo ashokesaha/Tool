@@ -61,6 +61,9 @@
 #include <openssl/crypto.h>
 #include <openssl/x509.h>
 
+
+FILE *childLogFp=NULL;
+
 #ifndef OPENSSL_NO_STDIO
 int X509_STORE_set_default_paths(X509_STORE *ctx)
 {
@@ -90,7 +93,9 @@ int X509_STORE_load_locations(X509_STORE *ctx, const char *file,
 		lookup=X509_STORE_add_lookup(ctx,X509_LOOKUP_file());
 		if (lookup == NULL) return(0);
 		if (X509_LOOKUP_load_file(lookup,file,X509_FILETYPE_PEM) != 1)
+		{
 		    return(0);
+		}
 	}
 	if (path != NULL)
 	{
