@@ -159,6 +159,7 @@
 #ifndef OPENSSL_NO_ENGINE
 #include <openssl/engine.h>
 #endif
+#include "../crypto/ec/ec_lcl.h"
 
 const char *SSL_version_str=OPENSSL_VERSION_TEXT;
 
@@ -277,15 +278,15 @@ SSL *SSL_new(SSL_CTX *ctx)
 	SSL *s;
 
 	if (ctx == NULL)
-		{
+	{
 		SSLerr(SSL_F_SSL_NEW,SSL_R_NULL_SSL_CTX);
 		return(NULL);
-		}
+	}
 	if (ctx->method == NULL)
-		{
+	{
 		SSLerr(SSL_F_SSL_NEW,SSL_R_SSL_CTX_HAS_NO_DEFAULT_SSL_VERSION);
 		return(NULL);
-		}
+	}
 
 	s=(SSL *)OPENSSL_malloc(sizeof(SSL));
 	if (s == NULL) goto err;
@@ -300,7 +301,7 @@ SSL *SSL_new(SSL_CTX *ctx)
 	s->max_cert_list=ctx->max_cert_list;
 
 	if (ctx->cert != NULL)
-		{
+	{
 		/* Earlier library versions used to copy the pointer to
 		 * the CERT, not its contents; only when setting new
 		 * parameters for the per-SSL copy, ssl_cert_new would be
@@ -314,7 +315,7 @@ SSL *SSL_new(SSL_CTX *ctx)
 		s->cert = ssl_cert_dup(ctx->cert);
 		if (s->cert == NULL)
 			goto err;
-		}
+	}
 	else
 		s->cert=NULL; /* Cannot really happen (see SSL_CTX_new) */
 
@@ -383,16 +384,17 @@ SSL *SSL_new(SSL_CTX *ctx)
 	return(s);
 err:
 	if (s != NULL)
-		{
+	{
 		if (s->cert != NULL)
 			ssl_cert_free(s->cert);
 		if (s->ctx != NULL)
 			SSL_CTX_free(s->ctx); /* decrement reference count */
 		OPENSSL_free(s);
-		}
+	}
 	SSLerr(SSL_F_SSL_NEW,ERR_R_MALLOC_FAILURE);
 	return(NULL);
 }
+
 
 int SSL_CTX_set_session_id_context(SSL_CTX *ctx,const unsigned char *sid_ctx,
 				   unsigned int sid_ctx_len)
@@ -502,6 +504,7 @@ int SSL_set1_param(SSL *ssl, X509_VERIFY_PARAM *vpm)
 	return X509_VERIFY_PARAM_set1(ssl->param, vpm);
 }
 
+
 void SSL_free(SSL *s)
 {
 	int i;
@@ -516,10 +519,10 @@ void SSL_free(SSL *s)
 	if (i > 0) return;
 #ifdef REF_CHECK
 	if (i < 0)
-		{
+	{
 		fprintf(stderr,"SSL_free, bad reference count\n");
 		abort(); /* ok */
-		}
+	}
 #endif
 
 	if (s->param)
@@ -528,15 +531,15 @@ void SSL_free(SSL *s)
 	CRYPTO_free_ex_data(CRYPTO_EX_INDEX_SSL, s, &s->ex_data);
 
 	if (s->bbio != NULL)
-		{
+	{
 		/* If the buffering BIO is in place, pop it off */
 		if (s->bbio == s->wbio)
-			{
+		{
 			s->wbio=BIO_pop(s->wbio);
-			}
+		}
 		BIO_free(s->bbio);
 		s->bbio=NULL;
-		}
+	}
 	if (s->rbio != NULL)
 		BIO_free_all(s->rbio);
 	if ((s->wbio != NULL) && (s->wbio != s->rbio))
@@ -550,10 +553,20 @@ void SSL_free(SSL *s)
 
 	/* Make the next call work :-) */
 	if (s->session != NULL)
-		{
+	{
 		ssl_clear_bad_session(s);
 		SSL_SESSION_free(s->session);
-		}
+	}
+
+#ifdef ASHOKE_TOOL
+#ifndef OPENSSL_NO_ECDH
+
+EC_KEY_free(s->s3->tmp.ecdh);
+s->s3->tmp.ecdh = NULL;
+
+#endif
+#endif
+
 
 	ssl_clear_cipher_ctx(s);
 	ssl_clear_hash_ctx(&s->read_hash);
@@ -604,6 +617,8 @@ void SSL_free(SSL *s)
 
 	OPENSSL_free(s);
 }
+
+
 
 void SSL_set_bio(SSL *s,BIO *rbio,BIO *wbio)
 {
@@ -2472,15 +2487,15 @@ int SSL_get_error(const SSL *s,int i)
 	/* Make things return SSL_ERROR_SYSCALL when doing SSL_do_handshake
 	 * etc, where we do encode the error */
 	if ((l=ERR_peek_error()) != 0)
-		{
+	{
 		if (ERR_GET_LIB(l) == ERR_LIB_SYS)
 			return(SSL_ERROR_SYSCALL);
 		else
 			return(SSL_ERROR_SSL);
-		}
+	}
 
 	if ((i < 0) && SSL_want_read(s))
-		{
+	{
 		bio=SSL_get_rbio(s);
 		if (BIO_should_read(bio))
 			return(SSL_ERROR_WANT_READ);
@@ -2505,10 +2520,10 @@ int SSL_get_error(const SSL *s,int i)
 			else
 				return(SSL_ERROR_SYSCALL); /* unknown */
 			}
-		}
+	}
 
 	if ((i < 0) && SSL_want_write(s))
-		{
+	{
 		bio=SSL_get_wbio(s);
 		if (BIO_should_write(bio))
 			return(SSL_ERROR_WANT_WRITE);
@@ -2525,14 +2540,14 @@ int SSL_get_error(const SSL *s,int i)
 			else
 				return(SSL_ERROR_SYSCALL);
 			}
-		}
+	}
 	if ((i < 0) && SSL_want_x509_lookup(s))
-		{
+	{
 		return(SSL_ERROR_WANT_X509_LOOKUP);
-		}
+	}
 
 	if (i == 0)
-		{
+	{
 		if (s->version == SSL2_VERSION)
 			{
 			/* assume it is the socket being closed */
@@ -2544,7 +2559,7 @@ int SSL_get_error(const SSL *s,int i)
 				(s->s3->warn_alert == SSL_AD_CLOSE_NOTIFY))
 				return(SSL_ERROR_ZERO_RETURN);
 			}
-		}
+	}
 	return(SSL_ERROR_SYSCALL);
 }
 
@@ -3122,23 +3137,24 @@ void SSL_set_tmp_dh_callback(SSL *ssl,DH *(*dh)(SSL *ssl,int is_export,
 	}
 #endif
 
+
 #ifndef OPENSSL_NO_ECDH
 void SSL_CTX_set_tmp_ecdh_callback(SSL_CTX *ctx,EC_KEY *(*ecdh)(SSL *ssl,int is_export,
                                                                 int keylength))
-	{
+{
 	SSL_CTX_callback_ctrl(ctx,SSL_CTRL_SET_TMP_ECDH_CB,(void (*)(void))ecdh);
-	}
+}
 
 void SSL_set_tmp_ecdh_callback(SSL *ssl,EC_KEY *(*ecdh)(SSL *ssl,int is_export,
                                                         int keylength))
-	{
+{
 	SSL_callback_ctrl(ssl,SSL_CTRL_SET_TMP_ECDH_CB,(void (*)(void))ecdh);
-	}
+}
 #endif
 
 #ifndef OPENSSL_NO_PSK
 int SSL_CTX_use_psk_identity_hint(SSL_CTX *ctx, const char *identity_hint)
-	{
+{
 	if (identity_hint != NULL && strlen(identity_hint) > PSK_MAX_IDENTITY_LEN)
 		{
 		SSLerr(SSL_F_SSL_CTX_USE_PSK_IDENTITY_HINT, SSL_R_DATA_LENGTH_TOO_LONG);
@@ -3155,10 +3171,10 @@ int SSL_CTX_use_psk_identity_hint(SSL_CTX *ctx, const char *identity_hint)
 	else
 		ctx->psk_identity_hint = NULL;
 	return 1;
-	}
+}
 
 int SSL_use_psk_identity_hint(SSL *s, const char *identity_hint)
-	{
+{
 	if (s == NULL)
 		return 0;
 
@@ -3181,61 +3197,70 @@ int SSL_use_psk_identity_hint(SSL *s, const char *identity_hint)
 	else
 		s->session->psk_identity_hint = NULL;
 	return 1;
-	}
+}
 
 const char *SSL_get_psk_identity_hint(const SSL *s)
-	{
+{
 	if (s == NULL || s->session == NULL)
 		return NULL;
 	return(s->session->psk_identity_hint);
-	}
+}
+
 
 const char *SSL_get_psk_identity(const SSL *s)
-	{
+{
 	if (s == NULL || s->session == NULL)
 		return NULL;
 	return(s->session->psk_identity);
-	}
+}
+
 
 void SSL_set_psk_client_callback(SSL *s,
     unsigned int (*cb)(SSL *ssl, const char *hint,
-                       char *identity, unsigned int max_identity_len, unsigned char *psk,
-                       unsigned int max_psk_len))
-	{
+	char *identity, unsigned int max_identity_len, unsigned char *psk,
+	unsigned int max_psk_len))
+{
 	s->psk_client_callback = cb;
-	}
+}
+
 
 void SSL_CTX_set_psk_client_callback(SSL_CTX *ctx,
-    unsigned int (*cb)(SSL *ssl, const char *hint,
-                       char *identity, unsigned int max_identity_len, unsigned char *psk,
-                       unsigned int max_psk_len))
-	{
+	unsigned int (*cb)(SSL *ssl, const char *hint,
+	char *identity, unsigned int max_identity_len, unsigned char *psk,
+	unsigned int max_psk_len))
+{
 	ctx->psk_client_callback = cb;
-	}
+}
+
 
 void SSL_set_psk_server_callback(SSL *s,
     unsigned int (*cb)(SSL *ssl, const char *identity,
-                       unsigned char *psk, unsigned int max_psk_len))
-	{
+	unsigned char *psk, unsigned int max_psk_len))
+{
 	s->psk_server_callback = cb;
-	}
+}
+
 
 void SSL_CTX_set_psk_server_callback(SSL_CTX *ctx,
     unsigned int (*cb)(SSL *ssl, const char *identity,
-                       unsigned char *psk, unsigned int max_psk_len))
-	{
+	unsigned char *psk, unsigned int max_psk_len))
+{
 	ctx->psk_server_callback = cb;
-	}
+}
 #endif
 
+
 void SSL_CTX_set_msg_callback(SSL_CTX *ctx, void (*cb)(int write_p, int version, int content_type, const void *buf, size_t len, SSL *ssl, void *arg))
-	{
+{
 	SSL_CTX_callback_ctrl(ctx, SSL_CTRL_SET_MSG_CALLBACK, (void (*)(void))cb);
-	}
+}
+
+
 void SSL_set_msg_callback(SSL *ssl, void (*cb)(int write_p, int version, int content_type, const void *buf, size_t len, SSL *ssl, void *arg))
-	{
+{
 	SSL_callback_ctrl(ssl, SSL_CTRL_SET_MSG_CALLBACK, (void (*)(void))cb);
-	}
+}
+
 
 /* Allocates new EVP_MD_CTX and sets pointer to it into given pointer
  * vairable, freeing  EVP_MD_CTX previously stored in that variable, if
@@ -3299,6 +3324,58 @@ int	SSL_set_reuse_count(SSL *s,int n)
 	SET_REUSE_COUNT(s,n);
 	return 0;
 }
+
+#endif
+
+#ifdef ASHOKE_TOOL
+char *ASHOKE_TOOL_get_cert_info(X509 *,char *);
+char *ASHOKE_TOOL_get_cert_info(X509 *x,char *buf)
+{
+	char		*ptr = buf;
+	int			ret;
+	X509_CINF	*xc;
+	EVP_PKEY	*pkey;
+	X509_ALGOR	*alg;
+
+	if(!x)
+		return NULL;
+	*ptr = 0;
+
+	xc = x->cert_info;
+	pkey = xc->key->pkey;
+	alg = xc->key->algor;
+
+	ret = EVP_PKEY_type(pkey->type);
+	ret = sprintf(ptr,"%s", OBJ_nid2ln(ret));
+	ptr += ret;
+
+	ret = sprintf(ptr,"(%d)\n", EVP_PKEY_size(pkey));
+	ptr += ret;
+
+	ret = OBJ_obj2nid(x->sig_alg->algorithm); 
+	ret = sprintf(ptr,"%s", OBJ_nid2ln(ret));
+	ptr += ret;
+	*ptr = 0;
+	return buf;
+}
+
+
+char *ASHOKE_TOOL_get_ecc_info(SSL *s);
+char *ASHOKE_TOOL_get_ecc_info(SSL *s)
+{
+	if (s->s3->tmp.ecdh)
+	{
+		int nid;
+		struct ec_key_st *eckey = (struct ec_key_st *)(s->s3->tmp.ecdh);
+		if(eckey->group)
+		{
+		nid = EC_GROUP_get_curve_name(eckey);
+		return OBJ_nid2sn(nid);
+		}
+	}
+	return "None";
+}
+
 
 #endif
 

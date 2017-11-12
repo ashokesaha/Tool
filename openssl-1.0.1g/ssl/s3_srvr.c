@@ -856,7 +856,7 @@ end:
 	}
 
 int ssl3_send_hello_request(SSL *s)
-	{
+{
 	unsigned char *p;
 
 	if (s->state == SSL3_ST_SW_HELLO_REQ_A)
@@ -875,10 +875,10 @@ int ssl3_send_hello_request(SSL *s)
 
 	/* SSL3_ST_SW_HELLO_REQ_B */
 	return(ssl3_do_write(s,SSL3_RT_HANDSHAKE));
-	}
+}
 
 int ssl3_check_client_hello(SSL *s)
-	{
+{
 	int ok;
 	long n;
 
@@ -893,7 +893,7 @@ int ssl3_check_client_hello(SSL *s)
 	if (!ok) return((int)n);
 	s->s3->tmp.reuse_message = 1;
 	if (s->s3->tmp.message_type == SSL3_MT_CLIENT_HELLO)
-		{
+	{
 		/* We only allow the client to restart the handshake once per
 		 * negotiation. */
 		if (s->s3->flags & SSL3_FLAGS_SGC_RESTART_DONE)
@@ -912,14 +912,14 @@ int ssl3_check_client_hello(SSL *s)
 #endif
 #ifndef OPENSSL_NO_ECDH
 		if (s->s3->tmp.ecdh != NULL)
-			{
+		{
 			EC_KEY_free(s->s3->tmp.ecdh);
 			s->s3->tmp.ecdh = NULL;
-			}
+		}
 #endif
 		s->s3->flags |= SSL3_FLAGS_SGC_RESTART_DONE;
 		return 2;
-		}
+	}
 	return 1;
 }
 
@@ -1419,7 +1419,7 @@ err:
 }
 
 int ssl3_send_server_hello(SSL *s)
-	{
+{
 	unsigned char *buf;
 	unsigned char *p,*d;
 	int i,sl;
@@ -1511,10 +1511,11 @@ int ssl3_send_server_hello(SSL *s)
 
 	/* SSL3_ST_SW_SRVR_HELLO_B */
 	return(ssl3_do_write(s,SSL3_RT_HANDSHAKE));
-	}
+}
+
 
 int ssl3_send_server_done(SSL *s)
-	{
+{
 	unsigned char *p;
 
 	if (s->state == SSL3_ST_SW_SRVR_DONE_A)
@@ -1535,10 +1536,11 @@ int ssl3_send_server_done(SSL *s)
 
 	/* SSL3_ST_SW_SRVR_DONE_B */
 	return(ssl3_do_write(s,SSL3_RT_HANDSHAKE));
-	}
+}
+
 
 int ssl3_send_server_key_exchange(SSL *s)
-	{
+{
 #ifndef OPENSSL_NO_RSA
 	unsigned char *q;
 	int j,num;
@@ -2008,10 +2010,11 @@ err:
 #endif
 	EVP_MD_CTX_cleanup(&md_ctx);
 	return(-1);
-	}
+}
+
 
 int ssl3_send_certificate_request(SSL *s)
-	{
+{
 	unsigned char *p,*d;
 	int i,j,nl,off,n;
 	STACK_OF(X509_NAME) *sk=NULL;
@@ -2105,10 +2108,11 @@ int ssl3_send_certificate_request(SSL *s)
 	return(ssl3_do_write(s,SSL3_RT_HANDSHAKE));
 err:
 	return(-1);
-	}
+}
+
 
 int ssl3_get_client_key_exchange(SSL *s)
-	{
+{
 	int i,al,ok;
 	long n;
 	unsigned long alg_k;
@@ -2146,7 +2150,7 @@ int ssl3_get_client_key_exchange(SSL *s)
 
 #ifndef OPENSSL_NO_RSA
 	if (alg_k & SSL_kRSA)
-		{
+	{
 		/* FIX THIS UP EAY EAY EAY EAY */
 		if (s->s3->tmp.use_rsa_tmp)
 			{
@@ -2247,7 +2251,7 @@ int ssl3_get_client_key_exchange(SSL *s)
 				s->session->master_key,
 				p,i);
 		OPENSSL_cleanse(p,i);
-		}
+	}
 	else
 #endif
 #ifndef OPENSSL_NO_DH
@@ -2332,7 +2336,7 @@ printf("\n");
 #endif
 #ifndef OPENSSL_NO_KRB5
 	if (alg_k & SSL_kKRB5)
-		{
+	{
 		krb5_error_code		krb5rc;
 		krb5_data		enc_ticket;
 		krb5_data		authenticator;
@@ -2519,7 +2523,7 @@ printf("\n");
 		**  kssl_ctx = kssl_ctx_free(kssl_ctx);
 		**  if (s->kssl_ctx)  s->kssl_ctx = NULL;
 		*/
-		}
+	}
 	else
 #endif	/* OPENSSL_NO_KRB5 */
 
@@ -2534,59 +2538,59 @@ printf("\n");
 
 		/* initialize structures for server's ECDH key pair */
 		if ((srvr_ecdh = EC_KEY_new()) == NULL) 
-			{
+		{
 			SSLerr(SSL_F_SSL3_GET_CLIENT_KEY_EXCHANGE,
 			    ERR_R_MALLOC_FAILURE);
 			goto err;
-			}
+		}
 
 		/* Let's get server private key and group information */
 		if (alg_k & (SSL_kECDHr|SSL_kECDHe))
-			{ 
+		{
 			/* use the certificate */
 			tkey = s->cert->pkeys[SSL_PKEY_ECC].privatekey->pkey.ec;
-			}
+		}
 		else
-			{
+		{
 			/* use the ephermeral values we saved when
 			 * generating the ServerKeyExchange msg.
 			 */
 			tkey = s->s3->tmp.ecdh;
-			}
+		}
 
 		group    = EC_KEY_get0_group(tkey);
 		priv_key = EC_KEY_get0_private_key(tkey);
 
 		if (!EC_KEY_set_group(srvr_ecdh, group) ||
 		    !EC_KEY_set_private_key(srvr_ecdh, priv_key))
-			{
+		{
 			SSLerr(SSL_F_SSL3_GET_CLIENT_KEY_EXCHANGE,
 			       ERR_R_EC_LIB);
 			goto err;
-			}
+		}
 
 		/* Let's get client's public key */
 		if ((clnt_ecpoint = EC_POINT_new(group)) == NULL)
-			{
+		{
 			SSLerr(SSL_F_SSL3_GET_CLIENT_KEY_EXCHANGE,
 			    ERR_R_MALLOC_FAILURE);
 			goto err;
-			}
+		}
 
 		if (n == 0L) 
-			{
+		{
 			/* Client Publickey was in Client Certificate */
 
-			 if (alg_k & SSL_kEECDH)
-				 {
+			if (alg_k & SSL_kEECDH)
+			{
 				 al=SSL_AD_HANDSHAKE_FAILURE;
 				 SSLerr(SSL_F_SSL3_GET_CLIENT_KEY_EXCHANGE,SSL_R_MISSING_TMP_ECDH_KEY);
 				 goto f_err;
-				 }
-			if (((clnt_pub_pkey=X509_get_pubkey(s->session->peer))
-			    == NULL) || 
+			}
+
+			if (((clnt_pub_pkey=X509_get_pubkey(s->session->peer)) == NULL) || 
 			    (clnt_pub_pkey->type != EVP_PKEY_EC))
-				{
+			{
 				/* XXX: For now, we do not support client
 				 * authentication using ECDH certificates
 				 * so this branch (n == 0L) of the code is
@@ -2602,73 +2606,73 @@ printf("\n");
 			   	SSLerr(SSL_F_SSL3_GET_CLIENT_KEY_EXCHANGE,
 				    SSL_R_UNABLE_TO_DECODE_ECDH_CERTS);
 			   	goto f_err;
-			   	}
+			}
 
 			if (EC_POINT_copy(clnt_ecpoint,
 			    EC_KEY_get0_public_key(clnt_pub_pkey->pkey.ec)) == 0)
-				{
+			{
 				SSLerr(SSL_F_SSL3_GET_CLIENT_KEY_EXCHANGE,
 					ERR_R_EC_LIB);
 				goto err;
-				}
-			ret = 2; /* Skip certificate verify processing */
 			}
+			ret = 2; /* Skip certificate verify processing */
+		}
 		else
-			{
+		{
 			/* Get client's public key from encoded point
 			 * in the ClientKeyExchange message.
 			 */
 			if ((bn_ctx = BN_CTX_new()) == NULL)
-				{
-				SSLerr(SSL_F_SSL3_GET_CLIENT_KEY_EXCHANGE,
-				    ERR_R_MALLOC_FAILURE);
+			{
+				SSLerr(SSL_F_SSL3_GET_CLIENT_KEY_EXCHANGE,ERR_R_MALLOC_FAILURE);
 				goto err;
-				}
+			}
 
 			/* Get encoded point length */
 			i = *p; 
 			p += 1;
 			if (n != 1 + i)
-				{
-				SSLerr(SSL_F_SSL3_GET_CLIENT_KEY_EXCHANGE,
-				    ERR_R_EC_LIB);
+			{
+				SSLerr(SSL_F_SSL3_GET_CLIENT_KEY_EXCHANGE,ERR_R_EC_LIB);
 				goto err;
-				}
-			if (EC_POINT_oct2point(group, 
-			    clnt_ecpoint, p, i, bn_ctx) == 0)
-				{
-				SSLerr(SSL_F_SSL3_GET_CLIENT_KEY_EXCHANGE,
-				    ERR_R_EC_LIB);
+			}
+
+			if (EC_POINT_oct2point(group,clnt_ecpoint, p, i, bn_ctx) == 0)
+			{
+				SSLerr(SSL_F_SSL3_GET_CLIENT_KEY_EXCHANGE,ERR_R_EC_LIB);
 				goto err;
-				}
+			}
+
 			/* p is pointing to somewhere in the buffer
 			 * currently, so set it to the start 
 			 */ 
 			p=(unsigned char *)s->init_buf->data;
-			}
+		}
 
 		/* Compute the shared pre-master secret */
 		field_size = EC_GROUP_get_degree(group);
 		if (field_size <= 0)
-			{
-			SSLerr(SSL_F_SSL3_GET_CLIENT_KEY_EXCHANGE, 
-			       ERR_R_ECDH_LIB);
+		{
+			SSLerr(SSL_F_SSL3_GET_CLIENT_KEY_EXCHANGE,ERR_R_ECDH_LIB);
 			goto err;
-			}
-		i = ECDH_compute_key(p, (field_size+7)/8, clnt_ecpoint, srvr_ecdh, NULL);
+		}
+
+		i = ECDH_compute_key(p,(field_size+7)/8,clnt_ecpoint,srvr_ecdh,NULL);
 		if (i <= 0)
-			{
-			SSLerr(SSL_F_SSL3_GET_CLIENT_KEY_EXCHANGE,
-			    ERR_R_ECDH_LIB);
+		{
+			SSLerr(SSL_F_SSL3_GET_CLIENT_KEY_EXCHANGE,ERR_R_ECDH_LIB);
 			goto err;
-			}
+		}
 
 		EVP_PKEY_free(clnt_pub_pkey);
 		EC_POINT_free(clnt_ecpoint);
 		EC_KEY_free(srvr_ecdh);
 		BN_CTX_free(bn_ctx);
+
+#ifndef ASHOKE_TOOL
 		EC_KEY_free(s->s3->tmp.ecdh);
 		s->s3->tmp.ecdh = NULL; 
+#endif
 
 		/* Compute the master secret */
 		s->session->master_key_length = s->method->ssl3_enc-> \
@@ -2681,7 +2685,7 @@ printf("\n");
 #endif
 #ifndef OPENSSL_NO_PSK
 		if (alg_k & SSL_kPSK)
-			{
+		{
 			unsigned char *t = NULL;
 			unsigned char psk_or_pre_ms[PSK_MAX_PSK_LEN*2+4];
 			unsigned int pre_ms_len = 0, psk_len = 0;
@@ -2692,23 +2696,23 @@ printf("\n");
 
 			n2s(p,i);
 			if (n != i+2)
-				{
+			{
 				SSLerr(SSL_F_SSL3_GET_CLIENT_KEY_EXCHANGE,
 					SSL_R_LENGTH_MISMATCH);
 				goto psk_err;
-				}
+			}
 			if (i > PSK_MAX_IDENTITY_LEN)
-				{
+			{
 				SSLerr(SSL_F_SSL3_GET_CLIENT_KEY_EXCHANGE,
 					SSL_R_DATA_LENGTH_TOO_LONG);
 				goto psk_err;
-				}
+			}
 			if (s->psk_server_callback == NULL)
-				{
+			{
 				SSLerr(SSL_F_SSL3_GET_CLIENT_KEY_EXCHANGE,
 				       SSL_R_PSK_NO_SERVER_CB);
 				goto psk_err;
-				}
+			}
 
 			/* Create guaranteed NULL-terminated identity
 			 * string for the callback */
@@ -2719,19 +2723,18 @@ printf("\n");
 			OPENSSL_cleanse(tmp_id, PSK_MAX_IDENTITY_LEN+1);
 
 			if (psk_len > PSK_MAX_PSK_LEN)
-				{
-				SSLerr(SSL_F_SSL3_GET_CLIENT_KEY_EXCHANGE,
-					ERR_R_INTERNAL_ERROR);
+			{
+				SSLerr(SSL_F_SSL3_GET_CLIENT_KEY_EXCHANGE,ERR_R_INTERNAL_ERROR);
 				goto psk_err;
-				}
+			}
 			else if (psk_len == 0)
-				{
+			{
 				/* PSK related to the given identity not found */
 				SSLerr(SSL_F_SSL3_GET_CLIENT_KEY_EXCHANGE,
 				       SSL_R_PSK_IDENTITY_NOT_FOUND);
 				al=SSL_AD_UNKNOWN_PSK_IDENTITY;
 				goto psk_err;
-				}
+			}
 
 			/* create PSK pre_master_secret */
 			pre_ms_len=2+psk_len+2+psk_len;
@@ -2746,15 +2749,15 @@ printf("\n");
 				OPENSSL_free(s->session->psk_identity);
 			s->session->psk_identity = BUF_strdup((char *)p);
 			if (s->session->psk_identity == NULL)
-				{
+			{
 				SSLerr(SSL_F_SSL3_GET_CLIENT_KEY_EXCHANGE,
 					ERR_R_MALLOC_FAILURE);
 				goto psk_err;
-				}
+			}
 
 			if (s->session->psk_identity_hint != NULL)
 				OPENSSL_free(s->session->psk_identity_hint);
-			s->session->psk_identity_hint = BUF_strdup(s->ctx->psk_identity_hint);
+			s->session->psk_identity_hint=BUF_strdup(s->ctx->psk_identity_hint);
 			if (s->ctx->psk_identity_hint != NULL &&
 				s->session->psk_identity_hint == NULL)
 				{
@@ -2771,7 +2774,7 @@ printf("\n");
 			OPENSSL_cleanse(psk_or_pre_ms, sizeof(psk_or_pre_ms));
 			if (psk_err != 0)
 				goto f_err;
-			}
+		}
 		else
 #endif
 #ifndef OPENSSL_NO_SRP
@@ -2901,12 +2904,12 @@ err:
 #ifndef OPENSSL_NO_ECDH
 	EVP_PKEY_free(clnt_pub_pkey);
 	EC_POINT_free(clnt_ecpoint);
-	if (srvr_ecdh != NULL) 
-		EC_KEY_free(srvr_ecdh);
 	BN_CTX_free(bn_ctx);
 #endif
 	return(-1);
-	}
+}
+
+
 
 int ssl3_get_cert_verify(SSL *s)
 {
@@ -3200,112 +3203,114 @@ int ssl3_get_client_certificate(SSL *s)
 	if (!ok) return((int)n);
 
 	if	(s->s3->tmp.message_type == SSL3_MT_CLIENT_KEY_EXCHANGE)
-		{
+	{
 		if (	(s->verify_mode & SSL_VERIFY_PEER) &&
 			(s->verify_mode & SSL_VERIFY_FAIL_IF_NO_PEER_CERT))
-			{
+		{
 			SSLerr(SSL_F_SSL3_GET_CLIENT_CERTIFICATE,SSL_R_PEER_DID_NOT_RETURN_A_CERTIFICATE);
 			al=SSL_AD_HANDSHAKE_FAILURE;
 			goto f_err;
-			}
+		}
+
 		/* If tls asked for a client cert, the client must return a 0 list */
 		if ((s->version > SSL3_VERSION) && s->s3->tmp.cert_request)
-			{
+		{
 			SSLerr(SSL_F_SSL3_GET_CLIENT_CERTIFICATE,SSL_R_TLS_PEER_DID_NOT_RESPOND_WITH_CERTIFICATE_LIST);
 			al=SSL_AD_UNEXPECTED_MESSAGE;
 			goto f_err;
-			}
+		}
 		s->s3->tmp.reuse_message=1;
 		return(1);
-		}
+	}
 
 	if (s->s3->tmp.message_type != SSL3_MT_CERTIFICATE)
-		{
+	{
 		al=SSL_AD_UNEXPECTED_MESSAGE;
 		SSLerr(SSL_F_SSL3_GET_CLIENT_CERTIFICATE,SSL_R_WRONG_MESSAGE_TYPE);
 		goto f_err;
-		}
+	}
 	p=d=(unsigned char *)s->init_msg;
 
 	if ((sk=sk_X509_new_null()) == NULL)
-		{
+	{
 		SSLerr(SSL_F_SSL3_GET_CLIENT_CERTIFICATE,ERR_R_MALLOC_FAILURE);
 		goto err;
-		}
+	}
 
 	n2l3(p,llen);
 	if (llen+3 != n)
-		{
+	{
 		al=SSL_AD_DECODE_ERROR;
 		SSLerr(SSL_F_SSL3_GET_CLIENT_CERTIFICATE,SSL_R_LENGTH_MISMATCH);
 		goto f_err;
-		}
+	}
+
 	for (nc=0; nc<llen; )
-		{
+	{
 		n2l3(p,l);
 		if ((l+nc+3) > llen)
-			{
+		{
 			al=SSL_AD_DECODE_ERROR;
 			SSLerr(SSL_F_SSL3_GET_CLIENT_CERTIFICATE,SSL_R_CERT_LENGTH_MISMATCH);
 			goto f_err;
-			}
+		}
 
 		q=p;
 		x=d2i_X509(NULL,&p,l);
 		if (x == NULL)
-			{
+		{
 			SSLerr(SSL_F_SSL3_GET_CLIENT_CERTIFICATE,ERR_R_ASN1_LIB);
 			goto err;
-			}
+		}
 		if (p != (q+l))
-			{
+		{
 			al=SSL_AD_DECODE_ERROR;
 			SSLerr(SSL_F_SSL3_GET_CLIENT_CERTIFICATE,SSL_R_CERT_LENGTH_MISMATCH);
 			goto f_err;
-			}
+		}
 		if (!sk_X509_push(sk,x))
-			{
+		{
 			SSLerr(SSL_F_SSL3_GET_CLIENT_CERTIFICATE,ERR_R_MALLOC_FAILURE);
 			goto err;
-			}
+		}
 		x=NULL;
 		nc+=l+3;
-		}
+	}
 
 	if (sk_X509_num(sk) <= 0)
-		{
+	{
 		/* TLS does not mind 0 certs returned */
 		if (s->version == SSL3_VERSION)
-			{
+		{
 			al=SSL_AD_HANDSHAKE_FAILURE;
 			SSLerr(SSL_F_SSL3_GET_CLIENT_CERTIFICATE,SSL_R_NO_CERTIFICATES_RETURNED);
 			goto f_err;
-			}
+		}
 		/* Fail for TLS only if we required a certificate */
 		else if ((s->verify_mode & SSL_VERIFY_PEER) &&
 			 (s->verify_mode & SSL_VERIFY_FAIL_IF_NO_PEER_CERT))
-			{
+		{
 			SSLerr(SSL_F_SSL3_GET_CLIENT_CERTIFICATE,SSL_R_PEER_DID_NOT_RETURN_A_CERTIFICATE);
 			al=SSL_AD_HANDSHAKE_FAILURE;
 			goto f_err;
-			}
+		}
 		/* No client certificate so digest cached records */
 		if (s->s3->handshake_buffer && !ssl3_digest_cached_records(s))
-			{
+		{
 			al=SSL_AD_INTERNAL_ERROR;
 			goto f_err;
-			}
 		}
+	}
 	else
-		{
+	{
 		i=ssl_verify_cert_chain(s,sk);
 		if (i <= 0)
-			{
+		{
 			al=ssl_verify_alarm_type(s->verify_result);
 			SSLerr(SSL_F_SSL3_GET_CLIENT_CERTIFICATE,SSL_R_NO_CERTIFICATE_RETURNED);
 			goto f_err;
-			}
 		}
+	}
 
 	if (s->session->peer != NULL) /* This should not be needed */
 		X509_free(s->session->peer);

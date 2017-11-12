@@ -133,7 +133,7 @@
 #include "ssl_locl.h"
 
 int SSL_get_ex_data_X509_STORE_CTX_idx(void)
-	{
+{
 	static volatile int ssl_x509_store_ctx_idx= -1;
 	int got_write_lock = 0;
 
@@ -158,10 +158,10 @@ int SSL_get_ex_data_X509_STORE_CTX_idx(void)
 		CRYPTO_r_unlock(CRYPTO_LOCK_SSL_CTX);
 	
 	return ssl_x509_store_ctx_idx;
-	}
+}
 
 static void ssl_cert_set_default_md(CERT *cert)
-	{
+{
 	/* Set digest values to defaults */
 #ifndef OPENSSL_NO_DSA
 	cert->pkeys[SSL_PKEY_DSA_SIGN].digest = EVP_sha1();
@@ -173,10 +173,10 @@ static void ssl_cert_set_default_md(CERT *cert)
 #ifndef OPENSSL_NO_ECDSA
 	cert->pkeys[SSL_PKEY_ECC].digest = EVP_sha1();
 #endif
-	}
+}
 
 CERT *ssl_cert_new(void)
-	{
+{
 	CERT *ret;
 
 	ret=(CERT *)OPENSSL_malloc(sizeof(CERT));
@@ -191,10 +191,10 @@ CERT *ssl_cert_new(void)
 	ret->references=1;
 	ssl_cert_set_default_md(ret);
 	return(ret);
-	}
+}
 
 CERT *ssl_cert_dup(CERT *cert)
-	{
+{
 	CERT *ret;
 	int i;
 
@@ -354,11 +354,11 @@ err:
 		}
 
 	return NULL;
-	}
+}
 
 
 void ssl_cert_free(CERT *c)
-	{
+{
 	int i;
 
 	if(c == NULL)
@@ -399,7 +399,7 @@ void ssl_cert_free(CERT *c)
 #endif
 		}
 	OPENSSL_free(c);
-	}
+}
 
 int ssl_cert_inst(CERT **o)
 {
@@ -449,7 +449,7 @@ SESS_CERT *ssl_sess_cert_new(void)
 }
 
 void ssl_sess_cert_free(SESS_CERT *sc)
-	{
+{
 	int i;
 
 	if (sc == NULL)
@@ -498,16 +498,16 @@ void ssl_sess_cert_free(SESS_CERT *sc)
 #endif
 
 	OPENSSL_free(sc);
-	}
+}
 
 int ssl_set_peer_cert_type(SESS_CERT *sc,int type)
-	{
+{
 	sc->peer_cert_type = type;
 	return(1);
-	}
+}
 
 int ssl_verify_cert_chain(SSL *s,STACK_OF(X509) *sk)
-	{
+{
 	X509 *x;
 	int i;
 	X509_STORE_CTX ctx;
@@ -517,10 +517,10 @@ int ssl_verify_cert_chain(SSL *s,STACK_OF(X509) *sk)
 
 	x=sk_X509_value(sk,0);
 	if(!X509_STORE_CTX_init(&ctx,s->ctx->cert_store,x,sk))
-		{
+	{
 		SSLerr(SSL_F_SSL_VERIFY_CERT_CHAIN,ERR_R_X509_LIB);
 		return(0);
-		}
+	}
 #if 0
 	if (SSL_get_verify_depth(s) >= 0)
 		X509_STORE_CTX_set_depth(&ctx, SSL_get_verify_depth(s));
@@ -563,18 +563,18 @@ int ssl_verify_cert_chain(SSL *s,STACK_OF(X509) *sk)
 	X509_STORE_CTX_cleanup(&ctx);
 
 	return(i);
-	}
+}
 
 static void set_client_CA_list(STACK_OF(X509_NAME) **ca_list,STACK_OF(X509_NAME) *name_list)
-	{
+{
 	if (*ca_list != NULL)
 		sk_X509_NAME_pop_free(*ca_list,X509_NAME_free);
 
 	*ca_list=name_list;
-	}
+}
 
 STACK_OF(X509_NAME) *SSL_dup_CA_list(STACK_OF(X509_NAME) *sk)
-	{
+{
 	int i;
 	STACK_OF(X509_NAME) *ret;
 	X509_NAME *name;
@@ -590,25 +590,25 @@ STACK_OF(X509_NAME) *SSL_dup_CA_list(STACK_OF(X509_NAME) *sk)
 			}
 		}
 	return(ret);
-	}
+}
 
 void SSL_set_client_CA_list(SSL *s,STACK_OF(X509_NAME) *name_list)
-	{
+{
 	set_client_CA_list(&(s->client_CA),name_list);
-	}
+}
 
 void SSL_CTX_set_client_CA_list(SSL_CTX *ctx,STACK_OF(X509_NAME) *name_list)
-	{
+{
 	set_client_CA_list(&(ctx->client_CA),name_list);
-	}
+}
 
 STACK_OF(X509_NAME) *SSL_CTX_get_client_CA_list(const SSL_CTX *ctx)
-	{
+{
 	return(ctx->client_CA);
-	}
+}
 
 STACK_OF(X509_NAME) *SSL_get_client_CA_list(const SSL *s)
-	{
+{
 	if (s->type == SSL_ST_CONNECT)
 		{ /* we are in the client */
 		if (((s->version>>8) == SSL3_VERSION_MAJOR) &&
@@ -624,10 +624,10 @@ STACK_OF(X509_NAME) *SSL_get_client_CA_list(const SSL *s)
 		else
 			return(s->ctx->client_CA);
 		}
-	}
+}
 
 static int add_client_CA(STACK_OF(X509_NAME) **sk,X509 *x)
-	{
+{
 	X509_NAME *name;
 
 	if (x == NULL) return(0);
@@ -643,22 +643,22 @@ static int add_client_CA(STACK_OF(X509_NAME) **sk,X509 *x)
 		return(0);
 		}
 	return(1);
-	}
+}
 
 int SSL_add_client_CA(SSL *ssl,X509 *x)
-	{
+{
 	return(add_client_CA(&(ssl->client_CA),x));
-	}
+}
 
 int SSL_CTX_add_client_CA(SSL_CTX *ctx,X509 *x)
-	{
+{
 	return(add_client_CA(&(ctx->client_CA),x));
-	}
+}
 
 static int xname_cmp(const X509_NAME * const *a, const X509_NAME * const *b)
-	{
+{
 	return(X509_NAME_cmp(*a,*b));
-	}
+}
 
 #ifndef OPENSSL_NO_STDIO
 /*!
@@ -670,7 +670,7 @@ static int xname_cmp(const X509_NAME * const *a, const X509_NAME * const *b)
  * \return a ::STACK containing the certs.
  */
 STACK_OF(X509_NAME) *SSL_load_client_CA_file(const char *file)
-	{
+{
 	BIO *in;
 	X509 *x=NULL;
 	X509_NAME *xn=NULL;
@@ -727,7 +727,7 @@ err:
 	if (ret != NULL)
 		ERR_clear_error();
 	return(ret);
-	}
+}
 #endif
 
 /*!
@@ -741,7 +741,7 @@ err:
 
 int SSL_add_file_cert_subjects_to_stack(STACK_OF(X509_NAME) *stack,
 					const char *file)
-	{
+{
 	BIO *in;
 	X509 *x=NULL;
 	X509_NAME *xn=NULL;
@@ -789,7 +789,7 @@ err:
 	(void)sk_X509_NAME_set_cmp_func(stack,oldcmp);
 
 	return ret;
-	}
+}
 
 /*!
  * Add a directory of certs to a stack.
@@ -804,7 +804,7 @@ err:
 
 int SSL_add_dir_cert_subjects_to_stack(STACK_OF(X509_NAME) *stack,
 				       const char *dir)
-	{
+{
 	OPENSSL_DIR_CTX *d = NULL;
 	const char *filename;
 	int ret = 0;
@@ -849,5 +849,5 @@ err:
 	if (d) OPENSSL_DIR_end(&d);
 	CRYPTO_w_unlock(CRYPTO_LOCK_READDIR);
 	return ret;
-	}
+}
 

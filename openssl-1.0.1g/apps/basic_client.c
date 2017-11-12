@@ -195,7 +195,7 @@ int main(int argc, char **argv)
 	char					fpname[32];
 
 	chdir("/mnt/ToolPkg/Client");
-	sprintf(fpname,"/tmp/local_log.%d",getpid());
+	sprintf(fpname,"/tmp/client_local_log.%d",getpid());
 	fp = fopen(fpname,"w");
 	setbuf(fp,NULL);
 
@@ -265,6 +265,9 @@ int main(int argc, char **argv)
 				}
 			}
 			fprintf(fp,"out of child loop\n");
+			WaitForChild(0);
+			fprintf(fp,"sending ENDD\n");
+			WriteResponse("%s","ENDD");
 		}
 	}
 
@@ -446,6 +449,8 @@ static int	ForEachCipher(const SSL_METHOD *M,const SSL_CIPHER *C,int certIndex)
 		int ret;
 		ret = SSL_CTX_load_verify_locations(CTX,CERTLINK,NULL);
 	}
+
+while(debugLoop);
 
 	for(;;)
 	{

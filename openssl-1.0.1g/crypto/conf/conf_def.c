@@ -117,16 +117,16 @@ static CONF_METHOD WIN32_method = {
 	};
 
 CONF_METHOD *NCONF_default()
-	{
+{
 	return &default_method;
-	}
+}
 CONF_METHOD *NCONF_WIN32()
-	{
+{
 	return &WIN32_method;
-	}
+}
 
 static CONF *def_create(CONF_METHOD *meth)
-	{
+{
 	CONF *ret;
 
 	ret = OPENSSL_malloc(sizeof(CONF) + sizeof(unsigned short *));
@@ -137,10 +137,10 @@ static CONF *def_create(CONF_METHOD *meth)
 			ret = NULL;
 			}
 	return ret;
-	}
+}
 	
 static int def_init_default(CONF *conf)
-	{
+{
 	if (conf == NULL)
 		return 0;
 
@@ -149,10 +149,10 @@ static int def_init_default(CONF *conf)
 	conf->data = NULL;
 
 	return 1;
-	}
+}
 
 static int def_init_WIN32(CONF *conf)
-	{
+{
 	if (conf == NULL)
 		return 0;
 
@@ -161,28 +161,28 @@ static int def_init_WIN32(CONF *conf)
 	conf->data = NULL;
 
 	return 1;
-	}
+}
 
 static int def_destroy(CONF *conf)
-	{
+{
 	if (def_destroy_data(conf))
 		{
 		OPENSSL_free(conf);
 		return 1;
 		}
 	return 0;
-	}
+}
 
 static int def_destroy_data(CONF *conf)
-	{
+{
 	if (conf == NULL)
 		return 0;
 	_CONF_free_data(conf);
 	return 1;
-	}
+}
 
 static int def_load(CONF *conf, const char *name, long *line)
-	{
+{
 	int ret;
 	BIO *in=NULL;
 
@@ -192,22 +192,22 @@ static int def_load(CONF *conf, const char *name, long *line)
 	in=BIO_new_file(name, "rb");
 #endif
 	if (in == NULL)
-		{
+	{
 		if (ERR_GET_REASON(ERR_peek_last_error()) == BIO_R_NO_SUCH_FILE)
 			CONFerr(CONF_F_DEF_LOAD,CONF_R_NO_SUCH_FILE);
 		else
 			CONFerr(CONF_F_DEF_LOAD,ERR_R_SYS_LIB);
 		return 0;
-		}
+	}
 
 	ret = def_load_bio(conf, in, line);
 	BIO_free(in);
 
 	return ret;
-	}
+}
 
 static int def_load_bio(CONF *conf, BIO *in, long *line)
-	{
+{
 /* The macro BUFSIZE conflicts with a system macro in VxWorks */
 #define CONFBUFSIZE	512
 	int bufnum=0,i,ii;
@@ -223,42 +223,43 @@ static int def_load_bio(CONF *conf, BIO *in, long *line)
 	void *h = (void *)(conf->data);
 
 	if ((buff=BUF_MEM_new()) == NULL)
-		{
+	{
 		CONFerr(CONF_F_DEF_LOAD_BIO,ERR_R_BUF_LIB);
 		goto err;
-		}
+	}
 
 	section=(char *)OPENSSL_malloc(10);
 	if (section == NULL)
-		{
+	{
 		CONFerr(CONF_F_DEF_LOAD_BIO,ERR_R_MALLOC_FAILURE);
 		goto err;
-		}
+	}
 	BUF_strlcpy(section,"default",10);
 
 	if (_CONF_new_data(conf) == 0)
-		{
+	{
 		CONFerr(CONF_F_DEF_LOAD_BIO,ERR_R_MALLOC_FAILURE);
 		goto err;
-		}
+	}
 
 	sv=_CONF_new_section(conf,section);
 	if (sv == NULL)
-		{
+	{
 		CONFerr(CONF_F_DEF_LOAD_BIO,
 					CONF_R_UNABLE_TO_CREATE_NEW_SECTION);
 		goto err;
-		}
+	}
 
 	bufnum=0;
 	again=0;
 	for (;;)
-		{
+	{
 		if (!BUF_MEM_grow(buff,bufnum+CONFBUFSIZE))
-			{
+		{
 			CONFerr(CONF_F_DEF_LOAD_BIO,ERR_R_BUF_LIB);
 			goto err;
-			}
+		}
+
 		p= &(buff->data[bufnum]);
 		*p='\0';
 		BIO_gets(in, p, CONFBUFSIZE-1);
@@ -267,21 +268,22 @@ static int def_load_bio(CONF *conf, BIO *in, long *line)
 		if (i == 0 && !again) break;
 		again=0;
 		while (i > 0)
-			{
+		{
 			if ((p[i-1] != '\r') && (p[i-1] != '\n'))
 				break;
 			else
 				i--;
-			}
+		}
+
 		/* we removed some trailing stuff so there is a new
 		 * line on the end. */
 		if (ii && i == ii)
 			again=1; /* long line */
 		else
-			{
+		{
 			p[i]='\0';
 			eline++; /* another input line */
-			}
+		}
 
 		/* we now have a line with trailing \r\n removed */
 
@@ -291,17 +293,18 @@ static int def_load_bio(CONF *conf, BIO *in, long *line)
 		v=NULL;
 		/* check for line continuation */
 		if (bufnum >= 1)
-			{
+		{
 			/* If we have bytes and the last char '\\' and
 			 * second last char is not '\\' */
 			p= &(buff->data[bufnum-1]);
 			if (IS_ESC(conf,p[0]) &&
 				((bufnum <= 1) || !IS_ESC(conf,p[-1])))
-				{
+			{
 				bufnum--;
 				again=1;
-				}
 			}
+		}
+
 		if (again) continue;
 		bufnum=0;
 		buf=buff->data;
@@ -309,8 +312,10 @@ static int def_load_bio(CONF *conf, BIO *in, long *line)
 		clear_comments(conf, buf);
 		s=eat_ws(conf, buf);
 		if (IS_EOF(conf,*s)) continue; /* blank line */
+
+
 		if (*s == '[')
-			{
+		{
 			char *ss;
 
 			s++;
@@ -320,7 +325,7 @@ again:
 			end=eat_alpha_numeric(conf, ss);
 			p=eat_ws(conf, end);
 			if (*p != ']')
-				{
+			{
 				if (*p != '\0')
 					{
 					ss=p;
@@ -329,39 +334,42 @@ again:
 				CONFerr(CONF_F_DEF_LOAD_BIO,
 					CONF_R_MISSING_CLOSE_SQUARE_BRACKET);
 				goto err;
-				}
+			}
 			*end='\0';
+
 			if (!str_copy(conf,NULL,&section,start)) goto err;
+
 			if ((sv=_CONF_get_section(conf,section)) == NULL)
 				sv=_CONF_new_section(conf,section);
+
 			if (sv == NULL)
-				{
+			{
 				CONFerr(CONF_F_DEF_LOAD_BIO,
 					CONF_R_UNABLE_TO_CREATE_NEW_SECTION);
 				goto err;
-				}
-			continue;
 			}
+			continue;
+		}
 		else
-			{
+		{
 			pname=s;
 			psection=NULL;
 			end=eat_alpha_numeric(conf, s);
 			if ((end[0] == ':') && (end[1] == ':'))
-				{
+			{
 				*end='\0';
 				end+=2;
 				psection=pname;
 				pname=end;
 				end=eat_alpha_numeric(conf, end);
-				}
+			}
 			p=eat_ws(conf, end);
 			if (*p != '=')
-				{
+			{
 				CONFerr(CONF_F_DEF_LOAD_BIO,
 						CONF_R_MISSING_EQUAL_SIGN);
 				goto err;
-				}
+			}
 			*end='\0';
 			p++;
 			start=eat_ws(conf, p);
@@ -374,64 +382,46 @@ again:
 			*p='\0';
 
 			if (!(v=(CONF_VALUE *)OPENSSL_malloc(sizeof(CONF_VALUE))))
-				{
+			{
 				CONFerr(CONF_F_DEF_LOAD_BIO,
 							ERR_R_MALLOC_FAILURE);
 				goto err;
-				}
+			}
 			if (psection == NULL) psection=section;
 			v->name=(char *)OPENSSL_malloc(strlen(pname)+1);
 			v->value=NULL;
 			if (v->name == NULL)
-				{
+			{
 				CONFerr(CONF_F_DEF_LOAD_BIO,
 							ERR_R_MALLOC_FAILURE);
 				goto err;
-				}
+			}
 			BUF_strlcpy(v->name,pname,strlen(pname)+1);
 			if (!str_copy(conf,psection,&(v->value),start)) goto err;
 
 			if (strcmp(psection,section) != 0)
-				{
-				if ((tv=_CONF_get_section(conf,psection))
-					== NULL)
+			{
+				if ((tv=_CONF_get_section(conf,psection)) == NULL)
 					tv=_CONF_new_section(conf,psection);
 				if (tv == NULL)
-					{
+				{
 					CONFerr(CONF_F_DEF_LOAD_BIO,
 					   CONF_R_UNABLE_TO_CREATE_NEW_SECTION);
 					goto err;
-					}
 				}
+			}
 			else
 				tv=sv;
-#if 1
+
 			if (_CONF_add_string(conf, tv, v) == 0)
-				{
-				CONFerr(CONF_F_DEF_LOAD_BIO,
-							ERR_R_MALLOC_FAILURE);
+			{
+				CONFerr(CONF_F_DEF_LOAD_BIO, ERR_R_MALLOC_FAILURE);
 				goto err;
-				}
-#else
-			v->section=tv->section;	
-			if (!sk_CONF_VALUE_push(ts,v))
-				{
-				CONFerr(CONF_F_DEF_LOAD_BIO,
-							ERR_R_MALLOC_FAILURE);
-				goto err;
-				}
-			vv=(CONF_VALUE *)lh_insert(conf->data,v);
-			if (vv != NULL)
-				{
-				sk_CONF_VALUE_delete_ptr(ts,vv);
-				OPENSSL_free(vv->name);
-				OPENSSL_free(vv->value);
-				OPENSSL_free(vv);
-				}
-#endif
-			v=NULL;
 			}
+			v=NULL;
 		}
+	}
+
 	if (buff != NULL) BUF_MEM_free(buff);
 	if (section != NULL) OPENSSL_free(section);
 	return(1);
@@ -453,55 +443,55 @@ err:
 		if (v != NULL) OPENSSL_free(v);
 		}
 	return(0);
-	}
+}
 
 static void clear_comments(CONF *conf, char *p)
-	{
+{
 	for (;;)
-		{
+	{
 		if (IS_FCOMMENT(conf,*p))
-			{
+		{
 			*p='\0';
 			return;
-			}
-		if (!IS_WS(conf,*p))
-			{
-			break;
-			}
-		p++;
 		}
+		if (!IS_WS(conf,*p))
+		{
+			break;
+		}
+		p++;
+	}
 
 	for (;;)
-		{
+	{
 		if (IS_COMMENT(conf,*p))
-			{
+		{
 			*p='\0';
 			return;
-			}
+		}
 		if (IS_DQUOTE(conf,*p))
-			{
+		{
 			p=scan_dquote(conf, p);
 			continue;
-			}
+		}
 		if (IS_QUOTE(conf,*p))
-			{
+		{
 			p=scan_quote(conf, p);
 			continue;
-			}
+		}
 		if (IS_ESC(conf,*p))
-			{
+		{
 			p=scan_esc(conf,p);
 			continue;
-			}
+		}
 		if (IS_EOF(conf,*p))
 			return;
 		else
 			p++;
-		}
 	}
+}
 
 static int str_copy(CONF *conf, char *section, char **pto, char *from)
-	{
+{
 	int q,r,rr=0,to=0,len=0;
 	char *s,*e,*rp,*p,*rrp,*np,*cp,v;
 	BUF_MEM *buf;
@@ -644,17 +634,17 @@ static int str_copy(CONF *conf, char *section, char **pto, char *from)
 err:
 	if (buf != NULL) BUF_MEM_free(buf);
 	return(0);
-	}
+}
 
 static char *eat_ws(CONF *conf, char *p)
-	{
+{
 	while (IS_WS(conf,*p) && (!IS_EOF(conf,*p)))
 		p++;
 	return(p);
-	}
+}
 
 static char *eat_alpha_numeric(CONF *conf, char *p)
-	{
+{
 	for (;;)
 		{
 		if (IS_ESC(conf,*p))
@@ -666,10 +656,10 @@ static char *eat_alpha_numeric(CONF *conf, char *p)
 			return(p);
 		p++;
 		}
-	}
+}
 
 static char *scan_quote(CONF *conf, char *p)
-	{
+{
 	int q= *p;
 
 	p++;
@@ -684,11 +674,11 @@ static char *scan_quote(CONF *conf, char *p)
 		}
 	if (*p == q) p++;
 	return(p);
-	}
+}
 
 
 static char *scan_dquote(CONF *conf, char *p)
-	{
+{
 	int q= *p;
 
 	p++;
@@ -709,7 +699,7 @@ static char *scan_dquote(CONF *conf, char *p)
 		}
 	if (*p == q) p++;
 	return(p);
-	}
+}
 
 static void dump_value_doall_arg(CONF_VALUE *a, BIO *out)
 	{

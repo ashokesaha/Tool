@@ -42,7 +42,7 @@ policy					= 	usr_policy
 
 [ usr_ext ]
 #basicConstraints		= CA:true
-nsCertType				= client 
+nsCertType				= server 
 keyUsage 				= nonRepudiation, digitalSignature, keyEncipherment
 subjectAltName 			= @alt_names
 #authorityInfoAccess		= @aia_sect 
@@ -82,6 +82,8 @@ DNS.3=altname-3.myca.com
 DNS.4=altname-4.myca.com 
 email.1=mail-1@myca.com
 email.2=mail-2@myca.com
+
+[alt_names_sni]
 
 
 [aia_sect]

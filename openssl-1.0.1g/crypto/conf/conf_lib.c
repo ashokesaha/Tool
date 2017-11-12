@@ -70,22 +70,22 @@ static CONF_METHOD *default_CONF_method=NULL;
 /* Init a 'CONF' structure from an old LHASH */
 
 void CONF_set_nconf(CONF *conf, LHASH_OF(CONF_VALUE) *hash)
-	{
+{
 	if (default_CONF_method == NULL)
 		default_CONF_method = NCONF_default();
 
 	default_CONF_method->init(conf);
 	conf->data = hash;
-	}
+}
 
 /* The following section contains the "CONF classic" functions,
    rewritten in terms of the new CONF interface. */
 
 int CONF_set_default_method(CONF_METHOD *meth)
-	{
+{
 	default_CONF_method = meth;
 	return 1;
-	}
+}
 
 LHASH_OF(CONF_VALUE) *CONF_load(LHASH_OF(CONF_VALUE) *conf, const char *file,
 				long *eline)
@@ -232,7 +232,7 @@ int CONF_dump_bio(LHASH_OF(CONF_VALUE) *conf, BIO *out)
    by the "CONF classic" functions, for consistency.  */
 
 CONF *NCONF_new(CONF_METHOD *meth)
-	{
+{
 	CONF *ret;
 
 	if (meth == NULL)
@@ -240,42 +240,42 @@ CONF *NCONF_new(CONF_METHOD *meth)
 
 	ret = meth->create(meth);
 	if (ret == NULL)
-		{
+	{
 		CONFerr(CONF_F_NCONF_NEW,ERR_R_MALLOC_FAILURE);
 		return(NULL);
-		}
-
-	return ret;
 	}
 
+	return ret;
+}
+
 void NCONF_free(CONF *conf)
-	{
+{
 	if (conf == NULL)
 		return;
 	conf->meth->destroy(conf);
-	}
+}
 
 void NCONF_free_data(CONF *conf)
-	{
+{
 	if (conf == NULL)
 		return;
 	conf->meth->destroy_data(conf);
-	}
+}
 
 int NCONF_load(CONF *conf, const char *file, long *eline)
-	{
+{
 	if (conf == NULL)
-		{
+	{
 		CONFerr(CONF_F_NCONF_LOAD,CONF_R_NO_CONF);
 		return 0;
-		}
+	}
 
 	return conf->meth->load(conf, file, eline);
-	}
+}
 
 #ifndef OPENSSL_NO_FP_API
 int NCONF_load_fp(CONF *conf, FILE *fp,long *eline)
-	{
+{
 	BIO *btmp;
 	int ret;
 	if(!(btmp = BIO_new_fp(fp, BIO_NOCLOSE)))
@@ -286,7 +286,7 @@ int NCONF_load_fp(CONF *conf, FILE *fp,long *eline)
 	ret = NCONF_load_bio(conf, btmp, eline);
 	BIO_free(btmp);
 	return ret;
-	}
+}
 #endif
 
 int NCONF_load_bio(CONF *conf, BIO *bp,long *eline)

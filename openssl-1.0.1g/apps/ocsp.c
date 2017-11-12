@@ -192,58 +192,58 @@ int MAIN(int argc, char **argv)
 		else if (!strcmp(*args, "-timeout"))
 		{
 			if (args[1])
-				{
+			{
 				args++;
 				req_timeout = atol(*args);
 				if (req_timeout < 0)
-					{
+				{
 					BIO_printf(bio_err,
 						"Illegal timeout value %s\n",
 						*args);
 					badarg = 1;
-					}
 				}
+			}
 			else badarg = 1;
 		}
 		else if (!strcmp(*args, "-url"))
 		{
 			if (args[1])
-				{
+			{
 				args++;
 				if (!OCSP_parse_url(*args, &host, &port, &path, &use_ssl))
-					{
+				{
 					BIO_printf(bio_err, "Error parsing URL\n");
 					badarg = 1;
-					}
 				}
+			}
 			else badarg = 1;
 		}
 		else if (!strcmp(*args, "-host"))
 		{
 			if (args[1])
-				{
+			{
 				args++;
 				host = *args;
-				}
+			}
 			else badarg = 1;
 		}
 		else if (!strcmp(*args, "-port"))
 		{
 			if (args[1])
-				{
+			{
 				args++;
 				port = *args;
-				}
+			}
 			else badarg = 1;
 		}
 		else if (!strcmp(*args, "-header"))
 		{
 			if (args[1] && args[2])
-				{
+			{
 				if (!X509V3_add_value(args[1], args[2], &headers))
 					goto end;
 				args += 2;
-				}
+			}
 			else badarg = 1;
 		}
 		else if (!strcmp(*args, "-ignore_err"))
@@ -304,142 +304,142 @@ int MAIN(int argc, char **argv)
 		else if (!strcmp(*args, "-signer"))
 		{
 			if (args[1])
-				{
+			{
 				args++;
 				signfile = *args;
-				}
+			}
 			else badarg = 1;
 		}
 		else if (!strcmp (*args, "-VAfile"))
 		{
 			if (args[1])
-				{
+			{
 				args++;
 				verify_certfile = *args;
 				verify_flags |= OCSP_TRUSTOTHER;
-				}
+			}
 			else badarg = 1;
 		}
 		else if (!strcmp(*args, "-sign_other"))
 		{
 			if (args[1])
-				{
+			{
 				args++;
 				sign_certfile = *args;
-				}
+			}
 			else badarg = 1;
 		}
 		else if (!strcmp(*args, "-verify_other"))
 		{
 			if (args[1])
-				{
+			{
 				args++;
 				verify_certfile = *args;
-				}
+			}
 			else badarg = 1;
 		}
 		else if (!strcmp (*args, "-CAfile"))
 		{
 			if (args[1])
-				{
+			{
 				args++;
 				CAfile = *args;
-				}
+			}
 			else badarg = 1;
 		}
 		else if (!strcmp (*args, "-CApath"))
 		{
 			if (args[1])
-				{
+			{
 				args++;
 				CApath = *args;
-				}
+			}
 			else badarg = 1;
 		}
 		else if (!strcmp (*args, "-validity_period"))
 		{
 			if (args[1])
-				{
+			{
 				args++;
 				nsec = atol(*args);
 				if (nsec < 0)
-					{
+				{
 					BIO_printf(bio_err,
 						"Illegal validity period %s\n",
 						*args);
 					badarg = 1;
-					}
 				}
+			}
 			else badarg = 1;
 		}
 		else if (!strcmp (*args, "-status_age"))
 		{
 			if (args[1])
-				{
+			{
 				args++;
 				maxage = atol(*args);
 				if (maxage < 0)
-					{
+				{
 					BIO_printf(bio_err,
 						"Illegal validity age %s\n",
 						*args);
 					badarg = 1;
-					}
 				}
+			}
 			else badarg = 1;
 		}
 		else if (!strcmp(*args, "-signkey"))
 		{
 			if (args[1])
-				{
+			{
 				args++;
 				keyfile = *args;
-				}
+			}
 			else badarg = 1;
 		}
 		else if (!strcmp(*args, "-reqout"))
 		{
 			if (args[1])
-				{
+			{
 				args++;
 				reqout = *args;
-				}
+			}
 			else badarg = 1;
 		}
 		else if (!strcmp(*args, "-respout"))
 		{
 			if (args[1])
-				{
+			{
 				args++;
 				respout = *args;
-				}
+			}
 			else badarg = 1;
 		}
 		else if (!strcmp(*args, "-path"))
 		{
 			if (args[1])
-				{
+			{
 				args++;
 				path = *args;
-				}
+			}
 			else badarg = 1;
 		}
 		else if (!strcmp(*args, "-issuer"))
 		{
 			if (args[1])
-				{
+			{
 				args++;
 				X509_free(issuer);
 				issuer = load_cert(bio_err, *args, FORMAT_PEM,
 					NULL, e, "issuer certificate");
 				if(!issuer) goto end;
-				}
+			}
 			else badarg = 1;
 		}
 		else if (!strcmp (*args, "-cert"))
 		{
 			if (args[1])
-				{
+			{
 				args++;
 				X509_free(cert);
 				cert = load_cert(bio_err, *args, FORMAT_PEM,
@@ -450,124 +450,124 @@ int MAIN(int argc, char **argv)
 					goto end;
 				if(!sk_OPENSSL_STRING_push(reqnames, *args))
 					goto end;
-				}
+			}
 			else badarg = 1;
 		}
 		else if (!strcmp(*args, "-serial"))
 		{
 			if (args[1])
-				{
+			{
 				args++;
 				if (!cert_id_md) cert_id_md = EVP_sha1();
 				if(!add_ocsp_serial(&req, *args, cert_id_md, issuer, ids))
 					goto end;
 				if(!sk_OPENSSL_STRING_push(reqnames, *args))
 					goto end;
-				}
+			}
 			else badarg = 1;
 		}
 		else if (!strcmp(*args, "-index"))
 		{
 			if (args[1])
-				{
+			{
 				args++;
 				ridx_filename = *args;
-				}
+			}
 			else badarg = 1;
 		}
 		else if (!strcmp(*args, "-CA"))
 		{
 			if (args[1])
-				{
+			{
 				args++;
 				rca_filename = *args;
-				}
+			}
 			else badarg = 1;
 		}
 		else if (!strcmp (*args, "-nmin"))
 		{
 			if (args[1])
-				{
+			{
 				args++;
 				nmin = atol(*args);
 				if (nmin < 0)
-					{
+				{
 					BIO_printf(bio_err,
 						"Illegal update period %s\n",
 						*args);
 					badarg = 1;
-					}
 				}
-				if (ndays == -1)
-					ndays = 0;
+			}
+			if (ndays == -1)
+				ndays = 0;
 			else badarg = 1;
 		}
 		else if (!strcmp (*args, "-nrequest"))
 		{
 			if (args[1])
-				{
+			{
 				args++;
 				accept_count = atol(*args);
 				if (accept_count < 0)
-					{
+				{
 					BIO_printf(bio_err,
 						"Illegal accept count %s\n",
 						*args);
 					badarg = 1;
-					}
 				}
+			}
 			else badarg = 1;
 		}
 		else if (!strcmp (*args, "-ndays"))
 		{
 			if (args[1])
-				{
+			{
 				args++;
 				ndays = atol(*args);
 				if (ndays < 0)
-					{
+				{
 					BIO_printf(bio_err,
 						"Illegal update period %s\n",
 						*args);
 					badarg = 1;
-					}
 				}
+			}
 			else badarg = 1;
 		}
 		else if (!strcmp(*args, "-rsigner"))
 		{
 			if (args[1])
-				{
+			{
 				args++;
 				rsignfile = *args;
-				}
+			}
 			else badarg = 1;
 		}
 		else if (!strcmp(*args, "-rkey"))
 		{
 			if (args[1])
-				{
+			{
 				args++;
 				rkeyfile = *args;
-				}
+			}
 			else badarg = 1;
 		}
 		else if (!strcmp(*args, "-rother"))
 		{
 			if (args[1])
-				{
+			{
 				args++;
 				rcertfile = *args;
-				}
+			}
 			else badarg = 1;
 		}
 		else if (!strcmp(*args, "-resp_Delay"))
 		{
 			if (args[1])
-				{
+			{
 				args++;
 				resp_delay = atoi(*args);
-				}
+			}
 			else badarg = 1;
 		}
 		else if ((cert_id_md = EVP_get_digestbyname((*args)+1))==NULL)
@@ -646,6 +646,8 @@ int MAIN(int argc, char **argv)
 
 	if (!req && reqin)
 	{
+printf("(!req && reqin)..\n");
+
 		derbio = BIO_new_file(reqin, "rb");
 		if (!derbio)
 		{
@@ -664,9 +666,12 @@ int MAIN(int argc, char **argv)
 	if (!req && port)
 	{
 		acbio = init_responder(port);
+printf("acbio %p\n",acbio);
 		if (!acbio)
 			goto end;
 	}
+
+printf("rsignfile %p rdb %p rkeyfile %p\n", rsignfile,rdb,rkeyfile);
 
 	if (rsignfile && !rdb)
 	{
@@ -690,6 +695,8 @@ int MAIN(int argc, char **argv)
 			"responder private key");
 		if (!rkey)
 			goto end;
+
+printf("rsigner %p rca_cert %p rkey %p\n", rsigner,rca_cert,rkey);
 	}
 	if(acbio)
 		BIO_printf(bio_err, "Waiting for OCSP client connections...\n");
@@ -700,6 +707,7 @@ int MAIN(int argc, char **argv)
 	{
 		if (!do_responder(&req, &cbio, acbio, port))
 			goto end;
+printf("post do_responder : req %p\n", req);
 		if (!req)
 		{
 			resp = OCSP_response_create(OCSP_RESPONSE_STATUS_MALFORMEDREQUEST, NULL);
@@ -709,76 +717,78 @@ int MAIN(int argc, char **argv)
 	}
 
 	if (!req && (signfile || reqout || host || add_nonce || ridx_filename))
-		{
+	{
 		BIO_printf(bio_err, "Need an OCSP request for this operation!\n");
 		goto end;
-		}
+	}
 
 	if (req && add_nonce) OCSP_request_add1_nonce(req, NULL, -1);
 
 	if (signfile)
-		{
+	{
 		if (!keyfile) keyfile = signfile;
 		signer = load_cert(bio_err, signfile, FORMAT_PEM,
 			NULL, e, "signer certificate");
 		if (!signer)
-			{
+		{
 			BIO_printf(bio_err, "Error loading signer certificate\n");
 			goto end;
-			}
+		}
 		if (sign_certfile)
-			{
+		{
 			sign_other = load_certs(bio_err, sign_certfile, FORMAT_PEM,
 				NULL, e, "signer certificates");
 			if (!sign_other) goto end;
-			}
+		}
 		key = load_key(bio_err, keyfile, FORMAT_PEM, 0, NULL, NULL,
 			"signer private key");
 		if (!key)
 			goto end;
 
+printf("calling OCSP_request_sign : signer %p key %p sign_other %p\n", signer,key,sign_other);
 		if (!OCSP_request_sign(req, signer, key, NULL, sign_other, sign_flags))
-			{
+		{
 			BIO_printf(bio_err, "Error signing OCSP request\n");
 			goto end;
-			}
 		}
+	}
 
 	if (req_text && req) OCSP_REQUEST_print(out, req, 0);
 
 	if (reqout)
-		{
+	{
 		derbio = BIO_new_file(reqout, "wb");
 		if(!derbio)
-			{
+		{
 			BIO_printf(bio_err, "Error opening file %s\n", reqout);
 			goto end;
-			}
+		}
 		i2d_OCSP_REQUEST_bio(derbio, req);
 		BIO_free(derbio);
-		}
+	}
 
 	if (ridx_filename && (!rkey || !rsigner || !rca_cert))
-		{
+	{
 		BIO_printf(bio_err, "Need a responder certificate, key and CA for this operation!\n");
 		goto end;
-		}
+	}
 
+printf("ridx_filename %p  rdb  %p\n", ridx_filename,rdb);
 	if (ridx_filename && !rdb)
-		{
+	{
 		rdb = load_index(ridx_filename, NULL);
 		if (!rdb) goto end;
 		if (!index_index(rdb)) goto end;
-		}
+	}
 
 	if (rdb)
-		{
+	{
 		i = make_ocsp_response(&resp, req, rdb, rca_cert, rsigner, rkey, rother, rflags, nmin, ndays);
 		if (cbio)
 			send_ocsp_response(cbio, resp);
-		}
+	}
 	else if (host)
-		{
+	{
 #ifndef OPENSSL_NO_SOCK
 		resp = process_responder(bio_err, req, host, path,
 					port, use_ssl, headers, req_timeout);
@@ -788,66 +798,65 @@ int MAIN(int argc, char **argv)
 		BIO_printf(bio_err, "Error creating connect BIO - sockets not supported.\n");
 		goto end;
 #endif
-		}
+	}
 	else if (respin)
-		{
+	{
 		derbio = BIO_new_file(respin, "rb");
 		if (!derbio)
-			{
+		{
 			BIO_printf(bio_err, "Error Opening OCSP response file\n");
 			goto end;
-			}
+		}
 		resp = d2i_OCSP_RESPONSE_bio(derbio, NULL);
 		BIO_free(derbio);
 		if(!resp)
-			{
+		{
 			BIO_printf(bio_err, "Error reading OCSP response\n");
 			goto end;
-			}
-	
 		}
+	}
 	else
-		{
+	{
 		ret = 0;
 		goto end;
-		}
+	}
 
 	done_resp:
 
 	if (respout)
-		{
+	{
 		derbio = BIO_new_file(respout, "wb");
 		if(!derbio)
-			{
+		{
 			BIO_printf(bio_err, "Error opening file %s\n", respout);
 			goto end;
-			}
+		}
 		i2d_OCSP_RESPONSE_bio(derbio, resp);
 		BIO_free(derbio);
-		}
+	}
 
 	i = OCSP_response_status(resp);
 
 	if (i != OCSP_RESPONSE_STATUS_SUCCESSFUL)
-		{
+	{
 		BIO_printf(out, "Responder Error: %s (%d)\n",
 				OCSP_response_status_str(i), i);
 		if (ignore_err)
 			goto redo_accept;
 		ret = 0;
 		goto end;
-		}
+	}
 
 	if (resp_text) OCSP_RESPONSE_print(out, resp, 0);
 
 	/* If running as responder don't verify our own response */
 	if (cbio)
-		{
+	{
 		if (accept_count > 0)
 			accept_count--;
 		/* Redo if more connections needed */
 		if (accept_count)
-			{
+		{
 			BIO_free_all(cbio);
 			cbio = NULL;
 			OCSP_REQUEST_free(req);
@@ -855,31 +864,33 @@ int MAIN(int argc, char **argv)
 			OCSP_RESPONSE_free(resp);
 			resp = NULL;
 			goto redo_accept;
-			}
-		goto end;
 		}
+		goto end;
+	}
 
 	if (!store)
 		store = setup_verify(bio_err, CAfile, CApath);
+
 	if (!store)
 		goto end;
+
 	if (verify_certfile)
-		{
+	{
 		verify_other = load_certs(bio_err, verify_certfile, FORMAT_PEM,
 			NULL, e, "validator certificate");
 		if (!verify_other) goto end;
-		}
+	}
 
 	bs = OCSP_response_get1_basic(resp);
 
 	if (!bs)
-		{
+	{
 		BIO_printf(bio_err, "Error parsing response\n");
 		goto end;
-		}
+	}
 
 	if (!noverify)
-		{
+	{
 		if (req && ((i = OCSP_check_nonce(req, bs)) <= 0))
 			{
 			if (i == -1)
@@ -902,7 +913,7 @@ int MAIN(int argc, char **argv)
 		else
 			BIO_printf(bio_err, "Response verify OK\n");
 
-		}
+	}
 
 	if (!print_ocsp_summary(out, bs, req, reqnames, ids, nsec, maxage))
 		goto end;
@@ -933,14 +944,15 @@ end:
 	sk_CONF_VALUE_pop_free(headers, X509V3_conf_free);
 
 	if (use_ssl != -1)
-		{
+	{
 		OPENSSL_free(host);
 		OPENSSL_free(port);
 		OPENSSL_free(path);
-		}
+	}
 
 	OPENSSL_EXIT(ret);
 }
+
 
 static int add_ocsp_cert(OCSP_REQUEST **req, X509 *cert, const EVP_MD *cert_id_md,X509 *issuer,
 				STACK_OF(OCSP_CERTID) *ids)
@@ -1075,10 +1087,10 @@ static int make_ocsp_response(OCSP_RESPONSE **resp, OCSP_REQUEST *req, CA_DB *db
 	id_count = OCSP_request_onereq_count(req);
 
 	if (id_count <= 0)
-		{
+	{
 		*resp = OCSP_response_create(OCSP_RESPONSE_STATUS_MALFORMEDREQUEST, NULL);
 		goto end;
-		}
+	}
 
 
 	bs = OCSP_BASICRESP_new();
@@ -1088,7 +1100,7 @@ static int make_ocsp_response(OCSP_RESPONSE **resp, OCSP_REQUEST *req, CA_DB *db
 
 	/* Examine each certificate id in the request */
 	for (i = 0; i < id_count; i++)
-		{
+	{
 		OCSP_ONEREQ *one;
 		ASN1_INTEGER *serial;
 		char **inf;
@@ -1101,23 +1113,24 @@ static int make_ocsp_response(OCSP_RESPONSE **resp, OCSP_REQUEST *req, CA_DB *db
 
 		cert_id_md = EVP_get_digestbyobj(cert_id_md_oid);	
 		if (! cert_id_md) 
-			{
-			*resp = OCSP_response_create(OCSP_RESPONSE_STATUS_INTERNALERROR,
-				NULL);
-				goto end;
-			}	
+		{
+			*resp = OCSP_response_create(OCSP_RESPONSE_STATUS_INTERNALERROR,NULL);
+			goto end;
+		}	
+
 		if (ca_id) OCSP_CERTID_free(ca_id);
 		ca_id = OCSP_cert_to_id(cert_id_md, NULL, ca);
 
 		/* Is this request about our CA? */
 		if (OCSP_id_issuer_cmp(ca_id, cid))
-			{
+		{
 			OCSP_basic_add1_status(bs, cid,
 						V_OCSP_CERTSTATUS_UNKNOWN,
 						0, NULL,
 						thisupd, nextupd);
 			continue;
-			}
+		}
+
 		OCSP_id_get0_info(NULL, NULL, NULL, &serial, cid);
 		inf = lookup_serial(db, serial);
 		if (!inf)
@@ -1131,7 +1144,7 @@ static int make_ocsp_response(OCSP_RESPONSE **resp, OCSP_REQUEST *req, CA_DB *db
 						0, NULL,
 						thisupd, nextupd);
 		else if (inf[DB_type][0] == DB_TYPE_REV)
-			{
+		{
 			ASN1_OBJECT *inst = NULL;
 			ASN1_TIME *revtm = NULL;
 			ASN1_GENERALIZEDTIME *invtm = NULL;
@@ -1149,8 +1162,8 @@ static int make_ocsp_response(OCSP_RESPONSE **resp, OCSP_REQUEST *req, CA_DB *db
 			ASN1_OBJECT_free(inst);
 			ASN1_TIME_free(revtm);
 			ASN1_GENERALIZEDTIME_free(invtm);
-			}
 		}
+	}
 
 	OCSP_copy_nonce(bs, req);
 	
@@ -1228,9 +1241,9 @@ static int do_responder(OCSP_REQUEST **preq, BIO **pcbio, BIO *acbio, char *port
 
 	if (BIO_do_accept(acbio) <= 0)
 	{
-			BIO_printf(bio_err, "Error accepting connection\n");
-			ERR_print_errors(bio_err);
-			return 0;
+		BIO_printf(bio_err, "Error accepting connection\n");
+		ERR_print_errors(bio_err);
+		return 0;
 	}
 
 	cbio = BIO_pop(acbio);
@@ -1239,8 +1252,10 @@ static int do_responder(OCSP_REQUEST **preq, BIO **pcbio, BIO *acbio, char *port
 	for(;;)
 	{
 		len = BIO_gets(cbio, inbuf, sizeof inbuf);
+		printf("do_responder: read %d\n", len);
 		if (len <= 0)
-			return 1;
+			return 0;
+
 		/* Look for "POST" signalling start of query */
 		if (!have_post)
 		{
@@ -1269,8 +1284,8 @@ static int do_responder(OCSP_REQUEST **preq, BIO **pcbio, BIO *acbio, char *port
 	*preq = req;
 
 	return 1;
-
 }
+
 
 static int send_ocsp_response(BIO *cbio, OCSP_RESPONSE *resp)
 {

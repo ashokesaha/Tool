@@ -70,41 +70,41 @@
  */
 
 int OCSP_request_onereq_count(OCSP_REQUEST *req)
-	{
+{
 	return sk_OCSP_ONEREQ_num(req->tbsRequest->requestList);
-	}
+}
 
 OCSP_ONEREQ *OCSP_request_onereq_get0(OCSP_REQUEST *req, int i)
-	{
+{
 	return sk_OCSP_ONEREQ_value(req->tbsRequest->requestList, i);
-	}
+}
 
 OCSP_CERTID *OCSP_onereq_get0_id(OCSP_ONEREQ *one)
-	{
+{
 	return one->reqCert;
-	}
+}
 
 int OCSP_id_get0_info(ASN1_OCTET_STRING **piNameHash, ASN1_OBJECT **pmd,
 			ASN1_OCTET_STRING **pikeyHash,
 			ASN1_INTEGER **pserial, OCSP_CERTID *cid)
-	{
+{
 	if (!cid) return 0;
 	if (pmd) *pmd = cid->hashAlgorithm->algorithm;
 	if(piNameHash) *piNameHash = cid->issuerNameHash;
 	if (pikeyHash) *pikeyHash = cid->issuerKeyHash;
 	if (pserial) *pserial = cid->serialNumber;
 	return 1;
-	}
+}
 
 int OCSP_request_is_signed(OCSP_REQUEST *req)
-	{
+{
 	if(req->optionalSignature) return 1;
 	return 0;
-	}
+}
 
 /* Create an OCSP response and encode an optional basic response */
 OCSP_RESPONSE *OCSP_response_create(int status, OCSP_BASICRESP *bs)
-        {
+{
         OCSP_RESPONSE *rsp = NULL;
 
 	if (!(rsp = OCSP_RESPONSE_new())) goto err;
@@ -118,7 +118,7 @@ OCSP_RESPONSE *OCSP_response_create(int status, OCSP_BASICRESP *bs)
 err:
 	if (rsp) OCSP_RESPONSE_free(rsp);
 	return NULL;
-	}
+}
 
 
 OCSP_SINGLERESP *OCSP_basic_add1_status(OCSP_BASICRESP *rsp,
@@ -126,7 +126,7 @@ OCSP_SINGLERESP *OCSP_basic_add1_status(OCSP_BASICRESP *rsp,
 						int status, int reason,
 						ASN1_TIME *revtime,
 					ASN1_TIME *thisupd, ASN1_TIME *nextupd)
-	{
+{
 	OCSP_SINGLERESP *single = NULL;
 	OCSP_CERTSTATUS *cs;
 	OCSP_REVOKEDINFO *ri;
@@ -191,7 +191,7 @@ OCSP_SINGLERESP *OCSP_basic_add1_status(OCSP_BASICRESP *rsp,
 err:
 	OCSP_SINGLERESP_free(single);
 	return NULL;
-	}
+}
 
 /* Add a certificate to an OCSP request */
 

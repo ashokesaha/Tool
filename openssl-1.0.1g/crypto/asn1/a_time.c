@@ -73,7 +73,7 @@ IMPLEMENT_ASN1_FUNCTIONS(ASN1_TIME)
 
 #if 0
 int i2d_ASN1_TIME(ASN1_TIME *a, unsigned char **pp)
-	{
+{
 #ifdef CHARSET_EBCDIC
 	/* KLUDGE! We convert to ascii before writing DER */
 	char tmp[24];
@@ -94,18 +94,18 @@ int i2d_ASN1_TIME(ASN1_TIME *a, unsigned char **pp)
 				     a->type ,V_ASN1_UNIVERSAL));
 	ASN1err(ASN1_F_I2D_ASN1_TIME,ASN1_R_EXPECTING_A_TIME);
 	return -1;
-	}
+}
 #endif
 
 
 ASN1_TIME *ASN1_TIME_set(ASN1_TIME *s, time_t t)
-	{
+{
 	return ASN1_TIME_adj(s, t, 0, 0);
-	}
+}
 
 ASN1_TIME *ASN1_TIME_adj(ASN1_TIME *s, time_t t,
 				int offset_day, long offset_sec)
-	{
+{
 	struct tm *ts;
 	struct tm data;
 
@@ -123,20 +123,20 @@ ASN1_TIME *ASN1_TIME_adj(ASN1_TIME *s, time_t t,
 	if((ts->tm_year >= 50) && (ts->tm_year < 150))
 			return ASN1_UTCTIME_adj(s, t, offset_day, offset_sec);
 	return ASN1_GENERALIZEDTIME_adj(s, t, offset_day, offset_sec);
-	}
+}
 
 int ASN1_TIME_check(ASN1_TIME *t)
-	{
+{
 	if (t->type == V_ASN1_GENERALIZEDTIME)
 		return ASN1_GENERALIZEDTIME_check(t);
 	else if (t->type == V_ASN1_UTCTIME)
 		return ASN1_UTCTIME_check(t);
 	return 0;
-	}
+}
 
 /* Convert an ASN1_TIME structure to GeneralizedTime */
 ASN1_GENERALIZEDTIME *ASN1_TIME_to_generalizedtime(ASN1_TIME *t, ASN1_GENERALIZEDTIME **out)
-	{
+{
 	ASN1_GENERALIZEDTIME *ret;
 	char *str;
 	int newlen;
@@ -172,10 +172,10 @@ ASN1_GENERALIZEDTIME *ASN1_TIME_to_generalizedtime(ASN1_TIME *t, ASN1_GENERALIZE
 	BUF_strlcat(str, (char *)t->data, newlen);
 
 	return ret;
-	}
+}
 
 int ASN1_TIME_set_string(ASN1_TIME *s, const char *str)
-	{
+{
 	ASN1_TIME t;
 
 	t.length = strlen(str);
@@ -185,14 +185,14 @@ int ASN1_TIME_set_string(ASN1_TIME *s, const char *str)
 	t.type = V_ASN1_UTCTIME;
 
 	if (!ASN1_TIME_check(&t))
-		{
+	{
 		t.type = V_ASN1_GENERALIZEDTIME;
 		if (!ASN1_TIME_check(&t))
 			return 0;
-		}
+	}
 	
 	if (s && !ASN1_STRING_copy((ASN1_STRING *)s, (ASN1_STRING *)&t))
 			return 0;
 
 	return 1;
-	}
+}

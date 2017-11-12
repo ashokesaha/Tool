@@ -189,12 +189,12 @@ void *lh_insert(_LHASH *lh, void *data)
 	rn=getrn(lh,data,&hash);
 
 	if (*rn == NULL)
-		{
+	{
 		if ((nn=(LHASH_NODE *)OPENSSL_malloc(sizeof(LHASH_NODE))) == NULL)
-			{
+		{
 			lh->error++;
 			return(NULL);
-			}
+		}
 		nn->data=data;
 		nn->next=NULL;
 #ifndef OPENSSL_NO_HASH_COMP
@@ -204,13 +204,14 @@ void *lh_insert(_LHASH *lh, void *data)
 		ret=NULL;
 		lh->num_insert++;
 		lh->num_items++;
-		}
+	}
 	else /* replace same key */
-		{
+	{
 		ret= (*rn)->data;
 		(*rn)->data=data;
 		lh->num_replace++;
-		}
+	}
+
 	return(ret);
 }
 
@@ -419,20 +420,20 @@ static LHASH_NODE **getrn(_LHASH *lh, const void *data, unsigned long *rhash)
 	cf=lh->comp;
 	ret= &(lh->b[(int)nn]);
 	for (n1= *ret; n1 != NULL; n1=n1->next)
-		{
+	{
 #ifndef OPENSSL_NO_HASH_COMP
 		lh->num_hash_comps++;
 		if (n1->hash != hash)
-			{
+		{
 			ret= &(n1->next);
 			continue;
-			}
+		}
 #endif
 		lh->num_comp_calls++;
 		if(cf(n1->data,data) == 0)
 			break;
 		ret= &(n1->next);
-		}
+	}
 	return(ret);
 }
 

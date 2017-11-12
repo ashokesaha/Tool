@@ -410,7 +410,7 @@ int OCSP_check_nonce(OCSP_REQUEST *req, OCSP_BASICRESP *bs)
  */
 
 int OCSP_copy_nonce(OCSP_BASICRESP *resp, OCSP_REQUEST *req)
-	{
+{
 	X509_EXTENSION *req_ext;
 	int req_idx;
 	/* Check for nonce in request */
@@ -419,39 +419,41 @@ int OCSP_copy_nonce(OCSP_BASICRESP *resp, OCSP_REQUEST *req)
 	if (req_idx < 0) return 2;
 	req_ext = OCSP_REQUEST_get_ext(req, req_idx);
 	return OCSP_BASICRESP_add_ext(resp, req_ext, -1);
-	}
+}
 
 X509_EXTENSION *OCSP_crlID_new(char *url, long *n, char *tim)
-        {
+{
 	X509_EXTENSION *x = NULL;
 	OCSP_CRLID *cid = NULL;
 	
 	if (!(cid = OCSP_CRLID_new())) goto err;
 	if (url)
-	        {
+	{
 		if (!(cid->crlUrl = ASN1_IA5STRING_new())) goto err;
 		if (!(ASN1_STRING_set(cid->crlUrl, url, -1))) goto err;
-		}
+	}
 	if (n)
-	        {
+	{
 		if (!(cid->crlNum = ASN1_INTEGER_new())) goto err;
 		if (!(ASN1_INTEGER_set(cid->crlNum, *n))) goto err;
-		}
+	}
 	if (tim)
-	        {
+	{
 		if (!(cid->crlTime = ASN1_GENERALIZEDTIME_new())) goto err;
 		if (!(ASN1_GENERALIZEDTIME_set_string(cid->crlTime, tim))) 
 		        goto err;
-		}
+	}
 	x = X509V3_EXT_i2d(NID_id_pkix_OCSP_CrlID, 0, cid);
 err:
 	if (cid) OCSP_CRLID_free(cid);
 	return x;
-	}
+}
+
+
 
 /*   AcceptableResponses ::= SEQUENCE OF OBJECT IDENTIFIER */
 X509_EXTENSION *OCSP_accept_responses_new(char **oids)
-        {
+{
 	int nid;
 	STACK_OF(ASN1_OBJECT) *sk = NULL;
 	ASN1_OBJECT *o = NULL;
@@ -468,11 +470,13 @@ X509_EXTENSION *OCSP_accept_responses_new(char **oids)
 err:
 	if (sk) sk_ASN1_OBJECT_pop_free(sk, ASN1_OBJECT_free);
 	return x;
-        }
+}
+
+
 
 /*  ArchiveCutoff ::= GeneralizedTime */
 X509_EXTENSION *OCSP_archive_cutoff_new(char* tim)
-        {
+{
 	X509_EXTENSION *x=NULL;
 	ASN1_GENERALIZEDTIME *gt = NULL;
 
@@ -482,14 +486,16 @@ X509_EXTENSION *OCSP_archive_cutoff_new(char* tim)
 err:
 	if (gt) ASN1_GENERALIZEDTIME_free(gt);
 	return x;
-	}
+}
+
+
 
 /* per ACCESS_DESCRIPTION parameter are oids, of which there are currently
  * two--NID_ad_ocsp, NID_id_ad_caIssuers--and GeneralName value.  This
  * method forces NID_ad_ocsp and uniformResourceLocator [6] IA5String.
  */
 X509_EXTENSION *OCSP_url_svcloc_new(X509_NAME* issuer, char **urls)
-        {
+{
 	X509_EXTENSION *x = NULL;
 	ASN1_IA5STRING *ia5 = NULL;
 	OCSP_SERVICELOC *sloc = NULL;
@@ -499,7 +505,7 @@ X509_EXTENSION *OCSP_url_svcloc_new(X509_NAME* issuer, char **urls)
 	if (!(sloc->issuer = X509_NAME_dup(issuer))) goto err;
 	if (urls && *urls && !(sloc->locator = sk_ACCESS_DESCRIPTION_new_null())) goto err;
 	while (urls && *urls)
-	        {
+	{
 		if (!(ad = ACCESS_DESCRIPTION_new())) goto err;
 		if (!(ad->method=OBJ_nid2obj(NID_ad_OCSP))) goto err;
 		if (!(ad->location = GENERAL_NAME_new())) goto err;
@@ -509,10 +515,10 @@ X509_EXTENSION *OCSP_url_svcloc_new(X509_NAME* issuer, char **urls)
 		ad->location->d.ia5 = ia5;
 		if (!sk_ACCESS_DESCRIPTION_push(sloc->locator, ad)) goto err;
 		urls++;
-		}
+	}
 	x = X509V3_EXT_i2d(NID_id_pkix_OCSP_serviceLocator, 0, sloc);
 err:
 	if (sloc) OCSP_SERVICELOC_free(sloc);
 	return x;
-	}
+}
 

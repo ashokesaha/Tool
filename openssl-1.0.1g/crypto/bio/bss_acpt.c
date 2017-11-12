@@ -339,7 +339,7 @@ static int acpt_write(BIO *b, const char *in, int inl)
 	}
 
 static long acpt_ctrl(BIO *b, int cmd, long num, void *ptr)
-	{
+{
 	int *ip;
 	long ret=1;
 	BIO_ACCEPT *data;
@@ -348,7 +348,7 @@ static long acpt_ctrl(BIO *b, int cmd, long num, void *ptr)
 	data=(BIO_ACCEPT *)b->ptr;
 
 	switch (cmd)
-		{
+	{
 	case BIO_CTRL_RESET:
 		ret=0;
 		data->state=ACPT_S_BEFORE;
@@ -447,21 +447,21 @@ static long acpt_ctrl(BIO *b, int cmd, long num, void *ptr)
 	default:
 		ret=0;
 		break;
-		}
-	return(ret);
 	}
+	return(ret);
+}
 
 static int acpt_puts(BIO *bp, const char *str)
-	{
+{
 	int n,ret;
 
 	n=strlen(str);
 	ret=acpt_write(bp,str,n);
 	return(ret);
-	}
+}
 
 BIO *BIO_new_accept(char *str)
-	{
+{
 	BIO *ret;
 
 	ret=BIO_new(BIO_s_accept());
@@ -469,10 +469,10 @@ BIO *BIO_new_accept(char *str)
 	if (BIO_set_accept_port(ret,str))
 		return(ret);
 	else
-		{
+	{
 		BIO_free(ret);
 		return(NULL);
-		}
 	}
+}
 
 #endif

@@ -80,7 +80,7 @@ static unsigned char *generic_asn1(char *value, X509V3_CTX *ctx, long *ext_len);
 /* char *value:  Value    */
 X509_EXTENSION *X509V3_EXT_nconf(CONF *conf, X509V3_CTX *ctx, char *name,
 				 char *value)
-	{
+{
 	int crit;
 	int ext_type;
 	X509_EXTENSION *ret;
@@ -89,12 +89,12 @@ X509_EXTENSION *X509V3_EXT_nconf(CONF *conf, X509V3_CTX *ctx, char *name,
 		return v3_generic_extension(name, value, crit, ext_type, ctx);
 	ret = do_ext_nconf(conf, ctx, OBJ_sn2nid(name), crit, value);
 	if (!ret)
-		{
+	{
 		X509V3err(X509V3_F_X509V3_EXT_NCONF,X509V3_R_ERROR_IN_EXTENSION);
 		ERR_add_error_data(4,"name=", name, ", value=", value);
-		}
-	return ret;
 	}
+	return ret;
+}
 
 /* CONF *conf:  Config file    */
 /* char *value:  Value    */
@@ -324,33 +324,35 @@ static unsigned char *generic_asn1(char *value, X509V3_CTX *ctx, long *ext_len)
 
 int X509V3_EXT_add_nconf_sk(CONF *conf, X509V3_CTX *ctx, char *section,
 			    STACK_OF(X509_EXTENSION) **sk)
-	{
+{
 	X509_EXTENSION *ext;
 	STACK_OF(CONF_VALUE) *nval;
 	CONF_VALUE *val;	
 	int i;
 	if (!(nval = NCONF_get_section(conf, section))) return 0;
 	for (i = 0; i < sk_CONF_VALUE_num(nval); i++)
-		{
+	{
 		val = sk_CONF_VALUE_value(nval, i);
+printf("X509V3_EXT_add_nconf_sk: %s  %s\n", val->name,val->value);
+
 		if (!(ext = X509V3_EXT_nconf(conf, ctx, val->name, val->value)))
 								return 0;
 		if (sk) X509v3_add_ext(sk, ext, -1);
 		X509_EXTENSION_free(ext);
-		}
-	return 1;
 	}
+	return 1;
+}
 
 /* Convenience functions to add extensions to a certificate, CRL and request */
 
 int X509V3_EXT_add_nconf(CONF *conf, X509V3_CTX *ctx, char *section,
 			 X509 *cert)
-	{
+{
 	STACK_OF(X509_EXTENSION) **sk = NULL;
 	if (cert)
 		sk = &cert->cert_info->extensions;
 	return X509V3_EXT_add_nconf_sk(conf, ctx, section, sk);
-	}
+}
 
 /* Same as above but for a CRL */
 
@@ -438,20 +440,20 @@ NULL
 };
 
 void X509V3_set_nconf(X509V3_CTX *ctx, CONF *conf)
-	{
+{
 	ctx->db_meth = &nconf_method;
 	ctx->db = conf;
-	}
+}
 
 void X509V3_set_ctx(X509V3_CTX *ctx, X509 *issuer, X509 *subj, X509_REQ *req,
 		    X509_CRL *crl, int flags)
-	{
+{
 	ctx->issuer_cert = issuer;
 	ctx->subject_cert = subj;
 	ctx->crl = crl;
 	ctx->subject_req = req;
 	ctx->flags = flags;
-	}
+}
 
 /* Old conf compatibility functions */
 

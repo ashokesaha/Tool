@@ -67,7 +67,7 @@
 static char prompt_string[80];
 
 void EVP_set_pw_prompt(const char *prompt)
-	{
+{
 	if (prompt == NULL)
 		prompt_string[0]='\0';
 	else
@@ -75,26 +75,26 @@ void EVP_set_pw_prompt(const char *prompt)
 		strncpy(prompt_string,prompt,79);
 		prompt_string[79]='\0';
 		}
-	}
+}
 
 char *EVP_get_pw_prompt(void)
-	{
+{
 	if (prompt_string[0] == '\0')
 		return(NULL);
 	else
 		return(prompt_string);
-	}
+}
 
 /* For historical reasons, the standard function for reading passwords is
  * in the DES library -- if someone ever wants to disable DES,
  * this function will fail */
 int EVP_read_pw_string(char *buf, int len, const char *prompt, int verify)
-	{
+{
 	return EVP_read_pw_string_min(buf, 0, len, prompt, verify);
-	}
+}
 
 int EVP_read_pw_string_min(char *buf, int min, int len, const char *prompt, int verify)
-	{
+{
 	int ret;
 	char buff[BUFSIZ];
 	UI *ui;
@@ -110,12 +110,12 @@ int EVP_read_pw_string_min(char *buf, int min, int len, const char *prompt, int 
 	UI_free(ui);
 	OPENSSL_cleanse(buff,BUFSIZ);
 	return ret;
-	}
+}
 
 int EVP_BytesToKey(const EVP_CIPHER *type, const EVP_MD *md, 
 	     const unsigned char *salt, const unsigned char *data, int datal,
 	     int count, unsigned char *key, unsigned char *iv)
-	{
+{
 	EVP_MD_CTX c;
 	unsigned char md_buf[EVP_MAX_MD_SIZE];
 	int niv,nkey,addmd=0;
@@ -185,5 +185,5 @@ int EVP_BytesToKey(const EVP_CIPHER *type, const EVP_MD *md,
 	EVP_MD_CTX_cleanup(&c);
 	OPENSSL_cleanse(&(md_buf[0]),EVP_MAX_MD_SIZE);
 	return rv;
-	}
+}
 

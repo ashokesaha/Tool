@@ -204,7 +204,7 @@ OPENSSL_GLOBAL SSL_CIPHER ssl3_ciphers[]={
 
 /* Cipher 03 */
 	{
-	0,
+	1,
 	SSL3_TXT_RSA_RC4_40_MD5,
 	SSL3_CK_RSA_RC4_40_MD5,
 	SSL_kRSA,
@@ -286,7 +286,7 @@ OPENSSL_GLOBAL SSL_CIPHER ssl3_ciphers[]={
 
 /* Cipher 08 */
 	{
-	0,
+	1,
 	SSL3_TXT_RSA_DES_40_CBC_SHA,
 	SSL3_CK_RSA_DES_40_CBC_SHA,
 	SSL_kRSA,
@@ -383,7 +383,7 @@ OPENSSL_GLOBAL SSL_CIPHER ssl3_ciphers[]={
 
 /* Cipher 0E */
 	{
-	0, /* not implemented (non-ephemeral DH) */
+	1, /* not implemented (non-ephemeral DH) */
 	SSL3_TXT_DH_RSA_DES_40_CBC_SHA,
 	SSL3_CK_DH_RSA_DES_40_CBC_SHA,
 	SSL_kDHr,
@@ -480,7 +480,7 @@ OPENSSL_GLOBAL SSL_CIPHER ssl3_ciphers[]={
 
 /* Cipher 14 */
 	{
-	0,
+	1,
 	SSL3_TXT_EDH_RSA_DES_40_CBC_SHA,
 	SSL3_CK_EDH_RSA_DES_40_CBC_SHA,
 	SSL_kEDH,
@@ -528,7 +528,7 @@ OPENSSL_GLOBAL SSL_CIPHER ssl3_ciphers[]={
 
 /* Cipher 17 */
 	{
-	0,
+	1,
 	SSL3_TXT_ADH_RC4_40_MD5,
 	SSL3_CK_ADH_RC4_40_MD5,
 	SSL_kEDH,
@@ -560,7 +560,7 @@ OPENSSL_GLOBAL SSL_CIPHER ssl3_ciphers[]={
 
 /* Cipher 19 */
 	{
-	0,
+	1,
 	SSL3_TXT_ADH_DES_40_CBC_SHA,
 	SSL3_CK_ADH_DES_40_CBC_SHA,
 	SSL_kEDH,

@@ -173,7 +173,7 @@ load_netscape_key(BIO *err, BIO *key, const char *file,
 int app_init(long mesgwin);
 #ifdef undef /* never finished - probably never will be :-) */
 int args_from_file(char *file, int *argc, char **argv[])
-	{
+{
 	FILE *fp;
 	int num,i;
 	unsigned int len;
@@ -252,11 +252,11 @@ int args_from_file(char *file, int *argc, char **argv[])
 		}
 	*argc=num;
 	return(1);
-	}
+}
 #endif
 
 int str2fmt(char *s)
-	{
+{
 	if (s == NULL)
 		return FORMAT_UNDEF;
 	if 	((*s == 'D') || (*s == 'd'))
@@ -284,11 +284,11 @@ int str2fmt(char *s)
  		}
 	else
 		return(FORMAT_UNDEF);
-	}
+}
 
 #if defined(OPENSSL_SYS_MSDOS) || defined(OPENSSL_SYS_WIN32) || defined(OPENSSL_SYS_WIN16) || defined(OPENSSL_SYS_NETWARE)
 void program_name(char *in, char *out, int size)
-	{
+{
 	int i,n;
 	char *p=NULL;
 
@@ -333,11 +333,11 @@ void program_name(char *in, char *out, int size)
 			out[i]=p[i];
 		}
 	out[n]='\0';
-	}
+}
 #else
 #ifdef OPENSSL_SYS_VMS
 void program_name(char *in, char *out, int size)
-	{
+{
 	char *p=in, *q;
 	char *chars=":]>";
 
@@ -361,10 +361,10 @@ void program_name(char *in, char *out, int size)
 		{
 		out[q-p]='\0';
 		}
-	}
+}
 #else
 void program_name(char *in, char *out, int size)
-	{
+{
 	char *p;
 
 	p=strrchr(in,'/');
@@ -373,12 +373,12 @@ void program_name(char *in, char *out, int size)
 	else
 		p=in;
 	BUF_strlcpy(out,p,size);
-	}
+}
 #endif
 #endif
 
 int chopup_args(ARGS *arg, char *buf, int *argc, char **argv[])
-	{
+{
 	int num,i;
 	char *p;
 
@@ -446,13 +446,13 @@ int chopup_args(ARGS *arg, char *buf, int *argc, char **argv[])
 	*argc=num;
 	*argv=arg->data;
 	return(1);
-	}
+}
 
 #ifndef APP_INIT
 int app_init(long mesgwin)
-	{
+{
 	return(1);
-	}
+}
 #endif
 
 
@@ -741,7 +741,7 @@ int add_oid_section(BIO *err, CONF *conf)
 static int load_pkcs12(BIO *err, BIO *in, const char *desc,
 		pem_password_cb *pem_cb,  void *cb_data,
 		EVP_PKEY **pkey, X509 **cert, STACK_OF(X509) **ca)
-	{
+{
  	const char *pass;
 	char tpass[PEM_BUFSIZE];
 	int len, ret = 0;
@@ -781,44 +781,45 @@ static int load_pkcs12(BIO *err, BIO *in, const char *desc,
 	if (p12)
 		PKCS12_free(p12);
 	return ret;
-	}
+}
+
 
 X509 *load_cert(BIO *err, const char *file, int format,
 	const char *pass, ENGINE *e, const char *cert_descrip)
-	{
+{
 	X509 *x=NULL;
 	BIO *cert;
 
 	if ((cert=BIO_new(BIO_s_file())) == NULL)
-		{
+	{
 		ERR_print_errors(err);
 		goto end;
-		}
+	}
 
 	if (file == NULL)
-		{
+	{
 #ifdef _IONBF
 # ifndef OPENSSL_NO_SETVBUF_IONBF
 		setvbuf(stdin, NULL, _IONBF, 0);
 # endif /* ndef OPENSSL_NO_SETVBUF_IONBF */
 #endif
 		BIO_set_fp(cert,stdin,BIO_NOCLOSE);
-		}
+	}
 	else
-		{
+	{
 		if (BIO_read_filename(cert,file) <= 0)
-			{
+		{
 			BIO_printf(err, "Error opening %s %s\n",
 				cert_descrip, file);
 			ERR_print_errors(err);
 			goto end;
-			}
 		}
+	}
 
 	if 	(format == FORMAT_ASN1)
 		x=d2i_X509_bio(cert,NULL);
 	else if (format == FORMAT_NETSCAPE)
-		{
+	{
 		NETSCAPE_X509 *nx;
 		nx=ASN1_item_d2i_bio(ASN1_ITEM_rptr(NETSCAPE_X509),cert,NULL);
 		if (nx == NULL)
@@ -826,42 +827,45 @@ X509 *load_cert(BIO *err, const char *file, int format,
 
 		if ((strncmp(NETSCAPE_CERT_HDR,(char *)nx->header->data,
 			nx->header->length) != 0))
-			{
+		{
 			NETSCAPE_X509_free(nx);
 			BIO_printf(err,"Error reading header on certificate\n");
 			goto end;
-			}
+		}
 		x=nx->cert;
 		nx->cert = NULL;
 		NETSCAPE_X509_free(nx);
-		}
+	}
 	else if (format == FORMAT_PEM)
 		x=PEM_read_bio_X509_AUX(cert,NULL,
 			(pem_password_cb *)password_callback, NULL);
 	else if (format == FORMAT_PKCS12)
-		{
+	{
 		if (!load_pkcs12(err, cert,cert_descrip, NULL, NULL,
 					NULL, &x, NULL))
 			goto end;
-		}
-	else	{
+	}
+	else	
+	{
 		BIO_printf(err,"bad input format specified for %s\n",
 			cert_descrip);
 		goto end;
-		}
+	}
 end:
 	if (x == NULL)
-		{
+	{
 		BIO_printf(err,"unable to load certificate\n");
 		ERR_print_errors(err);
-		}
+	}
 	if (cert != NULL) BIO_free(cert);
 	return(x);
-	}
+}
+
+
 
 EVP_PKEY *load_key(BIO *err, const char *file, int format, int maybe_stdin,
 	const char *pass, ENGINE *e, const char *key_descrip)
-	{
+{
 	BIO *key=NULL;
 	EVP_PKEY *pkey=NULL;
 	PW_CB_DATA cb_data;
@@ -955,11 +959,12 @@ EVP_PKEY *load_key(BIO *err, const char *file, int format, int maybe_stdin,
 		ERR_print_errors(err);
 		}	
 	return(pkey);
-	}
+}
+
 
 EVP_PKEY *load_pubkey(BIO *err, const char *file, int format, int maybe_stdin,
 	const char *pass, ENGINE *e, const char *key_descrip)
-	{
+{
 	BIO *key=NULL;
 	EVP_PKEY *pkey=NULL;
 	PW_CB_DATA cb_data;
@@ -1064,13 +1069,13 @@ EVP_PKEY *load_pubkey(BIO *err, const char *file, int format, int maybe_stdin,
 	if (pkey == NULL)
 		BIO_printf(err,"unable to load %s\n", key_descrip);
 	return(pkey);
-	}
+}
 
 #if !defined(OPENSSL_NO_RC4) && !defined(OPENSSL_NO_RSA)
 static EVP_PKEY *
 load_netscape_key(BIO *err, BIO *key, const char *file,
 		const char *key_descrip, int format)
-	{
+{
 	EVP_PKEY *pkey;
 	BUF_MEM *buf;
 	RSA	*rsa;
@@ -1109,13 +1114,13 @@ error:
 	BUF_MEM_free(buf);
 	EVP_PKEY_free(pkey);
 	return NULL;
-	}
+}
 #endif /* ndef OPENSSL_NO_RC4 */
 
 static int load_certs_crls(BIO *err, const char *file, int format,
 	const char *pass, ENGINE *e, const char *desc,
 	STACK_OF(X509) **pcerts, STACK_OF(X509_CRL) **pcrls)
-	{
+{
 	int i;
 	BIO *bio;
 	STACK_OF(X509_INFO) *xis = NULL;
@@ -1209,25 +1214,25 @@ static int load_certs_crls(BIO *err, const char *file, int format,
 		ERR_print_errors(err);
 		}
 	return rv;
-	}
+}
 
 STACK_OF(X509) *load_certs(BIO *err, const char *file, int format,
 	const char *pass, ENGINE *e, const char *desc)
-	{
+{
 	STACK_OF(X509) *certs;
 	if (!load_certs_crls(err, file, format, pass, e, desc, &certs, NULL))
 		return NULL;
 	return certs;
-	}	
+}	
 
 STACK_OF(X509_CRL) *load_crls(BIO *err, const char *file, int format,
 	const char *pass, ENGINE *e, const char *desc)
-	{
+{
 	STACK_OF(X509_CRL) *crls;
 	if (!load_certs_crls(err, file, format, pass, e, desc, NULL, &crls))
 		return NULL;
 	return crls;
-	}	
+}	
 
 #define X509V3_EXT_UNKNOWN_MASK		(0xfL << 16)
 /* Return error for unknown extensions */
@@ -1587,7 +1592,7 @@ static IMPLEMENT_LHASH_COMP_FN(index_name, OPENSSL_CSTRING)
 #define BSIZE 256
 
 BIGNUM *load_serial(char *serialfile, int create, ASN1_INTEGER **retai)
-	{
+{
 	BIO *in=NULL;
 	BIGNUM *ret=NULL;
 	MS_STATIC char buf[1024];
@@ -1641,10 +1646,12 @@ BIGNUM *load_serial(char *serialfile, int create, ASN1_INTEGER **retai)
 	if (in != NULL) BIO_free(in);
 	if (ai != NULL) ASN1_INTEGER_free(ai);
 	return(ret);
-	}
+}
+
+
 
 int save_serial(char *serialfile, char *suffix, BIGNUM *serial, ASN1_INTEGER **retai)
-	{
+{
 	char buf[1][BSIZE];
 	BIO *out = NULL;
 	int ret=0;
@@ -1703,10 +1710,11 @@ err:
 	if (out != NULL) BIO_free_all(out);
 	if (ai != NULL) ASN1_INTEGER_free(ai);
 	return(ret);
-	}
+}
+
 
 int rotate_serial(char *serialfile, char *new_suffix, char *old_suffix)
-	{
+{
 	char buf[5][BSIZE];
 	int i,j;
 
@@ -1764,10 +1772,12 @@ int rotate_serial(char *serialfile, char *new_suffix, char *old_suffix)
 	return 1;
  err:
 	return 0;
-	}
+}
+
+
 
 int rand_serial(BIGNUM *b, ASN1_INTEGER *ai)
-	{
+{
 	BIGNUM *btmp;
 	int ret = 0;
 	if (b)
@@ -1791,10 +1801,11 @@ int rand_serial(BIGNUM *b, ASN1_INTEGER *ai)
 		BN_free(btmp);
 	
 	return ret;
-	}
+}
+
 
 CA_DB *load_index(char *dbfile, DB_ATTR *db_attr)
-	{
+{
 	CA_DB *retdb = NULL;
 	TXT_DB *tmpdb = NULL;
 	BIO *in = BIO_new(BIO_s_file());
@@ -1803,16 +1814,16 @@ CA_DB *load_index(char *dbfile, DB_ATTR *db_attr)
 	long errorline= -1;
 
 	if (in == NULL)
-		{
+	{
 		ERR_print_errors(bio_err);
 		goto err;
-		}
+	}
 	if (BIO_read_filename(in,dbfile) <= 0)
-		{
+	{
 		perror(dbfile);
 		BIO_printf(bio_err,"unable to open '%s'\n",dbfile);
 		goto err;
-		}
+	}
 	if ((tmpdb = TXT_DB_read(in,DB_NUMBER)) == NULL)
 		goto err;
 
@@ -1823,78 +1834,77 @@ CA_DB *load_index(char *dbfile, DB_ATTR *db_attr)
 #endif
 	dbattr_conf = NCONF_new(NULL);
 	if (NCONF_load(dbattr_conf,buf[0],&errorline) <= 0)
-		{
+	{
 		if (errorline > 0)
-			{
+		{
 			BIO_printf(bio_err,
 				"error on line %ld of db attribute file '%s'\n"
 				,errorline,buf[0]);
 			goto err;
-			}
+		}
 		else
-			{
+		{
 			NCONF_free(dbattr_conf);
 			dbattr_conf = NULL;
-			}
 		}
+	}
 
 	if ((retdb = OPENSSL_malloc(sizeof(CA_DB))) == NULL)
-		{
+	{
 		fprintf(stderr, "Out of memory\n");
 		goto err;
-		}
+	}
 
 	retdb->db = tmpdb;
 	tmpdb = NULL;
 	if (db_attr)
 		retdb->attributes = *db_attr;
 	else
-		{
+	{
 		retdb->attributes.unique_subject = 1;
-		}
+	}
 
 	if (dbattr_conf)
-		{
+	{
 		char *p = NCONF_get_string(dbattr_conf,NULL,"unique_subject");
 		if (p)
-			{
-#ifdef RL_DEBUG
-			BIO_printf(bio_err, "DEBUG[load_index]: unique_subject = \"%s\"\n", p);
-#endif
+		{
 			retdb->attributes.unique_subject = parse_yesno(p,1);
-			}
 		}
+	}
 
  err:
 	if (dbattr_conf) NCONF_free(dbattr_conf);
 	if (tmpdb) TXT_DB_free(tmpdb);
 	if (in) BIO_free_all(in);
 	return retdb;
-	}
+}
+
+
 
 int index_index(CA_DB *db)
-	{
+{
 	if (!TXT_DB_create_index(db->db, DB_serial, NULL,
 				LHASH_HASH_FN(index_serial),
 				LHASH_COMP_FN(index_serial)))
-		{
+	{
 		BIO_printf(bio_err,
 		  "error creating serial number index:(%ld,%ld,%ld)\n",
 		  			db->db->error,db->db->arg1,db->db->arg2);
 			return 0;
-		}
+	}
 
 	if (db->attributes.unique_subject
 		&& !TXT_DB_create_index(db->db, DB_name, index_name_qual,
 			LHASH_HASH_FN(index_name),
 			LHASH_COMP_FN(index_name)))
-		{
+	{
 		BIO_printf(bio_err,"error creating name index:(%ld,%ld,%ld)\n",
 			db->db->error,db->db->arg1,db->db->arg2);
 		return 0;
-		}
-	return 1;
 	}
+	return 1;
+}
 
 int save_index(const char *dbfile, const char *suffix, CA_DB *db)
 	{

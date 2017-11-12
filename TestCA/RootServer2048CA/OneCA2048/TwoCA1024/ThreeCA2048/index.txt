@@ -4,12 +4,17 @@ V	270428034601Z		ABCDEF000004	unknown	/ST=KA/C=IN/CN=Server2048_sha384_server/em
 V	270428034659Z		ABCDEF000005	unknown	/ST=KA/C=IN/CN=Server1024_sha384_server/emailAddress=Server@test_ca.com/O=CITRIX
 V	270428034706Z		ABCDEF000006	unknown	/ST=KA/C=IN/CN=Server1024_sha256_server/emailAddress=Server@test_ca.com/O=CITRIX
 V	270429042215Z		ABCDEF000008	unknown	/ST=KA/C=IN/CN=Server1024_sha1_server/emailAddress=Server@test_ca.com/O=CITRIX
-V	270510234839Z		ABCDEF00000C	unknown	/ST=KA/C=IN/CN=Server4096_sha384_server/emailAddress=Server@test_ca.com/O=CITRIX
-V	270510234848Z		ABCDEF00000D	unknown	/ST=KA/C=IN/CN=Server4096_sha1_server/emailAddress=Server@test_ca.com/O=CITRIX
-V	270510234856Z		ABCDEF00000E	unknown	/ST=KA/C=IN/CN=Server4096_sha256_server/emailAddress=Server@test_ca.com/O=CITRIX
-V	270515123610Z		ABCDEF00000F	unknown	/ST=KA/C=IN/CN=client1024_sha1_server/emailAddress=client@test_ca.com/O=CITRIX
+R	270515123610Z	170922030331Z	ABCDEF00000F	unknown	/ST=KA/C=IN/CN=client1024_sha1_server/emailAddress=client@test_ca.com/O=CITRIX
 V	270515123618Z		ABCDEF000010	unknown	/ST=KA/C=IN/CN=client1024_sha256_server/emailAddress=client@test_ca.com/O=CITRIX
 V	270515123623Z		ABCDEF000011	unknown	/ST=KA/C=IN/CN=client1024_sha384_server/emailAddress=client@test_ca.com/O=CITRIX
 V	270515123640Z		ABCDEF000012	unknown	/ST=KA/C=IN/CN=client2048_sha1_server/emailAddress=client@test_ca.com/O=CITRIX
 V	270515123646Z		ABCDEF000013	unknown	/ST=KA/C=IN/CN=client2048_sha256_server/emailAddress=client@test_ca.com/O=CITRIX
 V	270515123652Z		ABCDEF000014	unknown	/ST=KA/C=IN/CN=client2048_sha384_server/emailAddress=client@test_ca.com/O=CITRIX
+V	271004103948Z		ABCDEF000015	unknown	/ST=KA/C=IN/CN=Server4096_sha1_server/emailAddress=Server@test_ca.com/O=CITRIX
+V	271004104003Z		ABCDEF000016	unknown	/ST=KA/C=IN/CN=Server4096_sha256_server/emailAddress=Server@test_ca.com/O=CITRIX
+V	271004104011Z		ABCDEF000017	unknown	/ST=KA/C=IN/CN=Server4096_sha384_server/emailAddress=Server@test_ca.com/O=CITRIX
+V	271004110633Z		ABCDEF000018	unknown	/ST=KA/C=IN/CN=client4096_sha1_server/emailAddress=client@test_ca.com/O=CITRIX
+V	271004110638Z		ABCDEF000019	unknown	/ST=KA/C=IN/CN=client4096_sha256_server/emailAddress=client@test_ca.com/O=CITRIX
+V	271004110645Z		ABCDEF00001A	unknown	/ST=KA/C=IN/CN=client4096_sha384_server/emailAddress=client@test_ca.com/O=CITRIX
+V	271021172041Z		ABCDEF00001B	unknown	/ST=KA/C=IN/CN=one1024_sha256_server/emailAddress=one@test_ca.com/O=CITRIX
+V	271021172643Z		ABCDEF00001C	unknown	/ST=KA/C=IN/CN=two1024_sha256_server/emailAddress=two@test_ca.com/O=CITRIX

@@ -876,39 +876,39 @@ int ssl3_get_server_hello(SSL *s)
 	if (!ok) return((int)n);
 
 	if ( SSL_version(s) == DTLS1_VERSION || SSL_version(s) == DTLS1_BAD_VER)
-		{
+	{
 		if ( s->s3->tmp.message_type == DTLS1_MT_HELLO_VERIFY_REQUEST)
-			{
+		{
 			if ( s->d1->send_cookie == 0)
-				{
+			{
 				s->s3->tmp.reuse_message = 1;
 				return 1;
-				}
+			}
 			else /* already sent a cookie */
-				{
+			{
 				al=SSL_AD_UNEXPECTED_MESSAGE;
 				SSLerr(SSL_F_SSL3_GET_SERVER_HELLO,SSL_R_BAD_MESSAGE_TYPE);
 				goto f_err;
-				}
 			}
 		}
+	}
 	
 	if ( s->s3->tmp.message_type != SSL3_MT_SERVER_HELLO)
-		{
+	{
 		al=SSL_AD_UNEXPECTED_MESSAGE;
 		SSLerr(SSL_F_SSL3_GET_SERVER_HELLO,SSL_R_BAD_MESSAGE_TYPE);
 		goto f_err;
-		}
+	}
 
 	d=p=(unsigned char *)s->init_msg;
 
 	if ((p[0] != (s->version>>8)) || (p[1] != (s->version&0xff)))
-		{
+	{
 		SSLerr(SSL_F_SSL3_GET_SERVER_HELLO,SSL_R_WRONG_SSL_VERSION);
 		s->version=(s->version&0xff00)|p[1];
 		al=SSL_AD_PROTOCOL_VERSION;
 		goto f_err;
-		}
+	}
 	p+=2;
 
 	/* load the server hello data */
@@ -920,32 +920,32 @@ int ssl3_get_server_hello(SSL *s)
 	j= *(p++);
 
 	if ((j > sizeof s->session->session_id) || (j > SSL3_SESSION_ID_SIZE))
-		{
+	{
 		al=SSL_AD_ILLEGAL_PARAMETER;
 		SSLerr(SSL_F_SSL3_GET_SERVER_HELLO,SSL_R_SSL3_SESSION_ID_TOO_LONG);
 		goto f_err;
-		}
+	}
 
 #ifndef OPENSSL_NO_TLSEXT
 	/* check if we want to resume the session based on external pre-shared secret */
 	if (s->version >= TLS1_VERSION && s->tls_session_secret_cb)
-		{
+	{
 		SSL_CIPHER *pref_cipher=NULL;
 		s->session->master_key_length=sizeof(s->session->master_key);
 		if (s->tls_session_secret_cb(s, s->session->master_key,
 					     &s->session->master_key_length,
 					     NULL, &pref_cipher,
 					     s->tls_session_secret_cb_arg))
-			{
+		{
 			s->session->cipher = pref_cipher ?
 				pref_cipher : ssl_get_cipher_by_char(s, p+j);
-			}
 		}
+	}
 #endif /* OPENSSL_NO_TLSEXT */
 
 	if (j != 0 && j == s->session->session_id_length
 	    && memcmp(p,s->session->session_id,j) == 0)
-	    {
+	{
 	    if(s->sid_ctx_length != s->session->sid_ctx_length
 	       || memcmp(s->session->sid_ctx,s->sid_ctx,s->sid_ctx_length))
 		{
@@ -955,40 +955,40 @@ int ssl3_get_server_hello(SSL *s)
 		goto f_err;
 		}
 	    s->hit=1;
-	    }
+	}
 	else	/* a miss or crap from the other end */
-		{
+	{
 		/* If we were trying for session-id reuse, make a new
 		 * SSL_SESSION so we don't stuff up other people */
 		s->hit=0;
 		if (s->session->session_id_length > 0)
-			{
+		{
 			if (!ssl_get_new_session(s,0))
-				{
+			{
 				al=SSL_AD_INTERNAL_ERROR;
 				goto f_err;
-				}
 			}
+		}
 		s->session->session_id_length=j;
 		memcpy(s->session->session_id,p,j); /* j could be 0 */
-		}
+	}
 	p+=j;
 	c=ssl_get_cipher_by_char(s,p);
 	if (c == NULL)
-		{
+	{
 		/* unknown cipher */
 		al=SSL_AD_ILLEGAL_PARAMETER;
 		SSLerr(SSL_F_SSL3_GET_SERVER_HELLO,SSL_R_UNKNOWN_CIPHER_RETURNED);
 		goto f_err;
-		}
+	}
 	/* TLS v1.2 only ciphersuites require v1.2 or later */
 	if ((c->algorithm_ssl & SSL_TLSV1_2) && 
 		(TLS1_get_version(s) < TLS1_2_VERSION))
-		{
+	{
 		al=SSL_AD_ILLEGAL_PARAMETER;
 		SSLerr(SSL_F_SSL3_GET_SERVER_HELLO,SSL_R_WRONG_CIPHER_RETURNED);
 		goto f_err;
-		}
+	}
 	p+=ssl_put_cipher_by_char(s,NULL,NULL);
 
 	sk=ssl_get_ciphers_by_id(s);

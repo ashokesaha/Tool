@@ -85,12 +85,14 @@ int						doResponseBySize(SSL *s);
 int  					WaitForChild(int kill);
 int	 					CleanChild();
 static int				HandleArgs(char * buf);
+static int 				SendResult(SSL *ssl,char *status);
 
 
 extern	X509 			*ssl_get_server_send_cert(const SSL *s);
 extern	DH      		*SSL_get_dh(SSL *s);
 extern	char    		*SSL_get_curvename(SSL *s);
-
+extern  char			*ASHOKE_TOOL_get_cert_info(X509 *,char *);
+extern  char			*ASHOKE_TOOL_get_ecc_info(SSL *);
 
 CERT_LIST_t				gCertList[1024];
 int						gNumCertKey = 0;
@@ -133,6 +135,8 @@ char			*ECCURVES[] = { "secp256r1",
 char			*glbRespBuf = NULL;
 char			*glbRespCurPtr = NULL;
 int				glbRespLen = 0;
+FILE			*debugParentFP = NULL;
+FILE			*debugChildFP = NULL;
 
 
 #define		printf		WriteResponse
@@ -145,7 +149,7 @@ int main(int argc, char **argv)
 	int						status = 0, ret;
 	int						curCert,curDH,curMethod,curCiphIdx;
 	char					namebuf[256];
-	char					buf[1024];
+	unsigned char			buf[1024];
 	const SSL_METHOD		*meth;
 	const SSL_CIPHER		*cipher;
 	DH						*dh;
@@ -158,12 +162,23 @@ int main(int argc, char **argv)
 	struct	timeval			tv;
 	volatile int			main_debug = 1;
 
-	//while(main_debug);
+	chdir("/tmp");
+	sprintf(namebuf,"debug.parent.%d.log",getpid());
+	debugParentFP = fopen(namebuf,"w");
+	setbuf(debugParentFP,NULL);
+	fprintf(debugParentFP,"debug parent opened ..\n");
+
+	sprintf(namebuf,"/tmp/debug.child.%d.log",getppid());
+	debugChildFP = fopen(namebuf,"w");
+	fclose(debugChildFP);
+	debugChildFP = NULL;
+
 
 	chdir("/mnt/ToolPkg/Server");
 	glbRespBuf = Create1MBRespData();
 	glbRespCurPtr = glbRespBuf;
 
+#ifndef DEBUGRUN
 	len =  sizeof(buf) - 1;
 	ret = readCmdData(0, buf, &len);
 	if(ret <= 0)
@@ -178,10 +193,14 @@ int main(int argc, char **argv)
 	if(ret <= 0)
 		return ret;
 	HandleArgs(buf);
+#else
+	PORT = 4845;
+	IP = "10.102.28.72";
+#endif
 
 	asd = initSocket(IP,PORT);
 	listen(asd,5);
-
+	fprintf(debugParentFP,"initSocket retirned asd = %d\n", asd);
 
 	for(ret=0; ret < MAXCHILD * 2; ret++)
 	{
@@ -196,13 +215,13 @@ int main(int argc, char **argv)
 
 	if(loadCerts() <= 0)
 	{
-		printf("Failed to load even a single cert..\n");
+		fprintf(debugParentFP,"Failed to load even a single cert..\n");
 		exit(0);
 	}
 
 	if(loadDHs() <= 0)
 	{
-		printf("Failed to load even a single DH..\n");
+		fprintf(debugParentFP,"Failed to load even a single DH..\n");
 		exit(0);
 	}
 
@@ -235,6 +254,7 @@ int main(int argc, char **argv)
 			if((ret <= 0) || (len == 0))
 			{
 				WriteResponse("Parent:: exiting after cleaning child.\n");
+				fprintf(debugParentFP,"Parent:: exiting after cleaning child.\n");
 				WaitForChild(1);
 				return 0;
 			}
@@ -244,6 +264,8 @@ int main(int argc, char **argv)
 
 		if(!FD_ISSET(asd,&readfds))
 			continue;
+
+		fprintf(debugParentFP,"connection on asd..\n");
 
 		len = sizeof(from);
 
@@ -257,11 +279,14 @@ int main(int argc, char **argv)
 
 
 RESET:
+
 		while((meth = getNextMethod(0)))
 		{
+		fprintf(debugParentFP,"method %x\n", meth->version);
 		while((cipher = getNextCipher(meth,0)))
 		{
-			if(CipherFilter(cipher))
+		fprintf(debugParentFP,"cipher %s\n", cipher->name);
+			if(!CipherFilter(cipher))
 				continue;
 		while(getNextCertKey(&cert,&pkey,0))
 		{
@@ -336,7 +361,6 @@ RESET:
 
 			listen(asd,5);
 			sd = accept(asd,(struct sockaddr *)&from,(void *)&len);
-
 			if(sd <= 0)
 			{
 				perror("accept::");
@@ -348,6 +372,7 @@ RESET:
 			{
 				CHILD_STAT_t	*p, **pp;
 
+				close(sd);
 				curChildStat->pid = pid;
 				childCount++;
 				while( (pid=wait4(-1,&status,WNOHANG,NULL)) > 0 )
@@ -375,7 +400,11 @@ RESET:
 			}
 			else if (pid == 0)
 			{ 
+				sprintf(namebuf,"/tmp/debug.child.%d.log",getppid());
+				debugChildFP = fopen(namebuf,"a");
+				setbuf(debugChildFP,NULL);
 				ret = doChild(sd);
+				close(sd);
 				exit(ret);
 			}
 
@@ -433,17 +462,23 @@ int	doChild(int sd)
 	ret = SSL_accept(con);
 	if(ret <= 0)
 	{
-		SSL_get_error(con,ret);
-		FailMessage();
+		//fprintf(debugChildFP,"SSL_accept failed : verify_result %d\n",con->verify_result);
+		//fprintf(debugChildFP,"%s\n",X509_verify_cert_error_string(con->verify_result));
+		//SSL_get_error(con,ret);
+		//FailMessage();
+		SendResult(con,"Handshake Failure");
 		return -5;
 	}
 
-
 	ret = SSL_read(con,buf,sizeof(buf)-1);
 	if(ret <= 0)
+	{
+		SendResult(con,"Data Failure");
 		return -6;
+	}
 
-	doResponseHandshakeDetails(con);
+	//doResponseHandshakeDetails(con);
+	SendResult(con,"Success");
 
 	SSL_shutdown(con);
 	return 0;
@@ -480,14 +515,15 @@ SSL_CTX *newCTX()
 
 	SSL_CTX_load_verify_locations(ctx,curChildStat->childVerifyCAFile,NULL);
 	SSL_CTX_set_client_CA_list(ctx,SSL_load_client_CA_file(curChildStat->childSendCAFile));
+	if(CAUTH)
+		SSL_CTX_set_verify(ctx,SSL_VERIFY_PEER|SSL_VERIFY_FAIL_IF_NO_PEER_CERT|SSL_VERIFY_CLIENT_ONCE, NULL);
 
 
 	if(curChildStat->childCipher)
 	{
 		if(!SSL_CTX_set_cipher_list(ctx,curChildStat->childCipher->name))
 		{
-			printf("	Failed to set cipher %s\n", 
-							curChildStat->childCipher->name);
+			fprintf(debugChildFP,"Failed to set cipher %s\n",curChildStat->childCipher->name);
 		}
 	}
 
@@ -803,6 +839,7 @@ int		getNextCertKey(X509 **certpp, EVP_PKEY **keypp,int reset)
 	
 	*certpp = gCertList[nextCertKey].s_cert;
 	*keypp  = gCertList[nextCertKey].s_key;
+	fprintf(debugParentFP,"next cert key (%s  %d)\n",gCertList[nextCertKey].sigalg,gCertList[nextCertKey].keysize);
 	nextCertKey++;
 	
 	return 1;
@@ -984,6 +1021,7 @@ int		doResponseHandshakeDetails(SSL *s)
 	ptr += sprintf(ptr,"Version : %x\n", SSL_version(s));
 	ptr += sprintf(ptr,"Cipher  : %s\n", SSL_get_current_cipher_name(s));
 
+#if 0
 	if(x = ssl_get_server_send_cert(s))
 	{
 		EVP_PKEY	*pktmp;
@@ -992,7 +1030,7 @@ int		doResponseHandshakeDetails(SSL *s)
 		ptr += sprintf(ptr,"Subject : %s\n", 
 			X509_NAME_oneline(x->cert_info->subject,NULL,0) );
 		ptr += sprintf(ptr,"Issuer : %s\n", 
-			X509_NAME_oneline(x->cert_info->subject,NULL,0));
+			X509_NAME_oneline(x->cert_info->issuer,NULL,0));
 
 		pktmp = X509_get_pubkey(x);
 		ptr += sprintf(ptr,"Server Cert : %d  ",EVP_PKEY_bits(pktmp));
@@ -1005,6 +1043,18 @@ int		doResponseHandshakeDetails(SSL *s)
 		BIO_flush(bp);
 		BIO_free(bp);	
 	}
+#endif
+
+
+	ASHOKE_TOOL_get_cert_info(ssl_get_server_send_cert(s),tbuf);
+	ptr += sprintf(ptr,"ServerCert: %s\n",tbuf); 
+
+	tbuf[0] = 0;
+	if(s->session->peer)
+		ASHOKE_TOOL_get_cert_info(s->session->peer,tbuf);
+	else
+		strcpy(tbuf,"None");
+	ptr += sprintf(ptr,"ClientCert: %s\n",tbuf); 
 
 	if((dh=SSL_get_dh(s)))
 	{
@@ -1031,7 +1081,8 @@ int		doResponseHandshakeDetails(SSL *s)
 		ptr += ret;
 	}
 
-
+	fprintf(debugChildFP,"%s\n",buf);
+	fclose(debugChildFP);
 	len = strlen(buf);
 	ptr = buf;
 	while(len)
@@ -1052,17 +1103,17 @@ int		CipherFilter(const SSL_CIPHER *c)
 {
 	char	*excludefilerStr[] = {"NULL","ECDSA"};	
 	int		excludefilterCount = 
-				sizeof(excludefilerStr)/sizeof(excludefilerStr[0]);
+			sizeof(excludefilerStr)/sizeof(excludefilerStr[0]);
 	int		i;
-
-	if(CIPHERFILTER && strstr(c->name,CIPHERFILTER))
-		return 0;
-	else
-		return 1;
 
 	for(i=0; i<excludefilterCount; i++)
 		if(strstr(c->name,excludefilerStr[i]))
-			return 1;
+			return 0;
+
+	if(CIPHERFILTER && strlen(CIPHERFILTER) && strstr(c->name,CIPHERFILTER))
+		return 0;
+	else
+		return 1;
 
 	return 0;
 }
@@ -1185,6 +1236,7 @@ static int	HandleArgs(char * buf)
 		}
 		cJc = cJc->next;
 	}
+	CAUTH = 1;
 	return 0;
 }
 
@@ -1262,4 +1314,77 @@ int	 CleanChild()
 		}
 	}
 	return count;
+}
+
+
+static int SendResult(SSL *ssl,char *status)
+{
+	cJSON	*root, *cJ,*cjArray;
+	DH		*dh;
+	char	*ecname,*out = NULL;
+	char	buf[1024];
+	char	tbuf[1024];
+	int		i;
+
+	root	= cJSON_CreateObject();
+
+	sprintf(buf,"0x%x",SSL_version(ssl));
+	cJSON_AddStringToObject(root,"version", buf);
+
+	if(ssl->session && ssl->session->cipher)
+		cJSON_AddStringToObject(root,"cipher",SSL_get_current_cipher_name(ssl));
+	else
+		cJSON_AddStringToObject(root,"cipher", "Unknown");
+
+	tbuf[0] = 0;
+	ASHOKE_TOOL_get_cert_info(ssl_get_server_send_cert(ssl),tbuf);
+	cJSON_AddStringToObject(root,"ServerCert", tbuf);
+
+	tbuf[0] = 0;
+	if(ssl->session->peer)
+		ASHOKE_TOOL_get_cert_info(ssl->session->peer,tbuf);
+	else
+		strcpy(tbuf,"None");
+	cJSON_AddStringToObject(root,"ClientCert", tbuf);
+
+	if((dh=SSL_get_dh(ssl)))
+	{
+		sprintf(tbuf,"%d", BN_num_bits(dh->p));
+	}
+	else
+		strcpy(tbuf,"None");
+	cJSON_AddStringToObject(root,"DH", tbuf);
+
+	if((ecname=SSL_get_curvename(ssl)))
+	{
+		sprintf(tbuf, "%s", ecname);
+	}
+	else
+		strcpy(tbuf,"None");
+	cJSON_AddStringToObject(root,"ECC", tbuf);
+
+
+	if(ssl->hit)
+		i = 1;
+	else
+		i = 0;
+	cJSON_AddNumberToObject(root,"reuse", i);
+	
+
+	if(ssl->new_session)
+		i = 1;
+	else
+		i = 0;
+	cJSON_AddNumberToObject(root,"reneg", i);
+
+
+	cJSON_AddStringToObject(root,"result", status);
+
+	cjArray = cJSON_CreateArray();
+	cJSON_AddItemToArray(cjArray,root);
+	out	=	cJSON_PrintUnformatted(root);
+	fprintf(debugChildFP,"%s\n",out);
+	WriteResponse("%s\n",out);
+	cJSON_Delete(cjArray);
+	return 0;
 }

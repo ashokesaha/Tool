@@ -205,12 +205,12 @@ int X509_verify_cert(X509_STORE_CTX *ctx)
 		{
 			xtmp=find_issuer(ctx, sktmp,x);
 			if (xtmp != NULL)
-				{
+			{
 				if (!sk_X509_push(ctx->chain,xtmp))
-					{
+				{
 					X509err(X509_F_X509_VERIFY_CERT,ERR_R_MALLOC_FAILURE);
 					goto end;
-					}
+				}
 				CRYPTO_add(&xtmp->references,1,CRYPTO_LOCK_X509);
 				(void)sk_X509_delete_ptr(sktmp,xtmp);
 				ctx->last_untrusted++;
@@ -219,7 +219,7 @@ int X509_verify_cert(X509_STORE_CTX *ctx)
 				/* reparse the full chain for
 				 * the next one */
 				continue;
-				}
+			}
 		}
 		break;
 	}
@@ -277,7 +277,7 @@ int X509_verify_cert(X509_STORE_CTX *ctx)
 
 	/* We now lookup certs from the certificate store */
 	for (;;)
-		{
+	{
 		/* If we have enough, we break */
 		if (depth < num) break;
 
@@ -297,23 +297,23 @@ int X509_verify_cert(X509_STORE_CTX *ctx)
 			return 0;
 			}
 		num++;
-		}
+	}
 
 	/* we now have our chain, lets check it... */
 
 	/* Is last certificate looked up self signed? */
 	if (!ctx->check_issued(ctx,x,x))
-		{
+	{
 		if ((chain_ss == NULL) || !ctx->check_issued(ctx, x, chain_ss))
-			{
+		{
 			if (ctx->last_untrusted >= num)
 				ctx->error=X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY;
 			else
 				ctx->error=X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT;
 			ctx->current_cert=x;
-			}
+		}
 		else
-			{
+		{
 
 			sk_X509_push(ctx->chain,chain_ss);
 			num++;
@@ -321,13 +321,13 @@ int X509_verify_cert(X509_STORE_CTX *ctx)
 			ctx->current_cert=chain_ss;
 			ctx->error=X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN;
 			chain_ss=NULL;
-			}
+		}
 
 		ctx->error_depth=num-1;
 		bad_chain = 1;
 		ok=cb(0,ctx);
 		if (!ok) goto end;
-		}
+	}
 
 	/* We have the chain complete: now we need to check its purpose */
 	ok = check_chain_extensions(ctx);
@@ -947,7 +947,7 @@ static int check_delta_base(X509_CRL *delta, X509_CRL *base)
 
 static void get_delta_sk(X509_STORE_CTX *ctx, X509_CRL **dcrl, int *pscore,
 			X509_CRL *base, STACK_OF(X509_CRL) *crls)
-	{
+{
 	X509_CRL *delta;
 	int i;
 	if (!(ctx->param->flags & X509_V_FLAG_USE_DELTAS))
@@ -967,7 +967,7 @@ static void get_delta_sk(X509_STORE_CTX *ctx, X509_CRL **dcrl, int *pscore,
 			}
 		}
 	*dcrl = NULL;
-	}
+}
 
 /* For a given CRL return how suitable it is for the supplied certificate 'x'.
  * The return value is a mask of several criteria.
@@ -979,7 +979,7 @@ static void get_delta_sk(X509_STORE_CTX *ctx, X509_CRL **dcrl, int *pscore,
 static int get_crl_score(X509_STORE_CTX *ctx, X509 **pissuer,
 			unsigned int *preasons,
 			X509_CRL *crl, X509 *x)
-	{
+{
 
 	int crl_score = 0;
 	unsigned int tmp_reasons = *preasons, crl_reasons;
@@ -1043,11 +1043,11 @@ static int get_crl_score(X509_STORE_CTX *ctx, X509 **pissuer,
 
 	return crl_score;
 
-	}
+}
 
 static void crl_akid_check(X509_STORE_CTX *ctx, X509_CRL *crl,
 				X509 **pissuer, int *pcrl_score)
-	{
+{
 	X509 *crl_issuer = NULL;
 	X509_NAME *cnm = X509_CRL_get_issuer(crl);
 	int cidx = ctx->error_depth;
@@ -1101,7 +1101,7 @@ static void crl_akid_check(X509_STORE_CTX *ctx, X509_CRL *crl,
 			return;
 			}
 		}
-	}
+}
 
 /* Check the path of a CRL issuer certificate. This creates a new
  * X509_STORE_CTX and populates it with most of the parameters from the
@@ -1111,7 +1111,7 @@ static void crl_akid_check(X509_STORE_CTX *ctx, X509_CRL *crl,
  */
 
 static int check_crl_path(X509_STORE_CTX *ctx, X509 *x)
-	{
+{
 	X509_STORE_CTX crl_ctx;
 	int ret;
 	/* Don't allow recursive CRL path validation */
@@ -1139,7 +1139,7 @@ static int check_crl_path(X509_STORE_CTX *ctx, X509 *x)
 	err:
 	X509_STORE_CTX_cleanup(&crl_ctx);
 	return ret;
-	}
+}
 
 /* RFC3280 says nothing about the relationship between CRL path
  * and certificate path, which could lead to situations where a
@@ -1152,14 +1152,14 @@ static int check_crl_path(X509_STORE_CTX *ctx, X509 *x)
 static int check_crl_chain(X509_STORE_CTX *ctx,
 			STACK_OF(X509) *cert_path,
 			STACK_OF(X509) *crl_path)
-	{
+{
 	X509 *cert_ta, *crl_ta;
 	cert_ta = sk_X509_value(cert_path, sk_X509_num(cert_path) - 1);
 	crl_ta = sk_X509_value(crl_path, sk_X509_num(crl_path) - 1);
 	if (!X509_cmp(cert_ta, crl_ta))
 		return 1;
 	return 0;
-	}
+}
 
 /* Check for match between two dist point names: three separate cases.
  * 1. Both are relative names and compare X509_NAME types.
@@ -1170,7 +1170,7 @@ static int check_crl_chain(X509_STORE_CTX *ctx,
 
 
 static int idp_check_dp(DIST_POINT_NAME *a, DIST_POINT_NAME *b)
-	{
+{
 	X509_NAME *nm = NULL;
 	GENERAL_NAMES *gens = NULL;
 	GENERAL_NAME *gena, *genb;
@@ -1233,10 +1233,10 @@ static int idp_check_dp(DIST_POINT_NAME *a, DIST_POINT_NAME *b)
 
 	return 0;
 
-	}
+}
 
 static int crldp_check_crlissuer(DIST_POINT *dp, X509_CRL *crl, int crl_score)
-	{
+{
 	int i;
 	X509_NAME *nm = X509_CRL_get_issuer(crl);
 	/* If no CRLissuer return is successful iff don't need a match */
@@ -1251,13 +1251,13 @@ static int crldp_check_crlissuer(DIST_POINT *dp, X509_CRL *crl, int crl_score)
 			return 1;
 		}
 	return 0;
-	}
+}
 
 /* Check CRLDP and IDP */
 
 static int crl_crldp_check(X509 *x, X509_CRL *crl, int crl_score,
 				unsigned int *preasons)
-	{
+{
 	int i;
 	if (crl->idp_flags & IDP_ONLYATTR)
 		return 0;
@@ -1288,7 +1288,7 @@ static int crl_crldp_check(X509 *x, X509_CRL *crl, int crl_score,
 	if ((!crl->idp || !crl->idp->distpoint) && (crl_score & CRL_SCORE_ISSUER_NAME))
 		return 1;
 	return 0;
-	}
+}
 
 /* Retrieve CRL corresponding to current certificate.
  * If deltas enabled try to find a delta CRL too
@@ -1296,7 +1296,7 @@ static int crl_crldp_check(X509 *x, X509_CRL *crl, int crl_score,
 	
 static int get_crl_delta(X509_STORE_CTX *ctx,
 				X509_CRL **pcrl, X509_CRL **pdcrl, X509 *x)
-	{
+{
 	int ok;
 	X509 *issuer = NULL;
 	int crl_score = 0;
@@ -1337,11 +1337,11 @@ static int get_crl_delta(X509_STORE_CTX *ctx,
 		}
 
 	return 0;
-	}
+}
 
 /* Check CRL validity */
 static int check_crl(X509_STORE_CTX *ctx, X509_CRL *crl)
-	{
+{
 	X509 *issuer = NULL;
 	EVP_PKEY *ikey = NULL;
 	int ok = 0, chnum, cnum;
@@ -1444,11 +1444,11 @@ static int check_crl(X509_STORE_CTX *ctx, X509_CRL *crl)
 	err:
 	EVP_PKEY_free(ikey);
 	return ok;
-	}
+}
 
 /* Check certificate against CRL */
 static int cert_crl(X509_STORE_CTX *ctx, X509_CRL *crl, X509 *x)
-	{
+{
 	int ok;
 	X509_REVOKED *rev;
 	/* The rules changed for this... previously if a CRL contained
@@ -1478,10 +1478,10 @@ static int cert_crl(X509_STORE_CTX *ctx, X509_CRL *crl, X509 *x)
 		}
 
 	return 1;
-	}
+}
 
 static int check_policy(X509_STORE_CTX *ctx)
-	{
+{
 	int ret;
 	if (ctx->parent)
 		return 1;
@@ -1528,10 +1528,10 @@ static int check_policy(X509_STORE_CTX *ctx)
 		}
 
 	return 1;
-	}
+}
 
 static int check_cert_time(X509_STORE_CTX *ctx, X509 *x)
-	{
+{
 	time_t *ptime;
 	int i;
 
@@ -1575,10 +1575,10 @@ static int check_cert_time(X509_STORE_CTX *ctx, X509 *x)
 		}
 
 	return 1;
-	}
+}
 
 static int internal_verify(X509_STORE_CTX *ctx)
-	{
+{
 	int ok=0,n;
 	X509 *xs,*xi;
 	EVP_PKEY *pkey=NULL;
@@ -1665,7 +1665,7 @@ static int internal_verify(X509_STORE_CTX *ctx)
 	ok=1;
 end:
 	return ok;
-	}
+}
 
 int X509_cmp_current_time(const ASN1_TIME *ctm)
 {
@@ -1673,7 +1673,7 @@ int X509_cmp_current_time(const ASN1_TIME *ctm)
 }
 
 int X509_cmp_time(const ASN1_TIME *ctm, time_t *cmp_time)
-	{
+{
 	char *str;
 	ASN1_TIME atm;
 	long offset;
@@ -1749,36 +1749,36 @@ int X509_cmp_time(const ASN1_TIME *ctm, time_t *cmp_time)
 		return -1;
 	else
 		return i;
-	}
+}
 
 ASN1_TIME *X509_gmtime_adj(ASN1_TIME *s, long adj)
 {
 	return X509_time_adj(s, adj, NULL);
-}
+}	
 
 ASN1_TIME *X509_time_adj(ASN1_TIME *s, long offset_sec, time_t *in_tm)
-	{
+{
 	return X509_time_adj_ex(s, 0, offset_sec, in_tm);
-	}
+}
 
 ASN1_TIME *X509_time_adj_ex(ASN1_TIME *s,
 				int offset_day, long offset_sec, time_t *in_tm)
-	{
+{
 	time_t t;
 
 	if (in_tm) t = *in_tm;
 	else time(&t);
 
 	if (s && !(s->flags & ASN1_STRING_FLAG_MSTRING))
-		{
+	{
 		if (s->type == V_ASN1_UTCTIME)
 			return ASN1_UTCTIME_adj(s,t, offset_day, offset_sec);
 		if (s->type == V_ASN1_GENERALIZEDTIME)
 			return ASN1_GENERALIZEDTIME_adj(s, t, offset_day,
 								offset_sec);
-		}
-	return ASN1_TIME_adj(s, t, offset_day, offset_sec);
 	}
+	return ASN1_TIME_adj(s, t, offset_day, offset_sec);
+}
 
 int X509_get_pubkey_parameters(EVP_PKEY *pkey, STACK_OF(X509) *chain)
 	{
