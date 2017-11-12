@@ -1,13 +1,22 @@
 import  sys
 sys.path.append('C:\\Users\\ashokes\\Miniconda2\\NSPY')
+sys.path.append('C:\\Users\\ashokes\\Miniconda2\\NSWidgets')
+
 from    PyQt5 import QtCore, QtGui, QtWidgets
 import  CustomWidget
 import  CertInstaller
-from    BEOpenSSLServerDialog import *
+
 from    BasicClientDialog     import *
-from    DUTDialog import *
+from    DUTDialog             import *
+from    ocsp_responder        import *
+from    SSLVServerDialog      import *
+import  BEOpenSSLServerDialog
+
+
 
 class  GenericContainer (QtWidgets.QWidget)  :
+    botProbe = QtCore.pyqtSignal(str)
+    
     TYPE_SSL_VSERVER = 1
     TYPE_SSL_TCP_VSERVER = 2
     TYPE_HTTP_VSERVER = 3
@@ -32,6 +41,8 @@ class  GenericContainer (QtWidgets.QWidget)  :
 
     TYPE_SAVE = 18
     TYPE_LOAD = 19
+    TYPE_TEST_TMPLT_ONE = 20
+    
 
     TYPE_CONTAINER_L1 = 101
     TYPE_CONTAINER_L2 = 102
@@ -39,11 +50,15 @@ class  GenericContainer (QtWidgets.QWidget)  :
     TYPE_CONTAINER_R1 = 104
     TYPE_CONTAINER_T1 = 105
     TYPE_CONTAINER_NS = 105
+    TYPE_CONTAINER_NSHOLDER = 106
+    TYPE_CONTAINER_BOT = 107
 
     TYPE_NS_INSTALL_CERT = 201
     TYPE_NS_CLEAR_CONFIG = 202
     TYPE_NS_SELECT_DUT = 203
-
+    TYPE_NS_SELECT_NONE = 204
+    TYPE_NS_REFRESH_BOT = 205
+    
 
     CONTAINER_L1 = 1
     CONTAINER_L2 = 2
@@ -51,10 +66,13 @@ class  GenericContainer (QtWidgets.QWidget)  :
     CONTAINER_R1 = 4
     CONTAINER_T1 = 5
     CONTAINER_NS = 6
+    CONTAINER_NSHOLDER = 7
+    CONTAINER_BOT = 8
 
     widgetTypeMap = [None, TYPE_CONTAINER_L1, CONTAINER_L2,
                         TYPE_CONTAINER_R2, TYPE_CONTAINER_R1,
-                        TYPE_CONTAINER_T1,TYPE_CONTAINER_NS]
+                        TYPE_CONTAINER_T1,TYPE_CONTAINER_NS,
+                     TYPE_CONTAINER_NSHOLDER,TYPE_CONTAINER_BOT]
     
 
     typeMap = dict()
@@ -69,9 +87,13 @@ class  GenericContainer (QtWidgets.QWidget)  :
                              TYPE_SAVE, TYPE_LOAD]
     typeMap[CONTAINER_R1] = [TYPE_BE_OPENSSL_SERVER, TYPE_BE_APACHE_SERVER,
                              TYPE_BE_HTTP_DATA,TYPE_SAVE, TYPE_LOAD]
-    typeMap[CONTAINER_T1] = [TYPE_OCSP_OPENSSL_SERVER, TYPE_CRL_OPENSSL_SERVER]
-    typeMap[CONTAINER_NS] = [TYPE_NS_SELECT_DUT, TYPE_NS_INSTALL_CERT, TYPE_NS_CLEAR_CONFIG]
+    typeMap[CONTAINER_T1] = [TYPE_OCSP_OPENSSL_SERVER, TYPE_CRL_OPENSSL_SERVER,
+                             TYPE_SAVE, TYPE_LOAD]
+    typeMap[CONTAINER_NS] = [TYPE_NS_SELECT_DUT, TYPE_NS_INSTALL_CERT,
+                             TYPE_NS_CLEAR_CONFIG, TYPE_TEST_TMPLT_ONE]
 
+    typeMap[CONTAINER_NSHOLDER] = []
+    typeMap[CONTAINER_BOT] = [TYPE_NS_REFRESH_BOT]
 
 
     saveFileName = dict()
@@ -92,7 +114,10 @@ class  GenericContainer (QtWidgets.QWidget)  :
     colorMap.append(QtGui.QColor(0,100,100,150))
     colorMap.append(QtGui.QColor(0,100,100,150))
     colorMap.append(QtGui.QColor(0,100,100,150))
+    colorMap.append(QtGui.QColor(0,100,100,250))
     colorMap.append(QtGui.QColor(0,100,100,150))
+    colorMap.append(QtGui.QColor(0,100,100,150))
+    colorMap.append(QtGui.QColor(0,50,100,150))
    
 
 
@@ -120,8 +145,8 @@ class  GenericContainer (QtWidgets.QWidget)  :
     nameMap[TYPE_NS_SELECT_DUT]         = 'Select DUT'
     nameMap[TYPE_SAVE]                  = 'Save'
     nameMap[TYPE_LOAD]                  = 'Load'
-
-
+    nameMap[TYPE_TEST_TMPLT_ONE]        = 'TestTemplateOne'
+    nameMap[TYPE_NS_REFRESH_BOT]        = 'Refresh Botlist'
 
 
     def SetupContextMenuDialogMap(self) :
@@ -154,10 +179,22 @@ class  GenericContainer (QtWidgets.QWidget)  :
         self.container_type = containerType
         self.parent = parent
         self.entityList = []
-        self.verticalLayout = QtWidgets.QVBoxLayout(self)
-        self.verticalLayout.setSizeConstraint(0)
-        self.verticalLayout.setSpacing(16)
-        self.verticalLayout.setAlignment(QtCore.Qt.AlignCenter)
+
+        if  self.container_type == GenericContainer.CONTAINER_T1 :
+            self.myLayout = QtWidgets.QHBoxLayout(self)
+        else :
+            self.myLayout = QtWidgets.QVBoxLayout(self)
+            
+        self.myLayout.setSizeConstraint(0)
+
+        if self.container_type == GenericContainer.CONTAINER_BOT :
+            self.myLayout.setSpacing(2)
+            QM = QtCore.QMargins(1,1,1,1)
+            self.myLayout.setContentsMargins(QM)
+        else :
+            self.myLayout.setSpacing(8)
+            
+        self.myLayout.setAlignment(QtCore.Qt.AlignCenter)
         self.backend_obj = None
 
 
@@ -188,17 +225,34 @@ class  GenericContainer (QtWidgets.QWidget)  :
         else :
             return self.parent.GetSess()
 
-    
+
+    def GetCurDUT(self) :
+        return self.parent.GetCurDUT()
+
+
+    def SetCurDUT(self,dut) :
+        self.parent.SetCurDUT(dut)        
+
+    def AddDUT(self,dut) :
+        self.parent.AddDUT(dut)
+
+
+    def AddToSSLBEServerList(self,e) :
+        self.parent.AddToSSLBEServerList(e)
+
 
     def AddEntity(self,entityType) :
         W = CustomWidget.MyRectWidget(entityType)
-        self.verticalLayout.addWidget(W)
+        self.myLayout.addWidget(W)
         W.container = self
         self.entityList.append(W)
         return W
 
 
     def contextMenuEvent(self, event) :
+        if not self.GetCurDUT() :
+            return
+        
         menu = QtWidgets.QMenu(self)
         actionList = []
         typeS = GenericContainer.typeMap[self.container_type]
@@ -217,13 +271,19 @@ class  GenericContainer (QtWidgets.QWidget)  :
             dialog = QtWidgets.QDialog()
 
             if t == GenericContainer.TYPE_BE_OPENSSL_SERVER :
-                w = BEOpenSSLServerDialog(self)
+                w = BEOpenSSLServerDialog.BEOpenSSLServerDialog(self)
 
             elif t == GenericContainer.TYPE_FE_OPENSSL_CLIENT :
                 w = BasicClientDialog(self)
 
+            elif t == GenericContainer.TYPE_OCSP_OPENSSL_SERVER :
+                w = OcspResponderDialog(self)
+
             elif t == GenericContainer.TYPE_NS_SELECT_DUT :
                 w = DUTDialog(self)
+
+            elif t == GenericContainer.TYPE_SSL_VSERVER :
+                w = SSLVServerDialog(self)
 
             elif t == GenericContainer.TYPE_NS_INSTALL_CERT :
                 obj = self.GetBackendObj()
@@ -247,6 +307,7 @@ class  GenericContainer (QtWidgets.QWidget)  :
                 obj.Login()
                 obj.sess.clear_config(level='basic')
 
+
             elif t == GenericContainer.TYPE_SAVE :
                 fname = 'C:\\Users\\ashokes\\Miniconda2\\PyLogs\\' + GenericContainer.saveFileName[self.container_type]
                 saveFp = open(fname,'w')
@@ -256,24 +317,70 @@ class  GenericContainer (QtWidgets.QWidget)  :
                     saveFp.write(s)
                 saveFp.close()
 
+
             elif t == GenericContainer.TYPE_LOAD :
                 fname = 'C:\\Users\\ashokes\\Miniconda2\\PyLogs\\' + GenericContainer.saveFileName[self.container_type]
-                print 'load file name {}'.format(fname)
+                dut = self.GetCurDUT()
+                if dut :
+                    sess = dut.sess
+                else :
+                    sess = None
+                
                 try :
                     with open(fname) as f:
                         for line in f :
-                            o = GenericContainer.FromFileStr(line)
-                            print 'loaded {} {}'.format(o.name,o.ip)
+                            o = GenericContainer.FromFileStr(line,sess)
                             w = self.AddEntity(o.GetType())
                             w.SetBackendObj(o)
+                            o.sigStatus.connect(w.slotStatus)
+
+                            if (o.GetType() == GenericContainer.TYPE_BE_OPENSSL_SERVER) :
+                                self.parent.AddToSSLBEServerList(o)
+                                #o.Connect()
+                                #o.SendOnce()
+                                o.Start()
+                                d = self.GetCurDUT()
+                                if d :
+                                    lR = d.logReader
+                                    if lR :
+                                        lR.RegisterObj(o)
+
+                            
                     w = None
                 except IOError as e :
                     print 'IOError happened'
+
+
+            elif t == GenericContainer.TYPE_TEST_TMPLT_ONE:
+                tt = TestTemplateOne('tone', self.GetSess())
+                tt.Apply()
+
+            elif t == GenericContainer.TYPE_NS_REFRESH_BOT:
+                if self.isProbing :
+                    print 'isProbing set.. not probing'
+                    return
+                self.isProbing = True
+                self.b = BotProber('10.102.28')
+                self.b.probeSig.connect(self.BotProbe)
+                self.b.start()
+                              
             
             if w :
                 w.setupUi(dialog)
                 dialog.exec_()
         
+
+
+    def BotProbe(self, ip) :
+        if  self.container_type != GenericContainer.CONTAINER_BOT :
+            return
+        if len(ip) > 0 :
+            self.lw.addItem(ip)
+        else :
+            self.isProbing = False
+            print 'isProbing is reset'
+
+
 
     def  RegisterContextMenuDialog(self,type,W) :
         GenericContainer.contextMenuDialogMap[type] = W
@@ -281,13 +388,13 @@ class  GenericContainer (QtWidgets.QWidget)  :
 
 
     @classmethod
-    def FromFileStr(cls,jstring) :
+    def FromFileStr(cls,jstring,sess=None) :
         d = json.loads(jstring)
         typ = d['type']
-        print 'Load typ {}'.format(typ)
+        o = None
 
         if typ == GenericContainer.TYPE_SSL_VSERVER  :
-            pass
+            o = SSLVServerEntity.FromFileStr(jstring,sess)
         elif typ == GenericContainer.TYPE_SSL_TCP_VSERVER  :
             pass
         elif typ == GenericContainer.TYPE_HTTP_VSERVER  :
@@ -303,21 +410,13 @@ class  GenericContainer (QtWidgets.QWidget)  :
         elif typ == GenericContainer.TYPE_TCP_SERVICE  :
             pass
         elif typ == GenericContainer.TYPE_BE_OPENSSL_SERVER  :
-            o = BEOpenSSLServerEntity.FromFileStr(jstring)
-
+            o = BEOpenSSLServerDialog.BEOpenSSLServerEntity.FromFileStr(jstring)
         elif typ == GenericContainer.TYPE_BE_APACHE_SERVER  :
             pass
         elif typ == GenericContainer.TYPE_BE_HTTP_DATA  :
             pass
         elif typ == GenericContainer.TYPE_FE_OPENSSL_CLIENT  :
             o = BasicClientEntity.FromFileStr(jstring)
-
-##            o = BasicClientEntity(d['name'],d['ip'],d['port'],
-##                    d['targetip'], d['targetport'],
-##                    d['cert'], d['key'],d['certlink'],
-##                    d['version'],d['cipher'],
-##                    d['reuse'],d['reneg'],d['iter'],d['childcount'],
-##                    d['recboundary'])
         elif typ == GenericContainer.TYPE_FE_CURL_HTTPCLIENT  :
             pass
         elif typ == GenericContainer.TYPE_FE_CURL_SSL_CLIENT  :
@@ -325,7 +424,7 @@ class  GenericContainer (QtWidgets.QWidget)  :
         elif typ == GenericContainer.TYPE_FE_PIPELINE_SSL_CLIENT  :
             pass
         elif typ == GenericContainer.TYPE_OCSP_OPENSSL_SERVER  :
-            pass
+            o = OcspServerEntity.FromFileStr(jstring)
         elif typ == GenericContainer.TYPE_CRL_OPENSSL_SERVER  :
             pass
 
@@ -333,6 +432,25 @@ class  GenericContainer (QtWidgets.QWidget)  :
 
 
 
+
+
+
+class BotProber(QtCore.QThread) :
+    probeSig = QtCore.pyqtSignal(str)
+    
+    def __init__(self,subnet) :
+        super(self.__class__,self).__init__()
+        self.subnet = subnet
+
+    def run(self) :
+        for i in range(2,254) :
+            ip = self.subnet + '.' + str(i)
+            b = BasicClientEntity('basic',ip,2345,'1.1.1.1',1111)
+            if b.Connect(timeout=0.3) :
+                self.probeSig.emit(ip)
+                b.Terminate()
+
+        self.probeSig.emit('')
 
 
 
@@ -357,22 +475,8 @@ class Ui_Form(object):
 if __name__ == "__main__":
     import sys
     app = QtWidgets.QApplication(sys.argv)
-
-    Form = GenericContainer(GenericContainer.CONTAINER_L1)
-    ui = Ui_Form()
-    ui.setupUi(Form)
+    Form = GenericContainer(GenericContainer.CONTAINER_R1)
     Form.show()
-
-    Form2 = GenericContainer(GenericContainer.CONTAINER_L2)
-    ui2 = Ui_Form()
-    ui2.setupUi(Form2)
-    Form2.show()
-    
-    #Form.AddEntity(GenericContainer.TYPE_SSL_VSERVER)
-    #Form.AddEntity(GenericContainer.TYPE_SSL_TCP_VSERVER)
-    #Form.AddEntity(GenericContainer.TYPE_HTTP_VSERVER)
-    #Form.AddEntity(GenericContainer.TYPE_TCP_VSERVER)
-    #Form.show()
     sys.exit(app.exec_())
     
 

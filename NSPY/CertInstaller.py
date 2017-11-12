@@ -1,6 +1,7 @@
 import sys
 import os
 import paramiko
+import re
 sys.path.append('C:\\Users\\ashokes\\Miniconda2\\ashoke')
 sys.path.append('C:\\Users\\ashokes\\Miniconda2\\NSPY')
 sys.path.append('C:\\Users\\ashokes\\Miniconda2\\ashoke-miniconda2\\nitro-python-1.0')
@@ -16,6 +17,7 @@ class  CertInstall :
         self.allCerts = []
         self.entityCerts = []
         self.caCerts = []
+        self.sniCerts = []
 
 
 
@@ -31,12 +33,10 @@ class  CertInstall :
         return ret
 
 
-
-    def  ListEntityCerts(self) :
+    def ListServerCerts(self) :
         files = os.listdir('.')
-        cert_type = ['client', 'Server']
-        #cert_sizes = [1024,2048,4096]
-        cert_sizes = [1024,2048]
+        cert_type = ['Server']
+        cert_sizes = [1024,2048,4096]
         md_types = ['sha1','sha256','sha384']
         cert_list = []
 
@@ -52,34 +52,116 @@ class  CertInstall :
         return cert_list
 
 
-    def ListCACerts(self) :
+    def ListClientCerts(self) :
         files = os.listdir('.')
-        files = set(files)
-
-        cert_type = ['client', 'Server']
+        cert_type = ['client']
         cert_sizes = [1024,2048,4096]
-        #cert_sizes = [1024,2048]
-
         md_types = ['sha1','sha256','sha384']
         cert_list = []
 
-
-        l = []
         for ct in cert_type :
             for cs in cert_sizes :
                 for mt in md_types :
                     prefix = ct + str(cs) + '_' + mt
                     cert = prefix + '_cert.pem'
                     key  = prefix + '_key.pem'
-                    l.append(cert)
-                    l.append(key)
+                    cert_list.append((prefix,cert,key))
 
-        l = set(l)
+        self.entityCerts = cert_list
+        return cert_list
 
-        files = files - l
-        self.caCerts = list(files)
-        self.caCerts = [(s.split('_')[0].split('.')[0],s) for s in self.caCerts]
+
+
+    def ListEntityCerts(self) :
+        files = os.listdir('.')
+        cert_type = ['client', 'Server']
+        cert_sizes = [1024,2048,4096]
+        md_types = ['sha1','sha256','sha384']
+        self.entityCerts = []
+
+        for ct in cert_type :
+            for cs in cert_sizes :
+                for mt in md_types :
+                    prefix = ct + str(cs) + '_' + mt
+                    cert = prefix + '_cert.pem'
+                    key  = prefix + '_key.pem'
+                    self.entityCerts.append((prefix,cert,key))
+
+        return self.entityCerts
+
+
+
+    def ListSNICerts(self) :
+        files = os.listdir('.')
+        self.sniCerts = []
+        
+        for f in files :
+            m = re.match('sni\.(.*)_cert.pem', f)
+            if m and m.lastindex >= 1 :
+                s = m.group(1)
+                p = 'sni_' + s
+                c = 'sni.' + s + '_cert.pem'
+                k = 'sni.' + s + '_key.pem'
+                self.sniCerts.append((p,c,k))
+                
+        return self.sniCerts
+
+
+
+
+    def ListCACerts(self) :
+        self.caCerts = []
+        files = os.listdir('.')
+
+        for f in files :
+            m = re.match('.*((?:CA1024)|(?:CA2048))', f)
+            if m  :
+                p = m.group(0)
+                c = p + '_cert.pem'
+                self.caCerts.append((p,c))
+        
         return self.caCerts
+
+
+
+
+
+
+
+
+##    def ListCACerts(self) :
+##        files = os.listdir('.')
+##        files = set(files)
+##
+##        cert_type = ['client', 'Server']
+##        cert_sizes = [1024,2048,4096]
+##
+##        md_types = ['sha1','sha256','sha384']
+##        cert_list = []
+##
+##
+##        l = []
+##        for ct in cert_type :
+##            for cs in cert_sizes :
+##                for mt in md_types :
+##                    prefix = ct + str(cs) + '_' + mt
+##                    cert = prefix + '_cert.pem'
+##                    key  = prefix + '_key.pem'
+##                    l.append(cert)
+##                    l.append(key)
+##
+##        l = set(l)
+##
+##        print 'ListCACerts : files {}'.format(files)
+##        print 'ListCACerts : l {}'.format(l)
+##        
+##        files = files - l
+##        print 'ListCACerts : files - l {}'.format(files)
+##        
+##        self.caCerts = list(files)
+##        self.caCerts = [(s.split('_')[0].split('.')[0],s) for s in self.caCerts]
+##        return self.caCerts
+
 
 
 
@@ -96,10 +178,11 @@ class  CertInstall :
 
 
 
-    def	AddDelEntityCerts(self,session,isdel=0) :
+    def	AddDelEntityCerts(self,session,certlist,isdel=0) :
         ret = True
         L = []
-        for ec in self.entityCerts :
+        #for ec in self.entityCerts :
+        for ec in certlist :
             ckey = CERTKEY.sslcertkey()
             ckey.certkey = ec[0]
             ckey.cert = ec[1]
@@ -115,6 +198,10 @@ class  CertInstall :
         except NITROEXCEPTION.nitro_exception as e :
             print e.message
             ret = e.errorcode
+        except Exception as e :
+            print e.message
+            ret = e.errorcode
+
 
         return ret
 
@@ -144,7 +231,7 @@ class  CertInstall :
 
 
     def  LinkUnlinkCACerts(self,session,isunlink=0) :
-        tups = [('OneCA2048','RootServer2048CACert'),
+        tups = [('OneCA2048','RootServerCA2048'),
                 ('TwoCA1024','OneCA2048'),
                 ('ThreeCA2048','TwoCA1024') ]
 
@@ -174,10 +261,20 @@ class  CertInstall :
                 ('Server1024_sha384',   'ThreeCA2048'),
                 ('Server2048_sha1',     'ThreeCA2048'),
                 ('Server2048_sha256',   'ThreeCA2048'),
-                ('Server2048_sha384',   'ThreeCA2048')]
-                #('Server4096_sha1',     'ThreeCA2048'),
-                #('Server4096_sha256',   'ThreeCA2048'),
-                #('Server4096_sha384',   'ThreeCA2048')]
+                ('Server2048_sha384',   'ThreeCA2048'),
+                ('Server4096_sha1',     'ThreeCA2048'),
+                ('Server4096_sha256',   'ThreeCA2048'),
+                ('Server4096_sha384',   'ThreeCA2048'),
+                ('client1024_sha1',     'ThreeCA2048'),
+                ('client1024_sha256',   'ThreeCA2048'),
+                ('client1024_sha384',   'ThreeCA2048'),
+                ('client2048_sha1',     'ThreeCA2048'),
+                ('client2048_sha256',   'ThreeCA2048'),
+                ('client2048_sha384',   'ThreeCA2048'),
+                ('client4096_sha1',     'ThreeCA2048'),
+                ('client4096_sha256',   'ThreeCA2048'),
+                ('client4096_sha384',   'ThreeCA2048')]
+
 
 
         links = []
@@ -197,20 +294,21 @@ class  CertInstall :
         except NITROEXCEPTION.nitro_exception as e :
                 ret = e.errorcode
                 print 'Exception happened {}'.format(e.message)
+        except Exception as e :
+                ret = e.errorcode
+                print 'Exception happened {}'.format(e.message)
 
 
     
     def Link(self,sess) :
-        print 'CertInstall Link . log in {}'.format(sess.isLogin())
-        self.ListEntityCerts()
-        self.ListCACerts()
-        print 'CertInstall Link : AddDelEntityCerts'
-        self.AddDelEntityCerts(sess,isdel=0)
-        print 'CertInstall Link : AddDelCACerts'
+        l = self.ListEntityCerts()
+        l = self.ListSNICerts()
+        l = self.ListCACerts()
+        
+        self.AddDelEntityCerts(sess,self.entityCerts,isdel=0)
+        self.AddDelEntityCerts(sess,self.sniCerts,isdel=0)
         self.AddDelCACerts(sess,isdel=0)
-        print 'CertInstall Link : LinkUnlinkCACerts'
         self.LinkUnlinkCACerts(sess,isunlink=0)
-        print 'CertInstall Link : LinkUnlinkEntityCerts'
         self.LinkUnlinkEntityCerts(sess,isunlink=0)
 
 
@@ -221,6 +319,16 @@ class  CertInstall :
         ci.AddDelCACerts(sess,isdel=1)
 
 
+    @classmethod
+    def ListCertsFromNS(self,sess) :
+        try :
+            l = CERTKEY.sslcertkey.get(sess)
+        except NITROEXCEPTION as e :
+            print 'ListCertsFromNS error : {} - {}'.format(e.message,sess)
+            return None
+        
+        ll = [c.certkey for c in l]
+        return ll
 
 
 if __name__ == "__main__":

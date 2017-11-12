@@ -13,7 +13,9 @@ import test_util
 import CertInstaller
 from   nssrc.com.citrix.netscaler.nitro.service.nitro_service  import *
 import TestException
-
+import nssrc.com.citrix.netscaler.nitro.resource.config.ns.nshardware as NSHW
+import nssrc.com.citrix.netscaler.nitro.resource.config.ns.nsip as NS
+import CustomWidget
 
 class DUTDialog(object):
     def  __init__(self,container) :
@@ -143,8 +145,9 @@ class DUTDialog(object):
                 raise TestException(1)
             if not e.Login() :
                 print 'entity connect failed'
-                raise TestException(1)
+                raise TestException.TestException(1)
         except TestException.TestException as e :
+            print 'DUTDialog: handling test exception'
             plt = self.lineedit_nsip.palette()
             brush = QtGui.QBrush(QtGui.QColor(255, 0, 0))
             brush.setStyle(QtCore.Qt.SolidPattern)
@@ -152,7 +155,10 @@ class DUTDialog(object):
             self.lineedit_nsip.setPalette(plt)
             self.lineedit_nsip.cursorPositionChanged.connect(self.cursorPositionChanged)
             return
+        
         self.container.SetBackendObj(e)
+        self.container.AddDUT(e)
+        
         self.dialog.accept()
 
 
@@ -224,18 +230,34 @@ class DUTEntity(object):
         self.pushopt = pushopt
         self.sess = None
         self.ci = None
+        self.hwdescription = None
+        self.vip = None
+        self.snip = None
+        self.logReader = None
+        
+        self.logReader = CustomWidget.LogReaderThread()
+        self.logReader.start()
+
+
+
+    def IsRunning(self) :
+        return False
 
 
     def Login(self) :
         self.sess = test_util.Login(self.nsip)
-        print 'DUTEntity login to {}'.format(self.nsip)
+        if self.sess :
+            d = test_util.GetNSIPS(self.sess)
+            self.vip  = d[NS.nsip.Type.VIP]
+            self.snip = d[NS.nsip.Type.SNIP]
+            
+            hw = NSHW.nshardware.get(self.sess)
+            self.hwdescription = hw[0].hwdescription
         return self.sess
 
 
     def Logout(self) :
-        print 'DUTDialog login {}'.format(self.sess.isLogin())
         self.sess.logout()
-        print 'DUTDialog login {}'.format(self.sess.isLogin())
         self.sess = None
         
 

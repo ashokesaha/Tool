@@ -6,17 +6,24 @@
 #
 # WARNING! All changes made in this file will be lost!
 
+import sys
+sys.path.append('C:\\Users\\ashokes\\Miniconda2\\NSPY')
+sys.path.append('C:\\Users\\ashokes\\Miniconda2\\NSWidgets')
+sys.path.append('C:\\Users\\ashokes\\Miniconda2\\ashoke-miniconda2\\nitro-python-1.0')
+
 import socket
 import struct
 import json
 from PyQt5 import QtCore, QtGui, QtWidgets
 from TestException import *
-import GenericContainer 
+import GenericContainer
+import NestedDict
 
 
 class BasicClientDialog(object):
     def  __init__(self,container) :
         self.container = container
+        self.curDUT = container.GetCurDUT()
 
     def setupUi(self, dialog):
         self.dialog = dialog
@@ -167,6 +174,7 @@ class BasicClientDialog(object):
         self.lineedit_targetport.setPlaceholderText(_translate("BasicClientDialog", "Target port"))
 
 
+
     def  accept(self) :
 
         try :
@@ -178,7 +186,6 @@ class BasicClientDialog(object):
                 print 'entity connect failed'
                 raise TestException(1)
 
-            #e.SendOnce()
 
         except TestException as e :
             plt = self.lineedit_name.palette()
@@ -191,7 +198,9 @@ class BasicClientDialog(object):
 
         ew = self.container.AddEntity(e.entity_type)
         ew.SetBackendObj(e)
+        e.sigStatus.connect(ew.slotStatus)
         self.dialog.accept()
+
 
 
     def acceptSave(self) :
@@ -207,7 +216,6 @@ class BasicClientDialog(object):
         obj.childcount = int(self.lineedit_childcount.text())
         obj.recboundary = self.recboundary_comboBox.currentIndex()
       
-        #obj.SendOnce()
         self.dialog.accept()
  
 
@@ -215,6 +223,10 @@ class BasicClientDialog(object):
     def  reject(self) :
         self.dialog.reject()
 
+
+
+    def GetCurDUT(self) :
+        return self.curDUT
 
 
     def cursorPositionChanged(self,old,new) :
@@ -313,12 +325,18 @@ class BasicClientDialog(object):
 
 
 
-class BasicClientEntity(object):
+
+#-----------------------------------------------------------------------#
+#-----------------------------------------------------------------------#
+class BasicClientEntity(QtCore.QObject):
+    sigStatus = QtCore.pyqtSignal(int)
+        
     def __init__(self,name,ip,port,targetip,targetport,
                  certfile=None,keyfile=None,certchainfile=None,
                  versionfilter=None,cipherfilter=None,
                  reusecount=0,renegcount=0,itercount=0,childcount=1,
                  recboundary=0) :
+        super(self.__class__,self).__init__()
         self.name = name
         self.ip = ip
         self.port = port
@@ -337,10 +355,57 @@ class BasicClientEntity(object):
         self.entity_type = GenericContainer.GenericContainer.TYPE_FE_OPENSSL_CLIENT
         self.isrunning = False
         self.sd = None
+        self.logFp = None
+        self.isRemoved = False
+
+
+    def GetName(self) :
+        return self.name
 
     def GetType(self) :
         return self.entity_type
 
+
+    def OpenLog(self) :
+        name = 'C:\\Users\\ashokes\\Miniconda2\\PyLogs\\'
+        name = name + '_' + self.name + '_' +  str(self.entity_type) + '.log'
+        self.logFp = open(name,'w')
+        return self.logFp
+
+
+    def OpenLogRd(self) :
+        name = 'C:\\Users\\ashokes\\Miniconda2\\PyLogs\\'
+        name = name + '_' + self.name + '_' +  str(self.entity_type) + '.log'
+        self.logFp = open(name,'r')
+        return self.logFp
+
+
+
+    def CloseLog(self) :
+        if self.logFp :
+            self.logFp.close()
+            self.logFp = None
+
+
+    def WriteLog(self,s) :
+        self.logFp.write(s)
+
+
+    def GetSockTimeout(self) :
+        if not self.sd :
+            return 0
+        return self.sd.gettimeout()
+
+
+    def SetSockTimeout(self,to) :
+        if not self.sd :
+            return
+        self.sd.settimeout(to)
+
+
+    def IsRunning(self) :
+        return self.isrunning
+    
 
     def ToJson(self) :
         d = dict()
@@ -368,6 +433,7 @@ class BasicClientEntity(object):
         return s
 
 
+
     def ToFileStr(self) :
         js = self.ToJson()
         d = dict()
@@ -377,8 +443,9 @@ class BasicClientEntity(object):
         return s
 
 
+
     @classmethod
-    def FromFileStr(cls,jstring) :
+    def FromFileStr(cls,jstring,sess=None) :
         d = json.loads(jstring)
         d = json.loads(d['val'])
         o = BasicClientEntity(d['name'],d['ip'],d['port'],
@@ -388,6 +455,22 @@ class BasicClientEntity(object):
                     d['reuse'],d['reneg'],d['iter'],d['childcount'],
                     d['recboundary'])
         return o
+
+
+
+    @classmethod
+    def CheckBots(cls,subnet) :
+        for i in range(2,254) :
+            ip = subnet + '.' + str(i)
+            b = BasicClientEntity('basic',ip,2345,'1.1.1.1',1111)
+            if b.Connect(timeout=0.3) :
+                print '{} Passed'.format(ip)
+                b.Terminate()
+            else :
+                #print '{} Failed'.format(ip)
+                pass
+
+
 
 
     def Connect(self, timeout=2.0) :
@@ -417,19 +500,6 @@ class BasicClientEntity(object):
         return ret
 
 
-    def GetSockTimeout(self) :
-        if not self.sd :
-            return 0
-        return self.sd.gettimeout()
-
-
-    def SetSockTimeout(self,to) :
-        if not self.sd :
-            return
-        self.sd.settimeout(to)
-
-
-
 
     def  ReadOnce(self) :
         try :
@@ -446,10 +516,15 @@ class BasicClientEntity(object):
 
         try :
             data = self.sd.recv(len[0])
+            if data == 'ENDD' :
+                self.Stop()
+                data = None
         except socket.error as e :
             data = None
 
         return data
+
+
 
 
     def  SendOnce(self) :
@@ -480,13 +555,17 @@ class BasicClientEntity(object):
             
             self.SendOnce()
             self.isrunning = True
+            self.sigStatus.emit(1)
         
 
     def Stop(self) :
         if self.isrunning :
-            self.Terminate()
             self.isrunning = False
-
+            while self.isRemoved == False :
+                time.sleep(0.1)
+            
+            self.Terminate()
+            self.sigStatus.emit(0)
 
 
     # Not all bots has meaning for start and stop. Like BE Server. It
@@ -496,19 +575,42 @@ class BasicClientEntity(object):
     def IsStartStop(self) :
         return True
 
+    def IsResults(self) :
+        return True
+
+    def IsProperty(self) :
+        return True
 
 
+    #tw is a TableWidget to be formatted by this object.
+    #The tw is part of a ResultDialog and it calls each object
+    #to format the table accordingly.
+    
+    def PrepareResult(self) :
+        fp = self.OpenLogRd()
+        N = NestedDict.NestedDict()
+        K = ['version','cipher','ServerCert']
+        N.SetKeys(K)
+        N.LoadFileFp(fp)
+        tw = N.GetViewWidget(None)
+        l = []
+        N.Print(N.keys,l)
+        return tw
 
 
 if __name__ == "__main__":
-    import sys
-    b = BasicClientEntity('ashoke','10.102.28.1',4040,'certfile','keyfile',
-                          'certchainfile','TLS1.2','ECDHE')
-    app = QtWidgets.QApplication(sys.argv)
-    dialog = QtWidgets.QDialog()
-    Form = GenericContainer(GenericContainer.CONTAINER_L1)
-    ui = BasicClientDialog(Form)
-    ui.setupUi(dialog)
-    dialog.show()
-    sys.exit(app.exec_())
+
+    while True :
+        BasicClientEntity.CheckBots('10.102.28')
+    
+    
+##    b = BasicClientEntity('ashoke','10.102.28.1',4040,'certfile','keyfile',
+##                          'certchainfile','TLS1.2','ECDHE')
+##    app = QtWidgets.QApplication(sys.argv)
+##    dialog = QtWidgets.QDialog()
+##    Form = GenericContainer(GenericContainer.CONTAINER_L1)
+##    ui = BasicClientDialog(Form)
+##    ui.setupUi(dialog)
+##    dialog.show()
+##    sys.exit(app.exec_())
 

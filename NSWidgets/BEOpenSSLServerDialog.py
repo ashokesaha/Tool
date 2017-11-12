@@ -9,9 +9,11 @@
 import socket
 import struct
 import json
+import time
 from PyQt5            import QtCore, QtGui, QtWidgets
 import GenericContainer
 from TestException    import *
+import NestedDict
 
 class BEOpenSSLServerDialog(object):
     def  __init__(self,container) :
@@ -60,7 +62,7 @@ class BEOpenSSLServerDialog(object):
         self.lineEdit_8.setObjectName("lineEdit_8")
         self.gridLayout.addWidget(self.lineEdit_8, 2, 1, 1, 1)
         self.lineEdit_9 = QtWidgets.QLineEdit(dialog)
-        self.lineEdit_9.setEnabled(False)
+        #self.lineEdit_9.setEnabled(False)
         self.lineEdit_9.setStyleSheet("background-color: rgb(241, 241, 241);")
         self.lineEdit_9.setObjectName("lineEdit_9")
         self.gridLayout.addWidget(self.lineEdit_9, 2, 2, 1, 1)
@@ -102,6 +104,7 @@ class BEOpenSSLServerDialog(object):
         self.lineEdit_5.setPlaceholderText(_translate("dialog", "Record size"))
         self.lineEdit_6.setPlaceholderText(_translate("dialog", "Inter Record Delay"))
         self.lineEdit_7.setPlaceholderText(_translate("dialog", "Cipher Filter"))
+        self.lineEdit_9.setPlaceholderText(_translate("dialog", "toPort"))
         self.checkBox.setText(_translate("dialog", "Reuse"))
         self.checkBox_2.setText(_translate("dialog", "Reneg"))
         self.checkBox_3.setText(_translate("dialog", "CAuth"))
@@ -109,17 +112,38 @@ class BEOpenSSLServerDialog(object):
 
 
     def  accept(self) :
-
+        eList = []
         try :
-            e = self.BuildEntity()
-            if not e :
-                print 'entity creation failed'
-                raise TestException(1)
-            if not e.Connect() :
-                print 'entity connect failed'
-                raise TestException(1)
+            try :
+                fromPort = int(self.lineEdit_3.text())
+            except ValueError as e :
+                print 'Bad fromPort'
+                raise TestException()
 
-            e.SendOnce()
+            try :
+                toPort = int(self.lineEdit_9.text())
+            except ValueError as e :
+                print 'Bad toPort'
+                toPort = fromPort
+            
+            print 'fromPort {}  toPort {}'.format(fromPort,toPort)
+            if fromPort > toPort :
+                print 'invalid toPort'
+                raise TestException()
+
+
+            while fromPort <= toPort :    
+                e = self.BuildEntity(fromPort)
+                fromPort += 1
+                if not e :
+                    print 'entity creation failed'
+                    continue
+                if not e.Connect() :
+                    print 'entity connect failed'
+                    continue
+
+                #e.SendOnce()
+                eList.append(e)
 
         except TestException as e :
             plt = self.lineEdit.palette()
@@ -130,11 +154,19 @@ class BEOpenSSLServerDialog(object):
             self.lineEdit.cursorPositionChanged.connect(self.cursorPositionChanged)
             return
 
-        ew = self.container.AddEntity(e.entity_type)
-        ew.SetBackendObj(e)
+        for e in eList :
+            ew = self.container.AddEntity(e.entity_type)
+            ew.SetBackendObj(e)
+            self.AddToSSLBEServerList(e)
+            e.sigStatus.connect(ew.slotStatus)
+            e.Start()
+
         self.dialog.accept()
         
 
+
+    def AddToSSLBEServerList(self,e) :
+        self.container.AddToSSLBEServerList(e)
 
 
     def acceptSave(self) :
@@ -168,10 +200,19 @@ class BEOpenSSLServerDialog(object):
 
 
 
-    def BuildEntity(self) :
-        entity = BEOpenSSLServerEntity(self.lineEdit.text(),
+    def BuildEntity(self, port = 0) :
+        if port :
+            portStr = str(port)
+            nameStr = self.lineEdit.text() + '_' + portStr
+        else :
+            portStr = self.lineEdit_3.text()
+            nameStr = self.lineEdit.text()
+        
+        entity = BEOpenSSLServerEntity(#self.lineEdit.text(),
+                                        nameStr,
                                        self.lineEdit_2.text(),
-                                       self.lineEdit_3.text(),
+                                       portStr,
+                                       #self.lineEdit_3.text(),
                                        self.lineEdit_4.text(),
                                        self.lineEdit_5.text(),
                                        self.lineEdit_6.text(),
@@ -221,12 +262,16 @@ class BEOpenSSLServerDialog(object):
 #
 #
 #
-class BEOpenSSLServerEntity(object):
+class BEOpenSSLServerEntity(QtCore.QObject):
+    sigStatus = QtCore.pyqtSignal(int)
+
     #=====================================================#
     def __init__(self,name,ip,port,resp_size,record_size,delay,cipher_filter,reuse,reneg,cauth) :
+        super(self.__class__,self).__init__()
         self.name = name
         self.ip = ip
         self.listen_port = port
+        self.type = 'SSL'
         self.resp_size = resp_size
         self.record_size = record_size
         self.inter_record_delay = delay
@@ -237,11 +282,18 @@ class BEOpenSSLServerEntity(object):
         self.inter_record_delay = delay
         self.entity_type = GenericContainer.GenericContainer.TYPE_BE_OPENSSL_SERVER
         self.sd = None
+        self.isrunning = False
+        self.isRemoved = False
 
 
     #=====================================================#
     def GetType(self) :
         return self.entity_type
+
+
+    def GetName(self) :
+        return self.name
+
 
 
     #=====================================================#
@@ -301,12 +353,13 @@ class BEOpenSSLServerEntity(object):
             if not data :
                 ret = False
                 return ret
-
+            
             if not data.__eq__('howiwonder'):
                 ret = False
                 return ret
             
         except socket.error as e :
+            print 'BEOpenSSLServerEntity: Connect. Exception happened'
             ret = False
 
         return ret
@@ -331,7 +384,6 @@ class BEOpenSSLServerEntity(object):
         except socket.error as e :
             data = None
 
-        print data                        
         return data
 
 
@@ -352,11 +404,96 @@ class BEOpenSSLServerEntity(object):
         self.sd = None
 
 
+    def GetSockTimeout(self) :
+        if not self.sd :
+            return 0
+        return self.sd.gettimeout()
+
+
+    def SetSockTimeout(self,to) :
+        if not self.sd :
+            return
+        self.sd.settimeout(to)
+
+
+
     # Not all bots has meaning for start and stop. Like BE Server. It
     # is always on. Only way to disble it is to delete it.
     # But client entities has start stop.
     def IsStartStop(self) :
-        return False
+        return True
+
+    def IsRunning(self) :
+        return self.isrunning
+
+    def IsResults(self) :
+        return True
+
+    def IsProperty(self) :
+        return True
+
+
+    def Start(self) :
+        if not self.isrunning :
+            if not self.sd :
+                self.Connect()
+            self.SendOnce()
+            self.isrunning = True
+            self.sigStatus.emit(1)
+
+        
+
+    def Stop(self) :
+        if self.isrunning :
+            self.isrunning = False
+            while self.isRemoved == False :
+                time.sleep(0.1)
+            
+            self.Terminate()
+            self.sigStatus.emit(0)
+
+
+    def OpenLog(self) :
+        name = 'C:\\Users\\ashokes\\Miniconda2\\PyLogs\\'
+        name = name + '_' + self.name + '_' +  str(self.entity_type) + '.log'
+        self.logFp = open(name,'w')
+        return self.logFp
+
+
+    def OpenLogRd(self) :
+        name = 'C:\\Users\\ashokes\\Miniconda2\\PyLogs\\'
+        name = name + '_' + self.name + '_' +  str(self.entity_type) + '.log'
+        self.logFp = open(name,'r')
+        print 'opening log {}'.format(name)
+        return self.logFp
+
+
+    def CloseLog(self) :
+        if self.logFp :
+            self.logFp.close()
+            self.logFp = None
+
+
+    def WriteLog(self,s) :
+        self.logFp.write(s)
+
+
+
+
+    #tw is a TableWidget to be formatted by this object.
+    #The tw is part of a ResultDialog and it calls each object
+    #to format the table accordingly.
+    
+    def PrepareResult(self) :
+        fp = self.OpenLogRd()
+        N = NestedDict.NestedDict()
+        K = ['version','cipher','ServerCert','ClientCert','ECC']
+        N.SetKeys(K)
+        N.LoadFileFp(fp)
+        tw = N.GetViewWidget(None)
+        l = []
+        N.Print(N.keys,l)
+        return tw
 
 
 

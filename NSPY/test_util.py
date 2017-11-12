@@ -1,10 +1,12 @@
-import nssrc.com.citrix.netscaler.nitro.exception.nitro_exception as NITROEXCEPTION
+import  sys
+sys.path.append('C:\\Users\\ashokes\\Miniconda2\\NSPY')
+sys.path.append('C:\\Users\\ashokes\\Miniconda2\\NSWidgets')
+sys.path.append('C:\\Users\\ashokes\\Miniconda2\\ashoke-miniconda2\\nitro-python-1.0')
 
-from nssrc.com.citrix.netscaler.nitro.resource.config.basic.service import service as NSSVC
+import nssrc.com.citrix.netscaler.nitro.exception.nitro_exception as NITROEXCEPTION
 from nssrc.com.citrix.netscaler.nitro.resource.config.ssl.sslcipher import sslcipher as SSLCIPHER
 from nssrc.com.citrix.netscaler.nitro.resource.config.ssl.sslservice import sslservice as SSLSVC
 from nssrc.com.citrix.netscaler.nitro.resource.config.ssl.sslciphersuite import sslciphersuite as SSLCIPHERSUITE
-
 import nssrc.com.citrix.netscaler.nitro.resource.config.lb.lbvserver
 import nssrc.com.citrix.netscaler.nitro.service.nitro_service as NITROSVC
 import nssrc.com.citrix.netscaler.nitro.resource.config.ns.nsip as NS
@@ -70,16 +72,18 @@ def	Login(nsip,name='nsroot',passwd='nsroot',timeout=5) :
                         raise TestException(102)
                 
         except requests.ConnectionError as e :
+                print 'e.message'
                 ns = None
         except nitro_exception as e :
+                print 'e.message'
                 ns = None
         except TestException as e:
+                print 'e.message'
                 ns = None
         except ValueError as e:
+                print 'e.message'
                 ns = None
-
-
-	return ns
+        return ns
 
 
 
@@ -87,11 +91,10 @@ def	Login(nsip,name='nsroot',passwd='nsroot',timeout=5) :
 # Return one NSIP,SNIP,VIP in a dictionary keys by ip type string
 def	GetIPS(session) :
         ret =  True
-	ips = NS.nsip.get(session)
-	d = {x.type:x.ipaddress for x in ips}
-	#print d
+        ips = NS.nsip.get(session)
+        d = {x.type:x.ipaddress for x in ips}
 
-	if  NS.nsip.Type.NSIP not in d:
+        if  NS.nsip.Type.NSIP not in d:
                 print 'NSIP not found'
                 return False
         
@@ -105,13 +108,22 @@ def	GetIPS(session) :
 
         
 
-	DUT.NSIP 	= d[NS.nsip.Type.NSIP]
-	DUT.VIP 	= d[NS.nsip.Type.VIP]
-	DUT.SNIP 	= d[NS.nsip.Type.SNIP]
-	if not DUT.SNIP :
+        DUT.NSIP 	= d[NS.nsip.Type.NSIP]
+        DUT.VIP 	= d[NS.nsip.Type.VIP]
+        DUT.SNIP 	= d[NS.nsip.Type.SNIP]
+        if not DUT.SNIP :
                 DUT.SNIP = d[NS.nsip.Type.MIP]
         
-	return d
+        return d
+
+
+def	GetNSIPS(session) :
+        ret =  True
+        ips = NS.nsip.get(session)
+        d = {x.type:x.ipaddress for x in ips}
+        return d
+
+
 
 
 
@@ -200,40 +212,44 @@ def	LinkUnlinkCertList(session,linklist,isunlink=0) :
 
 #def AddDelSSLVserver(session,vsrvrlist,isdel=0) :
 def AddDelVserverX(session,vsrvrlist,isdel=0) :
-	l = []
-	for tup in vsrvrlist :
+        l = []
+        for tup in vsrvrlist :
                 sslv = LBVSERVER.lbvserver()
-		sslv.name = tup[0]
-		sslv.servicetype = tup[1]
-		sslv.port = tup[2]
-		sslv.ipv46 = DUT.VIP
+                sslv.name = tup[0]
+                sslv.servicetype = tup[1]
+                sslv.port = tup[2]
+                sslv.ipv46 = DUT.VIP
 	
-		if (isdel == 0) :
-			LBVSERVER.lbvserver.add(session,sslv)
-			l.append(sslv)
-		else : 
-			LBVSERVER.lbvserver.delete(session,sslv)
+                if (isdel == 0) :
+                        LBVSERVER.lbvserver.add(session,sslv)
+                        l.append(sslv)
+                else : 
+                        LBVSERVER.lbvserver.delete(session,sslv)
 	
-	return l
+        return l
 
 
 
 def AddDelVserver(session,vsrvrlist,isdel=0) :
-	l = []
-	for tup in vsrvrlist :
+        l = []
+        print 'AddDelVserver: num of vservers {}'.format(len(vsrvrlist))
+        for tup in vsrvrlist :
                 sslv = LBVSERVER.lbvserver()
-		sslv.name = tup[0]
-		sslv.servicetype = tup[1]
-		sslv.port = tup[2]
-		sslv.ipv46 = DUT.VIP
+                sslv.name = tup[0]
+                sslv.servicetype = tup[1]
+                sslv.port = tup[2]
+                sslv.ipv46 = tup[3]
                 l.append(sslv)
                 
-	if (isdel == 0) :
-		LBVSERVER.lbvserver.add(session,l)
-	else : 
-		LBVSERVER.lbvserver.delete(session,l)
+        if (isdel == 0) :
+                try :
+                        LBVSERVER.lbvserver.add(session,l)
+                except NITROEXCEPTION as e :
+                        print 'AddDelVserver: {}'.format(e.message)
+        else : 
+                LBVSERVER.lbvserver.delete(session,l)
 	
-	return l
+        return l
 
 
 
@@ -253,6 +269,105 @@ def BindUnbindOneVsrvrCKey(session,server,certkey,isunbind=0,issni=False,isca=Fa
 
 
 
+
+
+
+
+def BindUnbindServerCert(sess, vserver,certkey,isunbind=False) :
+        ret = 0
+        try :
+                vckey = VsrvrCKeyBdg()
+                vckey.vservername = vserver 
+                vckey.certkeyname = certkey
+                if isunbind :
+                        VsrvrCKeyBdg.delete(sess,vckey)
+                else :
+                        VsrvrCKeyBdg.add(sess,vckey)
+        except NITROEXCEPTION.nitro_exception as e :
+                print 'BindUnbindServerCert Failed: {0}'.format(e.message)
+                ret = e.errorcode
+
+        return ret
+        
+
+
+def BindUnbindSniCert(sess, vserver,certlist,isunbind=False) :
+	ret = 0
+	ckeylist = []
+	for c in certlist :
+		vckey = VsrvrCKeyBdg()
+		vckey.vservername = vserver 
+		vckey.certkeyname = c
+		#vckey.snicert = True
+		vckey.snicert = 'true'
+		ckeylist.append(vckey)
+
+	if len(ckeylist) == 1 :
+		ckeylist = ckeylist[0]
+	
+	try :
+		if isunbind :
+			VsrvrCKeyBdg.delete(sess,ckeylist)
+		else :
+			VsrvrCKeyBdg.add(sess,ckeylist)
+	except NITROEXCEPTION.nitro_exception as e :
+		print 'BindUnbindSniCert: {}'.format(e.message)
+		ret = e.errorcode
+	except Exception as e :
+		print 'BindUnbindSniCert: {}'.format(e.message)
+		ret = e.errorcode
+
+	return ret
+	
+
+
+def BindUnbindCACert(sess, vserver,certlist,isunbind=False) :
+	ret = 0
+	ckeylist = []
+	for c in certlist :
+		vckey = VsrvrCKeyBdg()
+		vckey.vservername = vserver 
+		vckey.certkeyname = c
+		vckey.ca = 'true'
+		ckeylist.append(vckey)
+
+	if len(ckeylist) == 1 :
+		ckeylist = vckey
+
+	try :
+		if isunbind :
+			VsrvrCKeyBdg.delete(sess,ckeylist)
+		else :
+			VsrvrCKeyBdg.add(sess,ckeylist)
+	except NITROEXCEPTION.nitro_exception as e :
+		print 'BindUnbindCACert: {0}'.format(e.message)
+		ret = e.errorcode
+
+	return ret
+
+
+
+def GetVsrvrCertkeyBindings(sess,vsrvrname,servercertlist,snicertlist,cacertlist) :
+	ret = 0
+	try :
+		ll = VsrvrCKeyBdg.get(sess,vsrvrname)
+		for l in ll :
+			if l.ca :
+                                if len(l.certkeyname) > 0 :
+                                        cacertlist.append(l.certkeyname)
+			elif l.snicert :
+                                if len(l.certkeyname) > 0 :
+                                        snicertlist.append(l.certkeyname)
+			else :
+                                if len(l.certkeyname) > 0 :
+                                        servercertlist.append(l.certkeyname)
+	except NITROEXCEPTION.nitro_exception as e :
+		print 'Nitro exception:::: {0}'.format(e.message)
+		ret = e.errorcode
+	return ret
+
+
+
 def BindUnbindVsrvrCKey(session) :
 	ret = 0
 	try :
@@ -266,10 +381,14 @@ def BindUnbindVsrvrCKey(session) :
 
 
 
+
+
+
+
 def BindUnbindOneVsrvrSvc(session,server,service,isunbind=0) :
 	ret = 0
 	try :
-        	B = lbvserver_service_binding()
+		B = lbvserver_service_binding()
 		B.name = server
 		B.servicename = service
 		if(isunbind == 0) :
@@ -285,30 +404,27 @@ def BindUnbindOneVsrvrSvc(session,server,service,isunbind=0) :
 
 
 
-
 def BindUnbindVsrvrSvc(session,isunbind=0) :
 	for (v,s) in TestVsrvrSvcBindings :
 		ret = BindUnbindOneVsrvrSvc(session,v,s,isunbind)
 	return ret
 
 
-
 def BindUnbindVsrvrSvcListX(session,srvrList,svcList,isunbind=0) :
-       	for (x,y) in zip(srvrList,svcList) :
-              	BindUnbindOneVsrvrSvc(session,x.name,y.name,isunbind=0)
-
+	for (x,y) in zip(srvrList,svcList) :
+		BindUnbindOneVsrvrSvc(session,x.name,y.name,isunbind=0)
 
 
 
 def BindUnbindVsrvrSvcList(session,srvrList,svcList,isunbind=0) :
-        l = []
-       	for (x,y) in zip(srvrList,svcList) :
-                B = lbvserver_service_binding()
+	l = []
+	for (x,y) in zip(srvrList,svcList) :
+		B = lbvserver_service_binding()
 		B.name = x.name
 		B.servicename = y.name
-                l.append(B)
+		l.append(B)
 
-        if(isunbind == 0) :
+	if(isunbind == 0) :
 		B.add(session,l)
 	else :
 		B.delete(session,l)
@@ -316,23 +432,57 @@ def BindUnbindVsrvrSvcList(session,srvrList,svcList,isunbind=0) :
 	return l
 
 
-			
 
 
-def	GetAllCipherSuites(session) :
+
+def     GetAllCipherSuites(session) :
 	c = [C.ciphername for C in SSLCIPHERSUITE.get(session) if (C.ciphername.find('ECDSA') == -1)]
-        clist = [x  for x in c if(x.find('-EXP-') == -1) if(x.find('-EXPORT-') == -1)]
-        return clist
-
-
+	clist = [x  for x in c if(x.find('-EXP-') == -1) if(x.find('-EXPORT-') == -1)]
+	return clist
 
 
 def     GetCurlClients() :
-        clist = ['10.102.28.71']
-        return clist
+	clist = ['10.102.28.71']
+	return clist
 
 
 
+
+
+if __name__ == "__main__":
+        sess = Login('10.102.28.201')
+        if not sess :
+                print 'failed to login :'
+                exit(0)
+
+        snicertlist = ['news.abc.com','sports.abc.com',
+                    'star.abc.com','star.news.abc.com','star.sports.abc.com']
+        cacertlist = ['RootServer2048CACert','TwoCA1024','OneCA2048',
+                      'ThreeCA2048']
+        CL = ['OneCA2048']
+        oneca = ['OneCA2048']
+        servercert = 'Server1024_sha1'
+        
+##from nssrc.com.citrix.netscaler.nitro.resource.config.ssl.sslvserver_sslcertkey_binding import sslvserver_sslcertkey_binding as VsrvrCKeyBdg
+        vckey = VsrvrCKeyBdg()
+        vckey.vservername = 'one'
+        vckey.certkeyname = 'TwoCA1024'
+##        vckey.ca = True
+##        VsrvrCKeyBdg.add(sess,vckey)
+
+        vckey.ca = 'True'
+        VsrvrCKeyBdg.delete(sess,vckey)
+
+
+##        BindUnbindSniCert(sess, 'one', snicertlist,isunbind=True)
+##        BindUnbindCACert(sess, 'one', cacertlist,isunbind=True)
+##        BindUnbindServerCert(sess, 'one', servercert,isunbind=True)
+        
+##        BindUnbindSniCert(sess, 'one', snicertlist,isunbind=False)
+##        BindUnbindCACert(sess, 'one', cacertlist,isunbind=False)
+##        BindUnbindServerCert(sess, 'one', servercert,isunbind=False)
+##        BindUnbindCACert(sess, 'one', CL,isunbind=True)
+        
 
 
 #sess = Login('10.102.28.201')

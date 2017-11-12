@@ -32,6 +32,7 @@ class CertBindingDialog(object):
         self.verticalLayout = QtWidgets.QVBoxLayout(self.widget)
         self.verticalLayout.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout.setObjectName("verticalLayout")
+        
 
         self.server_cert = ListWidgetDD(1,self.widget)
         self.server_cert.setObjectName("server_cert")
@@ -53,6 +54,7 @@ class CertBindingDialog(object):
         self.ca_cert.setDragEnabled(True)
         self.verticalLayout.addWidget(self.ca_cert)
         
+
         
         self.listwidget_certlist = QtWidgets.QListWidget(Form)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
@@ -61,6 +63,7 @@ class CertBindingDialog(object):
         sizePolicy.setHeightForWidth(self.listwidget_certlist.sizePolicy().hasHeightForWidth())
         self.listwidget_certlist.setSizePolicy(sizePolicy)
         self.listwidget_certlist.setObjectName("listwidget_certlist")
+
         item = QtWidgets.QListWidgetItem()
         self.listwidget_certlist.addItem(item)
         item = QtWidgets.QListWidgetItem()
@@ -87,11 +90,13 @@ class CertBindingDialog(object):
 
 
 
+
     def retranslateUi(self, Form):
         _translate = QtCore.QCoreApplication.translate
         Form.setWindowTitle(_translate("Form", "Form"))
         __sortingEnabled = self.listwidget_certlist.isSortingEnabled()
         self.listwidget_certlist.setSortingEnabled(False)
+
         item = self.listwidget_certlist.item(0)
         item.setText(_translate("Form", "One"))
         item = self.listwidget_certlist.item(1)
@@ -116,11 +121,13 @@ class CertBindingDialog(object):
 
 
 class ListWidgetDD(QtWidgets.QListWidget) :
+    
     def __init__(self,maxe,parent) :
         self.certList = []
         self.maxe = maxe
         super(ListWidgetDD, self).__init__(parent)
-        
+
+
     def dragEnterEvent(self,e) :
         if self.maxe > 0 :
             if self.count() >= self.maxe :
