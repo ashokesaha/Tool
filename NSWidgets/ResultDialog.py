@@ -20,12 +20,6 @@ class ResultDialog(object):
         self.horizontalLayout = QtWidgets.QHBoxLayout(Dialog)
         self.horizontalLayout.setObjectName("horizontalLayout")
 
-##        self.tableWidget = QtWidgets.QTableWidget(Dialog)
-##        self.tableWidget.setObjectName("tableWidget")
-##        self.tableWidget.setColumnCount(0)
-##        self.tableWidget.setRowCount(0)
-##        self.horizontalLayout.addWidget(self.tableWidget)
-
         obj = self.container.GetBackendObj()
         tw = obj.PrepareResult()
         self.tableWidget = tw

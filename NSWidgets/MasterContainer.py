@@ -16,10 +16,88 @@ from   CounterList import *
 from   CustomWidget import *
 import GenericContainer
 import TestException
+import AllocFree
+import nssrc.com.citrix.netscaler.nitro.resource.config.ssl.sslcipher as CIPHER
+import nssrc.com.citrix.netscaler.nitro.resource.config.ssl.sslciphersuite as CIPHERSUITE
+
+
+
+
+class LogReaderThread(QtCore.QThread) :
+    
+    def __init__(self) :
+        super(self.__class__,self).__init__()
+        self.objList = []
+        self.sleeptime = 1.0
+
+
+    def RegisterObj(self, obj) :
+        obj.isRemoved = False
+        self.objList.append(obj)
+
+
+    def RemoveObj(self, obj) :
+        if obj in self.objList :
+            self.objList.remove(obj)
+        obj.isRemoved = True
+
+
+    def SetSleepTime(self, t) :
+        self.sleeptime = float(t)
+
+
+    def run(self) :
+        while True :
+            for o in self.objList :
+                if not o.IsRunning() :
+                    self.RemoveObj(o)
+                    while not o.isRemoved :
+                        QtCore.QThread.sleep(0.25)
+                    continue
+                t = o.GetSockTimeout()
+                o.SetSockTimeout(0.1)
+                s = o.ReadOnce()
+                o.SetSockTimeout(t)
+
+            QtCore.QThread.sleep(1)
+
+
+
+
+class UpDownThread(QtCore.QThread) :
+    updownSignal = QtCore.pyqtSignal(int)
+    
+    def __init__(self) :
+        super(self.__class__,self).__init__()
+        self.containerList = []
+        self.sleeptime = 3
+
+    def AddContainer(self,o) :
+        self.containerList.append(o)
+
+    def RemoveContainer(self,o) :
+        self.containerList.remove(o)
+    
+    def run(self) :
+        while True :
+            for c in self.containerList :
+                for e in c.entityList :
+                    o = e.GetBackendObj()
+                    o.Refresh()
+            
+            self.updownSignal.emit(1)
+            QtCore.QThread.sleep(self.sleeptime)
+
 
 
 
 class MasterContainer(QtWidgets.QWidget):
+
+    pollThread = LogReaderThread()
+    pollThread.start()
+    updownThread = UpDownThread()
+    updownThread.start()
+
 
     def  __init__(self, parent=None):
         super(self.__class__,self).__init__(parent)
@@ -98,22 +176,22 @@ class MasterContainer(QtWidgets.QWidget):
         self.verticalLayout.addWidget(self.NSHOLDER)
 
 
-        self.NS1 = NSWidget()
+        self.NS1 = NSWidget(ccode=1)
         self.NS1.setObjectName("NS1")
         self.NS1.SetContainer(self)
         self.NSHOLDER.verticalLayout.addWidget(self.NS1)
  
-        self.NS2 = NSWidget()
+        self.NS2 = NSWidget(ccode=2)
         self.NS2.setObjectName("NS2")
         self.NS2.SetContainer(self)
         self.NSHOLDER.verticalLayout.addWidget(self.NS2)
 
-        self.NS3 = NSWidget()
+        self.NS3 = NSWidget(ccode=3)
         self.NS3.setObjectName("NS3")
         self.NS3.SetContainer(self)
         self.NSHOLDER.verticalLayout.addWidget(self.NS3)
 
-        self.NS4 = NSWidget()
+        self.NS4 = NSWidget(ccode=4)
         self.NS4.setObjectName("NS4")
         self.NS4.SetContainer(self)
         self.NSHOLDER.verticalLayout.addWidget(self.NS4)
@@ -135,6 +213,7 @@ class MasterContainer(QtWidgets.QWidget):
         self.R2.setSizePolicy(sizePolicy)
         self.R2.setStyleSheet("background-color: rgb(170, 170, 170);")
         self.R2.setObjectName("R2")
+        self.R2.setAcceptDrops(True)
         self.T1_NS.raise_()
         self.horizontalLayout.addWidget(self.R2)
 
@@ -152,23 +231,46 @@ class MasterContainer(QtWidgets.QWidget):
 
 
         self.B = GenericContainer.GenericContainer(GenericContainer.GenericContainer.CONTAINER_BOT,self)
+
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(1)
         sizePolicy.setVerticalStretch(1)
         sizePolicy.setHeightForWidth(self.B.sizePolicy().hasHeightForWidth())
         self.B.setSizePolicy(sizePolicy)
-        self.B.setStyleSheet("background-color: rgb(50, 170, 170);")
+        self.B.setStyleSheet("background-color: rgb(200, 200, 200);")
         self.B.setObjectName("B")
         self.horizontalLayout.addWidget(self.B)
-        
-        self.B.lw = QtWidgets.QListWidget(None)
-        self.B.lw.setBackgroundRole(QtGui.QPalette.NoRole)
-        self.B.myLayout.addWidget(self.B.lw)
-        self.B.lw.addItem('one')
-        self.B.lw.addItem('two')
-        self.B.isProbing = False
 
-  
+
+        sizePolicy2 = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.MinimumExpanding)        
+        sizePolicy2.setVerticalStretch(5)
+        sizePolicy2.setHorizontalStretch(1)
+        self.B.lw = QtWidgets.QListWidget(None)
+        self.B.lw.setSortingEnabled(True)
+        self.B.lw.setSpacing(2)
+        self.B.isProbing = False
+        self.B.lw.setSizePolicy(sizePolicy2)
+
+
+        sizePolicy3 = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Minimum)        
+        sizePolicy.setHorizontalStretch(1)
+        self.B.le = QtWidgets.QLineEdit(None)
+        self.B.le.setSizePolicy(sizePolicy3)
+
+
+        sizePolicy4 = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Minimum)
+        sizePolicy4.setHorizontalStretch(1)
+        self.B.pb = QtWidgets.QPushButton(None)
+        self.B.pb.setSizePolicy(sizePolicy4)
+        self.B.pb.setText('Provision')
+
+        self.B.myLayout.setSpacing(10)
+        self.B.myLayout.addWidget(self.B.lw)
+        self.B.myLayout.addWidget(self.B.le)
+        self.B.myLayout.addWidget(self.B.pb)
+        self.B.le.raise_()
+
+        self.B.pb.clicked.connect(self.ProvisionIP)
 
         self.retranslateUi(Form)
         QtCore.QMetaObject.connectSlotsByName(Form)
@@ -184,6 +286,20 @@ class MasterContainer(QtWidgets.QWidget):
         self.T1.setAccessibleName(_translate("Form", "T1"))
         self.R2.setAccessibleName(_translate("Form", "R2"))
         self.R1.setAccessibleName(_translate("Form", "R1"))
+
+        self.updownThread.updownSignal.connect(self.UpDownUpdate)
+        self.updownThread.AddContainer(self.L2)
+        self.updownThread.AddContainer(self.R2)
+
+
+
+    def UpDownUpdate(self, i) :
+        for w in self.L2.entityList :
+            w.update()
+            
+        for w in self.R2.entityList :
+            w.update()
+
 
 
     def GetCurDUT(self) :
@@ -251,6 +367,14 @@ class MasterContainer(QtWidgets.QWidget):
         self.verticalLayout.replaceWidget(self.NS, w)
 
 
+    def GetDUTByIP(self,nsip) :
+        for dut in self.DUTList :
+            if dut.nsip == nsip :
+                return dut
+
+        return None
+
+
 
     def GetCounterWidget(self) :
         NSCounterList.Init()
@@ -269,12 +393,46 @@ class MasterContainer(QtWidgets.QWidget):
 
 
 
+    def ProvisionIP(self, b) :
+        print 'ProvisionIP called with {}'.format(self.B.le.text())
+        ip = self.B.le.text()
+        if not ip :
+            return
+        if len(ip) == 0 :
+            return
+
+        try :
+            clnt = paramiko.client.SSHClient()
+            clnt.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            clnt.connect(ip, username='root', password='freebsd', timeout=2.0)
+            sftp = clnt.open_sftp()
+            d = '/tmp/botify'
+            s = 'C:\\Users\\ashokes\\Miniconda2\\PyLogs\\botify'
+            sftp.put(s,d)
+
+            cmdstr  = 'chmod +x /tmp/botify; /tmp/botify'
+            fin,fout,ferr = clnt.exec_command(cmdstr)
+
+            print 'Printing output :'
+            for l in fout :
+                print l
+            print 'Printing error :'
+            for l in ferr :
+                print l
+            
+        except socket.error :
+            print 'Failed to provision {}'.format(ip)
+            return
+        
+
 
 if __name__ == "__main__":
     import sys
     app = QtWidgets.QApplication(sys.argv)
     Form = MasterContainer()
-    ui = Ui_Form()
     Form.setupUi()
     Form.show()
     sys.exit(app.exec_())
+
+
+

@@ -11,15 +11,26 @@ sys.path.append('C:\\Users\\ashokes\\Miniconda2\\NSPY')
 from   PyQt5 import QtCore, QtGui, QtWidgets
 import test_util
 import CertInstaller
-from   nssrc.com.citrix.netscaler.nitro.service.nitro_service  import *
 import TestException
+import CustomWidget
+import MasterContainer
+import AllocFree
+
+from   nssrc.com.citrix.netscaler.nitro.service.nitro_service  import *
 import nssrc.com.citrix.netscaler.nitro.resource.config.ns.nshardware as NSHW
 import nssrc.com.citrix.netscaler.nitro.resource.config.ns.nsip as NS
-import CustomWidget
+import nssrc.com.citrix.netscaler.nitro.resource.config.ssl.sslcertkey as CERTKEY
+import nssrc.com.citrix.netscaler.nitro.resource.config.ssl.sslvserver_sslcertkey_binding
+import nssrc.com.citrix.netscaler.nitro.resource.config.ssl.sslcipher as CIPHER
+import nssrc.com.citrix.netscaler.nitro.resource.config.ssl.sslciphersuite as CIPHERSUITE
+
 
 class DUTDialog(object):
     def  __init__(self,container) :
         self.container = container
+        self.ccode = container.ccode
+        self.workerThread = None
+        self.workerObj = None
 
     
     def setupUi(self, Dialog):
@@ -38,7 +49,6 @@ class DUTDialog(object):
         self.verticalLayout = QtWidgets.QVBoxLayout()
         self.verticalLayout.setSizeConstraint(QtWidgets.QLayout.SetMaximumSize)
         self.verticalLayout.setObjectName("verticalLayout")
-
 
         
         self.gridLayout = QtWidgets.QGridLayout()
@@ -85,12 +95,10 @@ class DUTDialog(object):
         sizePolicy.setVerticalStretch(9)
         sizePolicy.setHeightForWidth(self.widget_nsstats.sizePolicy().hasHeightForWidth())
         self.widget_nsstats.setSizePolicy(sizePolicy)
-        self.widget_nsstats.setStyleSheet("background-color: rgb(168, 168, 168);")
+        self.widget_nsstats.setStyleSheet("background-color: rgb(100, 168, 168);")
         self.widget_nsstats.setObjectName("widget_nsstats")
 
         self.verticalLayout.addLayout(self.gridLayout)
-        self.verticalLayout.addWidget(self.widget_nsstats)
-
         
         self.buttonBox = QtWidgets.QDialogButtonBox(Dialog)
         self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
@@ -114,10 +122,45 @@ class DUTDialog(object):
 
         if self.container.backend_obj :
             self.FillFromObj(self.container.backend_obj)
+            Form = AllocFree.AllocFreeForm(plotwidth=2)
+            W = AllocFree.AllocFreeWorker()
+            self.workerObj = W
+            W.SetNSIP(self.container.backend_obj.nsip)
+            W.AddCounters(Form.ListCounters())
+            T = QtCore.QThread()
+            self.workerThread = T
+            W.moveToThread(T)
+            T.started.connect(W.process)
+            W.finished.connect(T.terminate)
+            W.results.connect(Form.UpdateResults)
+            self.verticalLayout.addWidget(Form)
+            #self.horizontalLayout.addWidget(Form)
+            Form.setStyleSheet("background-color: rgb(168, 168, 168);")
+            T.start()
+
+            Form2 = AllocFree.RateCounters(plotwidth=2)
+            W2 = AllocFree.AllocFreeWorker()
+            self.workerObj2 = W2
+            W2.SetNSIP(self.container.backend_obj.nsip)
+            W2.AddCounters(Form2.ListCounters())
+            T2 = QtCore.QThread()
+            self.workerThread2 = T2
+            W2.moveToThread(T2)
+            T2.started.connect(W2.process)
+            W2.finished.connect(T2.terminate)
+            W2.results.connect(Form2.UpdateResults)
+            self.verticalLayout.addWidget(Form2)
+            T2.start()
+            
+        else :
+            self.verticalLayout.addWidget(self.widget_nsstats)
+            #self.horizontalLayout.addWidget(self.widget_nsstats)
+            self.widget_nsstats.setStyleSheet("background-color: rgb(168, 168, 168);")
+
 
         self.retranslateUi(Dialog)
         self.buttonBox.accepted.connect(self.accept)
-        self.buttonBox.rejected.connect(self.dialog.reject)
+        self.buttonBox.rejected.connect(self.reject)
 
 
 
@@ -142,12 +185,11 @@ class DUTDialog(object):
             e = self.BuildEntity()
             if not e :
                 print 'entity creation failed'
-                raise TestException(1)
-            if not e.Login() :
-                print 'entity connect failed'
                 raise TestException.TestException(1)
+            e.ccode = self.ccode
+            test_util.AddTCPMonitor(e.sess,'quick_mon')
+
         except TestException.TestException as e :
-            print 'DUTDialog: handling test exception'
             plt = self.lineedit_nsip.palette()
             brush = QtGui.QBrush(QtGui.QColor(255, 0, 0))
             brush.setStyle(QtCore.Qt.SolidPattern)
@@ -158,8 +200,29 @@ class DUTDialog(object):
         
         self.container.SetBackendObj(e)
         self.container.AddDUT(e)
+
+        if self.workerObj:
+            self.workerObj.dostop = True
+            QtCore.QThread.yieldCurrentThread()
+            while self.workerThread.isRunning() :
+                print 'QThread still running'
+                #QtCore.QThread.sleep(1)
+                self.workerThread.wait()
+                
         
         self.dialog.accept()
+
+
+    def  reject(self) :
+        if self.workerObj:
+            self.workerObj.dostop = True
+            while self.workerThread.isRunning() :
+                print 'QThread still running'
+                #QtCore.QThread.sleep(1)
+                self.workerThread.wait()
+
+        self.dialog.reject()
+    
 
 
 
@@ -193,8 +256,15 @@ class DUTDialog(object):
         entity = DUTEntity(self.lineedit_nsip.text(),
                            qntmsize,qntmtime,pktcount,
                            self.combobox_reneg.currentIndex(),
-                           self.combobox_push.currentIndex() )
-                           
+                           self.combobox_push.currentIndex(),self.ccode )
+
+        sess = entity.Login()
+        if not sess :
+            return None
+        entity.FillCerts()
+        entity.FillCiphers()
+        entity.FillCipherSuites()
+                 
         return entity
 
 
@@ -221,7 +291,7 @@ class DUTDialog(object):
 
 
 class DUTEntity(object):
-    def __init__(self,nsip,qntmsz,qntmtime,pktcount,denyreneg,pushopt) :
+    def __init__(self,nsip,qntmsz,qntmtime,pktcount,denyreneg,pushopt,ccode) :
         self.nsip = nsip
         self.qntmsz = qntmsz
         self.qntmtime = qntmtime
@@ -234,11 +304,12 @@ class DUTEntity(object):
         self.vip = None
         self.snip = None
         self.logReader = None
+        self.ccode = ccode
+
+        self.allciphers = None
+        self.allciphersuites = None
+        self.allcerts = None
         
-        self.logReader = CustomWidget.LogReaderThread()
-        self.logReader.start()
-
-
 
     def IsRunning(self) :
         return False
@@ -274,17 +345,36 @@ class DUTEntity(object):
         self.ci.LinkUnlinkCACerts(self.sess,0)
         self.ci.LinkUnlinkEntityCerts(self.sess,0)
 
+        self.FillCerts()
+
+        #self.Login()
+        test_util.AddTCPMonitor(self.sess,'quick_mon')
+
     
     def ClearConfig(self) :
         sess = nitro_service(self.nsip)
         sess.set_credential('nsroot','nsroot')
         sess.clear_config(level='basic')
+        self.FillCerts()
         sess.logout()
     
 
     def GetSess(self) :
         return self.sess
 
+
+    def FillCerts(self) :
+        self.allcerts = CertInstaller.CertInstall.ListCertsFromNS(self.sess)
+        print 'FillCerts called for {}'.format(self.nsip)
+        print 'certlists {}'.format(self.allcerts)
+
+
+    def FillCiphers(self) :
+        self.allciphers = CIPHER.sslcipher.get(self.sess)
+        
+
+    def FillCipherSuites(self) :
+        self.allciphersuites = CIPHERSUITE.sslciphersuite.get(self.sess)
 
     
 

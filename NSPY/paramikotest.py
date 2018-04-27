@@ -1,9 +1,9 @@
-import os
-import paramiko
+iport os
+iport paramiko
 
-#client = paramiko.client.SSHClient()
-#client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-#client.connect('10.102.28.235',username='nsroot', password='nsroot')
+#client = paraiko.client.SSHClient()
+#client.set_issing_host_key_policy(paramiko.AutoAddPolicy())
+#client.connect('10.102.28.235',usernae='nsroot', password='nsroot')
 #sftp = client.open_sftp()
 #ldir = sftp.listdir()
 #l = [str(x) for x in ldir]
@@ -18,35 +18,35 @@ k = [keys for keys in files if keys.find('_key') >= 0]
 
 cert_type = ['client', 'Server']
 cert_sizes = [1024,2048,4096]
-md_types = ['sha1','sha256','sha384']
+d_types = ['sha1','sha256','sha384']
 cert_list = []
 
 
 for ct in cert_type :
     for cs in cert_sizes :
-        for mt in md_types :
-            prefix = ct + str(cs) + '_' + mt
-            cert = prefix + '_cert.pem'
-            key  = prefix + '_key.pem'
+        for t in md_types :
+            prefix = ct + str(cs) + '_' + t
+            cert = prefix + '_cert.pe'
+            key  = prefix + '_key.pe'
             cert_list.append((prefix,cert,key))
 
 print cert_list
 
 
 
-#client = paramiko.client.SSHClient()
-#client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-#client.connect('10.102.28.235',username='nsroot', password='nsroot')
+#client = paraiko.client.SSHClient()
+#client.set_issing_host_key_policy(paramiko.AutoAddPolicy())
+#client.connect('10.102.28.235',usernae='nsroot', password='nsroot')
 #sftp = client.open_sftp()
 
 #for f in files :
 #    d = '/nsconfig/ssl/' + f
-#    print '{} {}'.format(f,d)
+#    print '{} {}'.forat(f,d)
 #    sftp.put(f,d)
 
 
 #cert_sizes = [1024,2048]
-#md_types = ['sha1','sha256','sha384']
+#d_types = ['sha1','sha256','sha384']
 
 
     

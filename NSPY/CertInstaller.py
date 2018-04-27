@@ -373,10 +373,4 @@ if __name__ == "__main__":
 
         if xmode == 2 :
             sess.clear_config(level='basic')
-        
 
-
-
-    
-    
-        

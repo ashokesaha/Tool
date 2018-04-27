@@ -99,6 +99,7 @@ class StatsFetcher(QtCore.QThread) :
             l = [d[x] for x in k]
             s =  ':'.join(l)
             return s
+        
         except socket.error as e :
             return None
         except httplib.CannotSendRequest as e :
@@ -254,7 +255,7 @@ class ThreadTestWidget(QtWidgets.QWidget) :
         qsz = QtCore.QSize(300,200)
         self.setMinimumSize(qsz)
         self.setMaximumSize(qsz)
-        self.o = StatsFetcher('10.102.28.201')
+        self.o = StatsFetcher('10.102.28.78')
         self.o.AddCounter('pcb_cur_alloc')
         self.o.AddCounter('ssl_cur_sslInfo_SPCBAllocCount')
         self.o.AddCounter('sys_cur_freensbs')

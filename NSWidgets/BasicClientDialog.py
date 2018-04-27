@@ -14,9 +14,12 @@ sys.path.append('C:\\Users\\ashokes\\Miniconda2\\ashoke-miniconda2\\nitro-python
 import socket
 import struct
 import json
+import time
 from PyQt5 import QtCore, QtGui, QtWidgets
 from TestException import *
+from   CustomWidget  import  *
 import GenericContainer
+import MasterContainer
 import NestedDict
 
 
@@ -90,6 +93,13 @@ class BasicClientDialog(object):
         self.lineedit_cipherfilter.setText('')
         self.gridLayout.addWidget(self.lineedit_cipherfilter, 5, 1, 1, 2)
 
+        self.lineedit_sni = QtWidgets.QLineEdit(dialog)
+        self.lineedit_sni.setStyleSheet("background-color: rgb(241, 241, 241);")
+        self.lineedit_sni.setObjectName("lineedit_sni")
+        self.lineedit_sni.setText('')
+        self.gridLayout.addWidget(self.lineedit_sni, 5, 3, 1, 1)
+
+
         self.lineedit_reusecount = QtWidgets.QLineEdit(dialog)
         self.lineedit_reusecount.setStyleSheet("background-color: rgb(241, 241, 241);")
         self.lineedit_reusecount.setObjectName("lineedit_reusecount")
@@ -128,6 +138,31 @@ class BasicClientDialog(object):
         self.recboundary_comboBox.addItem("")
         self.gridLayout.addWidget(self.recboundary_comboBox, 7, 1, 1, 1)
 
+
+        self.label_rsapadtest = QtWidgets.QLabel(dialog)
+        font = QtGui.QFont()
+        font.setBold(True)
+        font.setWeight(75)
+        self.label_rsapadtest.setFont(font)
+        self.label_rsapadtest.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.label_rsapadtest.setObjectName("label_Rsapadtest")
+        self.gridLayout.addWidget(self.label_rsapadtest, 7, 2, 1, 1)
+
+        self.rsapadtest_comboBox = QtWidgets.QComboBox(dialog)
+        self.rsapadtest_comboBox.setStyleSheet("background-color: rgb(236, 236, 236);")
+        self.rsapadtest_comboBox.setObjectName("rsapadtest_combobox")
+        self.rsapadtest_comboBox.addItem("0")
+        self.rsapadtest_comboBox.addItem("1")
+        self.rsapadtest_comboBox.addItem("2")
+        self.rsapadtest_comboBox.addItem("4")
+        self.rsapadtest_comboBox.addItem("8")
+        self.rsapadtest_comboBox.addItem("16")
+        self.rsapadtest_comboBox.addItem("32")
+        self.gridLayout.addWidget(self.rsapadtest_comboBox, 7, 3, 1, 1)
+
+
+        
+
         self.buttonBox = QtWidgets.QDialogButtonBox(dialog)
         self.buttonBox.setStyleSheet("background-color: rgb(74, 236, 217);")
         self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
@@ -153,6 +188,7 @@ class BasicClientDialog(object):
         BasicClientDialog.setWindowTitle(_translate("BasicClientDialog", "BasicClientDialog"))
         self.lineedit_reusecount.setPlaceholderText(_translate("BasicClientDialog", "Reuse Count"))
         self.label_recboundary.setText(_translate("BasicClientDialog", "Rec Boundary"))
+        self.label_rsapadtest.setText(_translate("BasicClientDialog", "Rsa Padtest"))
         self.lineedit_versionfilter.setPlaceholderText(_translate("BasicClientDialog", "Version Filter"))
         self.lineedit_ip.setPlaceholderText(_translate("BasicClientDialog", "IP Address"))
         self.lineedit_certchain.setPlaceholderText(_translate("BasicClientDialog", "Cert chain file"))
@@ -164,6 +200,7 @@ class BasicClientDialog(object):
         self.lineedit_renegcount.setPlaceholderText(_translate("BasicClientDialog", "Reneg Count"))
         self.lineedit_itercount.setPlaceholderText(_translate("BasicClientDialog", "Iter Count"))
         self.lineedit_childcount.setPlaceholderText(_translate("BasicClientDialog", "Child Count"))
+        self.lineedit_sni.setPlaceholderText(_translate("BasicClientDialog", "SNI"))
 
         self.recboundary_comboBox.setItemText(0, _translate("BasicClientDialog", "All Separate"))
         self.recboundary_comboBox.setItemText(1, _translate("BasicClientDialog", "[CC+CKE] [CCV]"))
@@ -199,12 +236,22 @@ class BasicClientDialog(object):
         ew = self.container.AddEntity(e.entity_type)
         ew.SetBackendObj(e)
         e.sigStatus.connect(ew.slotStatus)
+
+        MasterContainer.MasterContainer.pollThread.RegisterObj(e)
+
         self.dialog.accept()
 
 
 
     def acceptSave(self) :
         obj = self.container.GetBackendObj()
+        
+        # we now allow to change target ip-port. So, we shall clean existing
+        # connection here and reopen a fresh one in Start(). Yes, this is
+        # not needed ifthe target ip-port is unchanged. But we are
+        # simplifying things here
+        obj.Terminate()
+        
         obj.certfile = self.lineedit_certfile.text()
         obj.keyfile  = self.lineedit_keyfile.text()
         obj.certchainfile = self.lineedit_certchain.text()
@@ -215,6 +262,11 @@ class BasicClientDialog(object):
         obj.itercount  = int(self.lineedit_itercount.text())
         obj.childcount = int(self.lineedit_childcount.text())
         obj.recboundary = self.recboundary_comboBox.currentIndex()
+        obj.rsapadtest = self.rsapadtest_comboBox.currentIndex()
+        obj.ip = self.lineedit_ip.text()
+        obj.targetip = self.lineedit_targetip.text()
+        obj.targetport = int(self.lineedit_targetport.text())
+        obj.sni = self.lineedit_sni.text()
       
         self.dialog.accept()
  
@@ -261,13 +313,22 @@ class BasicClientDialog(object):
         except ValueError as e :
             childcount = 0
 
+        sni = self.lineedit_sni.text()
+        rsapadtest =  self.rsapadtest_comboBox.currentIndex()
 
+
+        tip = self.lineedit_targetip.text()
+        if len(tip) == 0 :
+            tip = None
+        try :
+            tport = int(self.lineedit_targetport.text())
+        except ValueError as e :
+            tport = 0
         
+
         entity = BasicClientEntity(self.lineedit_name.text(),
                                         self.lineedit_ip.text(),
-                                        2345,
-                                        self.lineedit_targetip.text(),
-                                        int(self.lineedit_targetport.text()),
+                                        2345, tip,tport,
                                         self.lineedit_certfile.text(),
                                         self.lineedit_keyfile.text(),
                                         self.lineedit_certchain.text(),
@@ -275,7 +336,8 @@ class BasicClientDialog(object):
                                         self.lineedit_cipherfilter.text(),
                                         reusecount,renegcount,
                                         itercount,childcount,
-                                        self.recboundary_comboBox.currentIndex())
+                                        self.recboundary_comboBox.currentIndex(),
+                                        rsapadtest, sni)
         return entity
 
 
@@ -294,10 +356,10 @@ class BasicClientDialog(object):
         self.lineedit_itercount.setText(str(obj.itercount))
         self.lineedit_childcount.setText(str(obj.childcount))
         self.recboundary_comboBox.setCurrentIndex(obj.recboundary)
+        self.rsapadtest_comboBox.setCurrentIndex(obj.rsapadtest)
         self.lineedit_name.setReadOnly(True)
-        self.lineedit_targetip.setReadOnly(True)
-        self.lineedit_targetport.setReadOnly(True)
-
+        if obj.sni :
+            self.lineedit_sni.setText(obj.sni)
 
 
 
@@ -335,7 +397,7 @@ class BasicClientEntity(QtCore.QObject):
                  certfile=None,keyfile=None,certchainfile=None,
                  versionfilter=None,cipherfilter=None,
                  reusecount=0,renegcount=0,itercount=0,childcount=1,
-                 recboundary=0) :
+                 recboundary=0,rsapadtest=0,sni=None) :
         super(self.__class__,self).__init__()
         self.name = name
         self.ip = ip
@@ -357,6 +419,8 @@ class BasicClientEntity(QtCore.QObject):
         self.sd = None
         self.logFp = None
         self.isRemoved = False
+        self.rsapadtest = rsapadtest
+        self.sni = sni
 
 
     def GetName(self) :
@@ -402,10 +466,7 @@ class BasicClientEntity(QtCore.QObject):
             return
         self.sd.settimeout(to)
 
-
-    def IsRunning(self) :
-        return self.isrunning
-    
+   
 
     def ToJson(self) :
         d = dict()
@@ -428,6 +489,10 @@ class BasicClientEntity(QtCore.QObject):
         else :
             d['childcount'] = 1
         d['recboundary'] = self.recboundary
+        d['rsapadtest'] = self.rsapadtest
+        d['testid'] = str(int(time.time()))
+        self.testid = d['testid']
+        d['SNI'] = self.sni
         
         s = json.dumps(d)
         return s
@@ -453,7 +518,7 @@ class BasicClientEntity(QtCore.QObject):
                     d['cert'], d['key'],d['certlink'],
                     d['version'],d['cipher'],
                     d['reuse'],d['reneg'],d['iter'],d['childcount'],
-                    d['recboundary'])
+                    d['recboundary'],d['rsapadtest'],d['SNI'])
         return o
 
 
@@ -510,19 +575,30 @@ class BasicClientEntity(QtCore.QObject):
         if not data :
             return None
 
-        len = struct.unpack("<I",data)
-        if(len[0] == 0) :
+        llen = struct.unpack("<I",data)
+        if(llen[0] == 0) :
             return None
-
+        ll = llen[0]
+        
         try :
-            data = self.sd.recv(len[0])
-            if data == 'ENDD' :
+            tdata = ''
+            while ll != 0 :
+                data = self.sd.recv(ll)
+                ll = ll - len(data)
+                tdata += data
+
+            if tdata == 'ENDD' :
+                print 'client received ENDD'
                 self.Stop()
                 data = None
+                tdata = None
         except socket.error as e :
-            data = None
+            tdata = data = None
+        except MemoryError as e :
+            tdata = data = None
+            print 'MemoryError occured'
 
-        return data
+        return tdata
 
 
 
@@ -531,7 +607,7 @@ class BasicClientEntity(QtCore.QObject):
         if not self.sd :
             self.Connect()
         if not self.sd :
-            print 'try again later..'
+            print 'SendOnce .. no connection..try again later..'
             return
         
         str = self.ToJson()
@@ -540,7 +616,21 @@ class BasicClientEntity(QtCore.QObject):
         self.sd.sendall(str)
 
 
+    def AskResult(self) :
+        d = dict()
+        d['result'] = self.testid
+        s = json.dumps(d)
+        lstr = struct.pack(">I", len(s))
+
+        self.sd.sendall(lstr)
+        self.sd.sendall(s)
+
+
+
     def Terminate(self) :
+        if not self.sd :
+            return
+        
         str = ''
         lstr = struct.pack(">I", len(str))
         self.sd.sendall(lstr)
@@ -556,14 +646,13 @@ class BasicClientEntity(QtCore.QObject):
             self.SendOnce()
             self.isrunning = True
             self.sigStatus.emit(1)
+            MasterContainer.MasterContainer.pollThread.RegisterObj(self)
         
 
     def Stop(self) :
+        print 'basic_client stop  called : {}'.format(self.isrunning)
         if self.isrunning :
             self.isrunning = False
-            while self.isRemoved == False :
-                time.sleep(0.1)
-            
             self.Terminate()
             self.sigStatus.emit(0)
 
@@ -572,13 +661,22 @@ class BasicClientEntity(QtCore.QObject):
     # is always on. Only way to disble it is to delete it.
     # But client entities has start stop.
 
+    def IsRunning(self) :
+        return self.isrunning
+
+
     def IsStartStop(self) :
         return True
 
     def IsResults(self) :
+        if self.isrunning :
+            return False
         return True
 
+
     def IsProperty(self) :
+        if self.isrunning :
+            return False
         return True
 
 
@@ -586,16 +684,69 @@ class BasicClientEntity(QtCore.QObject):
     #The tw is part of a ResultDialog and it calls each object
     #to format the table accordingly.
     
+
     def PrepareResult(self) :
-        fp = self.OpenLogRd()
         N = NestedDict.NestedDict()
-        K = ['version','cipher','ServerCert']
+        K = ['cipher','version','ServerCert', 'SNI', 'Server CN', 'ClientCert','ECC','DH']
+        if self.rsapadtest != 0 :
+            K.insert(len(K),'rsapadtest')
+        
         N.SetKeys(K)
-        N.LoadFileFp(fp)
+        L = []
+
+        if not self.sd :
+            self.Connect()
+
+        self.AskResult()
+        while True :
+            s = self.ReadOnce()
+            if not s :
+                break;
+            try :
+                d = json.loads(s)
+                N.AddDict(d)
+            except ValueError as e :
+                print 'bad json {}'.format(s)
+        
         tw = N.GetViewWidget(None)
         l = []
         N.Print(N.keys,l)
+
+        self.sd.close()
+        self.sd = None
+        
         return tw
+
+
+    def AllowDrop(self,jstring) :
+        d = json.loads(jstring)
+        t = d['type']
+        if ((t == GenericContainer.GenericContainer.TYPE_SSL_VSERVER) or (t == GenericContainer.GenericContainer.TYPE_BE_OPENSSL_SERVER)):
+            return True
+        else :
+            return False
+
+
+    def HandleDropEvent(self,jstring) :
+        d = json.loads(jstring)
+        self.Terminate()
+        self.targetip = d['ip']
+        self.targetport = int(d['port'])
+        return
+
+
+    def PrepareMimeData(self,ccode=None) :
+        d = dict()
+        d['type'] = self.entity_type
+        d['name'] = self.name
+        d['ip'] = self.ip
+        d['port'] = self.port
+        d['ccode'] = ccode
+        s = json.dumps(d)
+        return s
+
+
+
 
 
 if __name__ == "__main__":

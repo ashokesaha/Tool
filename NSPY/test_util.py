@@ -14,6 +14,13 @@ import nssrc.com.citrix.netscaler.nitro.resource.config.ssl.sslcertkey as CERTKE
 from nssrc.com.citrix.netscaler.nitro.resource.config.ssl.sslvserver_sslcertkey_binding import sslvserver_sslcertkey_binding as VsrvrCKeyBdg
 import nssrc.com.citrix.netscaler.nitro.resource.config.lb.lbvserver  as LBVSERVER
 from nssrc.com.citrix.netscaler.nitro.resource.config.lb.lbvserver_service_binding  import *
+import nssrc.com.citrix.netscaler.nitro.resource.config.ssl.sslservice_sslcertkey_binding as ServiceCKeyBdg
+import nssrc.com.citrix.netscaler.nitro.resource.config.lb.lbmonitor as LBMON
+import nssrc.com.citrix.netscaler.nitro.resource.config.lb.lbmonitor_service_binding as LBMONSVCBINDING
+import nssrc.com.citrix.netscaler.nitro.resource.config.lb.lbmonbindings as LBMONBINDINGS
+import nssrc.com.citrix.netscaler.nitro.resource.config.ssl.sslservice_sslcipher_binding as SSLSVCCIPHER
+import nssrc.com.citrix.netscaler.nitro.resource.config.ssl.sslservice_sslciphersuite_binding as SSLSVCCIPHERSUITE
+
 
 from test_dut    import * 
 from test_config import *
@@ -52,7 +59,7 @@ def	GenerateNumbers(first,num=0) :
 
 
 # Files: nitro_service.py
-def	Login(nsip,name='nsroot',passwd='nsroot',timeout=5) :
+def	Login(nsip,name='nsroot',passwd='nsroot',timeout=500) :
         print 'Login {}'.format(nsip)
         try :
                 ns = NITROSVC.nitro_service(nsip)
@@ -273,16 +280,29 @@ def BindUnbindOneVsrvrCKey(session,server,certkey,isunbind=0,issni=False,isca=Fa
 
 
 
-def BindUnbindServerCert(sess, vserver,certkey,isunbind=False) :
+def BindUnbindServerCert(sess, vserver,certkey,isunbind=False,isservice=False) :
         ret = 0
         try :
-                vckey = VsrvrCKeyBdg()
-                vckey.vservername = vserver 
-                vckey.certkeyname = certkey
-                if isunbind :
-                        VsrvrCKeyBdg.delete(sess,vckey)
+                if isservice :
+                        vckey = ServiceCKeyBdg.sslservice_sslcertkey_binding()
+                        vckey.servicename = vserver
+                        vckey.certkeyname = certkey
                 else :
-                        VsrvrCKeyBdg.add(sess,vckey)
+                        vckey = VsrvrCKeyBdg()
+                        vckey.vservername = vserver 
+                        vckey.certkeyname = certkey
+
+                
+                if isunbind :
+                        if isservice :
+                                ServiceCKeyBdg.sslservice_sslcertkey_binding.delete(sess,vckey)
+                        else :
+                                VsrvrCKeyBdg.delete(sess,vckey)
+                else :
+                        if isservice :
+                                ServiceCKeyBdg.sslservice_sslcertkey_binding.add(sess,vckey)
+                        else :
+                                VsrvrCKeyBdg.add(sess,vckey)
         except NITROEXCEPTION.nitro_exception as e :
                 print 'BindUnbindServerCert Failed: {0}'.format(e.message)
                 ret = e.errorcode
@@ -298,7 +318,6 @@ def BindUnbindSniCert(sess, vserver,certlist,isunbind=False) :
 		vckey = VsrvrCKeyBdg()
 		vckey.vservername = vserver 
 		vckey.certkeyname = c
-		#vckey.snicert = True
 		vckey.snicert = 'true'
 		ckeylist.append(vckey)
 
@@ -321,27 +340,48 @@ def BindUnbindSniCert(sess, vserver,certlist,isunbind=False) :
 	
 
 
-def BindUnbindCACert(sess, vserver,certlist,isunbind=False) :
+def BindUnbindCACert(sess, vserver,certlist,isunbind=False,isservice=False) :
 	ret = 0
 	ckeylist = []
+	
 	for c in certlist :
-		vckey = VsrvrCKeyBdg()
-		vckey.vservername = vserver 
-		vckey.certkeyname = c
-		vckey.ca = 'true'
-		ckeylist.append(vckey)
+                if isservice :
+                        vckey = ServiceCKeyBdg.sslservice_sslcertkey_binding()
+                        vckey.servicename = vserver
+                        vckey.certkeyname = c
+                        vckey.ca = 'true'
+                        ckeylist.append(vckey)
+                else :
+                        vckey = VsrvrCKeyBdg()
+                        vckey.vservername = vserver 
+                        vckey.certkeyname = c
+                        vckey.ca = 'true'
+                        ckeylist.append(vckey)
+
 
 	if len(ckeylist) == 1 :
 		ckeylist = vckey
 
+
 	try :
-		if isunbind :
-			VsrvrCKeyBdg.delete(sess,ckeylist)
-		else :
-			VsrvrCKeyBdg.add(sess,ckeylist)
+                if isservice :
+                        if isunbind :
+                                ServiceCKeyBdg.sslservice_sslcertkey_binding.delete(sess,ckeylist)
+                        else :
+                                ServiceCKeyBdg.sslservice_sslcertkey_binding.add(sess,ckeylist)
+                else :
+                        if isunbind :
+                                VsrvrCKeyBdg.delete(sess,ckeylist)
+                        else :
+                                VsrvrCKeyBdg.add(sess,ckeylist)
+        
 	except NITROEXCEPTION.nitro_exception as e :
-		print 'BindUnbindCACert: {0}'.format(e.message)
+		print 'BindUnbindCACert: {}'.format(e.message)
 		ret = e.errorcode
+	except Exception as e :
+		print 'BindUnbindCACert: exception {}'.format(e.message)
+		ret = e.errorcode
+
 
 	return ret
 
@@ -358,13 +398,36 @@ def GetVsrvrCertkeyBindings(sess,vsrvrname,servercertlist,snicertlist,cacertlist
 			elif l.snicert :
                                 if len(l.certkeyname) > 0 :
                                         snicertlist.append(l.certkeyname)
-			else :
+			elif l.certkeyname :
                                 if len(l.certkeyname) > 0 :
                                         servercertlist.append(l.certkeyname)
 	except NITROEXCEPTION.nitro_exception as e :
 		print 'Nitro exception:::: {0}'.format(e.message)
 		ret = e.errorcode
 	return ret
+
+
+
+
+def GetServiceCertkeyBindings(sess,svcname,clientcertlist,cacertlist) :
+	ret = 0
+	try :
+		ll = ServiceCKeyBdg.sslservice_sslcertkey_binding.get(sess,svcname)
+		for l in ll :
+			if l.ca :
+                                if len(l.certkeyname) > 0 :
+                                        cacertlist.append(l.certkeyname)
+			else :
+                                if (l.certkeyname and (len(l.certkeyname) > 0)) :
+                                        clientcertlist.append(l.certkeyname)
+	except NITROEXCEPTION.nitro_exception as e :
+		print 'GetServiceCertkeyBindings: Nitro exception:::: {0}'.format(e.message)
+		ret = e.errorcode
+	return ret
+
+
+
+
 
 
 
@@ -431,6 +494,81 @@ def BindUnbindVsrvrSvcList(session,srvrList,svcList,isunbind=0) :
 
 	return l
 
+
+
+def BindUnbindCipher(sess, svcname, clist, cslist,isunbind=False, isservice=False) :
+        cipherlist = SSLSVCCIPHER.sslservice_sslcipher_binding.get(sess,svcname)
+        ciphersuitelist = SSLSVCCIPHERSUITE.sslservice_sslciphersuite_binding.get(sess,svcname)
+
+        svlist = []
+        for c in cipherlist :
+                if not c.servicename :
+                        continue
+                sv = SSLSVCCIPHER.sslservice_sslcipher_binding()
+                sv.servicename = svcname
+                sv.ciphername  = c.cipheraliasname
+                svlist.append(sv)
+                SSLSVCCIPHER.sslservice_sslcipher_binding.delete(sess,sv)
+
+        svlist = []
+        for c in ciphersuitelist :
+                if not c.servicename :
+                        continue
+                sv = SSLSVCCIPHERSUITE.sslservice_sslciphersuite_binding()
+                sv.servicename = svcname
+                sv.ciphername  = c.ciphername
+                svlist.append(sv)
+                SSLSVCCIPHERSUITE.sslservice_sslciphersuite_binding.delete(sess,sv)
+
+        svlist = []
+        for c in clist :
+                sv = SSLSVCCIPHERSUITE.sslservice_sslciphersuite_binding()
+                sv.servicename = svcname
+                sv.ciphername  = c
+                svlist.append(sv)
+                SSLSVCCIPHERSUITE.sslservice_sslciphersuite_binding.add(sess,sv)
+
+
+
+
+
+
+def     AddTCPMonitor(sess,name,interval=3,downtime=3) :
+        print 'going to add tcp monitor {}'.format(name)
+        
+        try :
+                monitor = LBMON.lbmonitor.get(sess,name)
+                if monitor :
+                        print 'found monitor {}'.format(name)
+                        return
+        except NITROEXCEPTION.nitro_exception as e :
+                print 'AddMonitor exception {}'.format(e.message)
+        except Exception as e :
+                print 'AddMonitor exception {}'.format(e.message)
+
+        
+        monitor = LBMON.lbmonitor()
+        monitor.monitorname = name
+        monitor.type = LBMON.lbmonitor.Type.TCP
+        monitor.downtime = downtime
+        monitor.interval = interval
+        print 'going to add monitor'
+        LBMON.lbmonitor.add(sess,monitor)
+        print 'add monitor'
+        return monitor
+
+
+def     GetMonitorBindings(sess,name) :
+        b = LBMONBINDINGS.lbmonbindings.get(sess,name)
+        print 'monitor {} bindings {}'.format(name,b)
+
+
+
+def     BindMonitor(sess,svcname,monitorname) :
+        binding = LBMONSVCBINDING.lbmonitor_service_binding()
+        binding.servicename = svcname
+        binding.monitorname = monitorname
+        LBMONSVCBINDING.lbmonitor_service_binding.add(sess,binding)
 
 
 

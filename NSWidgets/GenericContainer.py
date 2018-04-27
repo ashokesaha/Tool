@@ -10,6 +10,8 @@ from    BasicClientDialog     import *
 from    DUTDialog             import *
 from    ocsp_responder        import *
 from    SSLVServerDialog      import *
+from    SSLServiceDialog      import *
+from    HttpVServerDialog     import *
 import  BEOpenSSLServerDialog
 
 
@@ -41,7 +43,8 @@ class  GenericContainer (QtWidgets.QWidget)  :
 
     TYPE_SAVE = 18
     TYPE_LOAD = 19
-    TYPE_TEST_TMPLT_ONE = 20
+    TYPE_CLEAN = 20
+    TYPE_TEST_TMPLT_ONE = 21
     
 
     TYPE_CONTAINER_L1 = 101
@@ -81,10 +84,10 @@ class  GenericContainer (QtWidgets.QWidget)  :
                              TYPE_SAVE, TYPE_LOAD]
     typeMap[CONTAINER_L2] = [TYPE_SSL_VSERVER,TYPE_SSL_TCP_VSERVER,
                              TYPE_HTTP_VSERVER,TYPE_TCP_VSERVER,
-                             TYPE_SAVE, TYPE_LOAD]
+                             TYPE_SAVE, TYPE_LOAD, TYPE_CLEAN]
     typeMap[CONTAINER_R2] = [TYPE_SSL_SERVICE, TYPE_SSL_TCP_SERVICE,
                              TYPE_HTTP_SERVICE,TYPE_TCP_SERVICE,
-                             TYPE_SAVE, TYPE_LOAD]
+                             TYPE_SAVE, TYPE_LOAD, TYPE_CLEAN]
     typeMap[CONTAINER_R1] = [TYPE_BE_OPENSSL_SERVER, TYPE_BE_APACHE_SERVER,
                              TYPE_BE_HTTP_DATA,TYPE_SAVE, TYPE_LOAD]
     typeMap[CONTAINER_T1] = [TYPE_OCSP_OPENSSL_SERVER, TYPE_CRL_OPENSSL_SERVER,
@@ -105,20 +108,29 @@ class  GenericContainer (QtWidgets.QWidget)  :
     saveFileName[CONTAINER_NS] = 'NS.save'
 
 
-
-
     colorMap = []
-    colorMap.append(QtGui.QColor(0,100,100,150))
-    colorMap.append(QtGui.QColor(0,100,100,150))
-    colorMap.append(QtGui.QColor(0,100,100,150))
-    colorMap.append(QtGui.QColor(0,100,100,150))
-    colorMap.append(QtGui.QColor(0,100,100,150))
-    colorMap.append(QtGui.QColor(0,100,100,150))
-    colorMap.append(QtGui.QColor(0,100,100,250))
-    colorMap.append(QtGui.QColor(0,100,100,150))
-    colorMap.append(QtGui.QColor(0,100,100,150))
-    colorMap.append(QtGui.QColor(0,50,100,150))
-   
+    colorMap.append(QtGui.QColor(100,100,100,150))
+    colorMap.append(QtGui.QColor(100,100,100,150))
+    colorMap.append(QtGui.QColor(100,100,100,150))
+    colorMap.append(QtGui.QColor(100,100,100,150))
+    colorMap.append(QtGui.QColor(100,100,100,150))
+    colorMap.append(QtGui.QColor(100,100,100,150))
+    colorMap.append(QtGui.QColor(100,100,100,150))
+    colorMap.append(QtGui.QColor(100,100,100,150))
+    colorMap.append(QtGui.QColor(100,100,100,150))
+    colorMap.append(QtGui.QColor(100,100,100,150))
+
+    FrontBackColor = []
+    FrontBackColor.append((QtGui.QColor(100,100,100,150), QtGui.QColor(000,250,000,150)))
+    FrontBackColor.append((QtGui.QColor(20,80,20,150), QtGui.QColor(000,250,000,150)))
+    FrontBackColor.append((QtGui.QColor(0,0,150,100),QtGui.QColor(000,000,200,110)))
+    FrontBackColor.append((QtGui.QColor(50,000,50,100),QtGui.QColor(100,000,100,120)))
+    FrontBackColor.append((QtGui.QColor(130,130,0,70),QtGui.QColor(230,230,0,120)))
+    FrontBackColor.append((QtGui.QColor(100,100,100,150),QtGui.QColor(100,100,100,150)))
+    FrontBackColor.append((QtGui.QColor(100,100,100,150),QtGui.QColor(100,100,100,150)))
+    FrontBackColor.append((QtGui.QColor(100,100,100,150),QtGui.QColor(100,100,100,150)))
+    FrontBackColor.append((QtGui.QColor(100,100,100,150),QtGui.QColor(100,100,100,150)))
+    FrontBackColor.append((QtGui.QColor(200,60,0,150),QtGui.QColor(100,100,100,150)))
 
 
 
@@ -145,6 +157,7 @@ class  GenericContainer (QtWidgets.QWidget)  :
     nameMap[TYPE_NS_SELECT_DUT]         = 'Select DUT'
     nameMap[TYPE_SAVE]                  = 'Save'
     nameMap[TYPE_LOAD]                  = 'Load'
+    nameMap[TYPE_CLEAN]                 = 'Clean'
     nameMap[TYPE_TEST_TMPLT_ONE]        = 'TestTemplateOne'
     nameMap[TYPE_NS_REFRESH_BOT]        = 'Refresh Botlist'
 
@@ -196,6 +209,7 @@ class  GenericContainer (QtWidgets.QWidget)  :
             
         self.myLayout.setAlignment(QtCore.Qt.AlignCenter)
         self.backend_obj = None
+        self.isProbing = 0
 
 
     def paintEvent(self, event=None) :
@@ -241,17 +255,59 @@ class  GenericContainer (QtWidgets.QWidget)  :
         self.parent.AddToSSLBEServerList(e)
 
 
-    def AddEntity(self,entityType) :
-        W = CustomWidget.MyRectWidget(entityType)
+    def AddEntity(self,entityType, ccode=None) :
+        if (entityType == GenericContainer.TYPE_SSL_VSERVER) :
+            dut = self.GetCurDUT()
+            if not ccode :
+                ccode = dut.ccode
+        elif (entityType == GenericContainer.TYPE_SSL_SERVICE) :
+            dut = self.GetCurDUT()
+            if not ccode :
+                ccode = dut.ccode
+        elif (entityType == GenericContainer.TYPE_HTTP_VSERVER) :
+            dut = self.GetCurDUT()
+            if not ccode :
+                ccode = dut.ccode
+        elif (entityType == GenericContainer.TYPE_BE_OPENSSL_SERVER) :
+            ccode = GenericContainer.TYPE_BE_OPENSSL_SERVER
+        
+            
+        W = CustomWidget.MyRectWidget(entityType,ccode)
         self.myLayout.addWidget(W)
         W.container = self
         self.entityList.append(W)
         return W
 
 
+    def RemoveEntity(self, E) :
+        obj = E.GetBackendObj()
+        print 'RemoveEntity {}'.format(obj.name)
+        obj.Delete()
+        print 'RemoveEntity: obj deleted'
+        #self.entityList.remove(E)
+        #print 'RemoveEntity: removed from entityList'
+        self.myLayout.removeWidget(E)
+        E.setParent(None)
+        print 'RemoveEntity: removed widget'
+     
+
+
+    def RegisterPoll(self,o) :
+        self.parent.RegisterObj(o)
+
+    def DeRegisterPoll(self,o) :
+        self.parent.RemoveObj(o)
+
+
     def contextMenuEvent(self, event) :
-        if not self.GetCurDUT() :
-            return
+        if self.container_type == GenericContainer.CONTAINER_L2 :
+            if not self.GetCurDUT() :
+                return
+
+        if self.container_type == GenericContainer.CONTAINER_R2 :
+            if not self.GetCurDUT() :
+                return
+
         
         menu = QtWidgets.QMenu(self)
         actionList = []
@@ -273,17 +329,29 @@ class  GenericContainer (QtWidgets.QWidget)  :
             if t == GenericContainer.TYPE_BE_OPENSSL_SERVER :
                 w = BEOpenSSLServerDialog.BEOpenSSLServerDialog(self)
 
+
             elif t == GenericContainer.TYPE_FE_OPENSSL_CLIENT :
                 w = BasicClientDialog(self)
+
 
             elif t == GenericContainer.TYPE_OCSP_OPENSSL_SERVER :
                 w = OcspResponderDialog(self)
 
+
             elif t == GenericContainer.TYPE_NS_SELECT_DUT :
                 w = DUTDialog(self)
 
+
             elif t == GenericContainer.TYPE_SSL_VSERVER :
                 w = SSLVServerDialog(self)
+
+            elif t == GenericContainer.TYPE_HTTP_VSERVER :
+                w = HttpVServerDialog(self)
+
+
+            elif t == GenericContainer.TYPE_SSL_SERVICE :
+                w = SSLServiceDialog(self)
+
 
             elif t == GenericContainer.TYPE_NS_INSTALL_CERT :
                 obj = self.GetBackendObj()
@@ -299,6 +367,8 @@ class  GenericContainer (QtWidgets.QWidget)  :
                 ci.PushToNS(obj.nsip)
                 obj.Login()
                 ci.Link(obj.sess)
+                print 'INSTALL CERT..'
+                obj.FillCerts()
 
             elif t == GenericContainer.TYPE_NS_CLEAR_CONFIG :
                 obj = self.GetBackendObj()
@@ -317,6 +387,15 @@ class  GenericContainer (QtWidgets.QWidget)  :
                     saveFp.write(s)
                 saveFp.close()
 
+            elif t == GenericContainer.TYPE_CLEAN :
+                print 'myLayout count {}'.format(self.myLayout.count())
+                for E in self.entityList :
+                    #print 'removing entity {}'.format(E.name)
+                    self.RemoveEntity(E)
+
+                while (len(self.entityList) > 0) :
+                    self.entityList.pop()
+                print 'myLayout count {}'.format(self.myLayout.count())
 
             elif t == GenericContainer.TYPE_LOAD :
                 fname = 'C:\\Users\\ashokes\\Miniconda2\\PyLogs\\' + GenericContainer.saveFileName[self.container_type]
@@ -329,46 +408,169 @@ class  GenericContainer (QtWidgets.QWidget)  :
                 try :
                     with open(fname) as f:
                         for line in f :
+                            d = json.loads(line)
+                            dx = json.loads(d['val'])
+                            try :
+                                nsip = dx['nsip']
+                                dut = self.GetDUTByIP(nsip)
+                                print 'load: dut for nsip {} is {}'.format(nsip,dut)
+                                if not dut :
+                                    continue
+                                sess = dut.sess
+                                ccode = dut.ccode
+                            except KeyError as e :
+                                nsip = None
+                                dut = None
+                                sess = None
+                                ccode = None
+
+                            #o = GenericContainer.FromFileStr(line,sess)
                             o = GenericContainer.FromFileStr(line,sess)
-                            w = self.AddEntity(o.GetType())
+                            w = self.AddEntity(o.GetType(),ccode)
                             w.SetBackendObj(o)
                             o.sigStatus.connect(w.slotStatus)
 
                             if (o.GetType() == GenericContainer.TYPE_BE_OPENSSL_SERVER) :
                                 self.parent.AddToSSLBEServerList(o)
-                                #o.Connect()
-                                #o.SendOnce()
                                 o.Start()
-                                d = self.GetCurDUT()
-                                if d :
-                                    lR = d.logReader
-                                    if lR :
-                                        lR.RegisterObj(o)
-
-                            
                     w = None
                 except IOError as e :
                     print 'IOError happened'
+                    w = None
 
 
             elif t == GenericContainer.TYPE_TEST_TMPLT_ONE:
                 tt = TestTemplateOne('tone', self.GetSess())
                 tt.Apply()
 
+
             elif t == GenericContainer.TYPE_NS_REFRESH_BOT:
                 if self.isProbing :
                     print 'isProbing set.. not probing'
                     return
-                self.isProbing = True
-                self.b = BotProber('10.102.28')
-                self.b.probeSig.connect(self.BotProbe)
-                self.b.start()
-                              
-            
+                
+                self.b1 = BotProber('10.102.28',1,50)
+                self.b1.probeSuccess.connect(self.BotProbeSuccess)
+                self.b1.probeFail.connect(self.BotProbeFail)
+                self.b1.start()
+                self.isProbing += 1
+                print 'botprpber b1 started'
+
+                self.b2 = BotProber('10.102.28',51,100)
+                self.b2.probeSuccess.connect(self.BotProbeSuccess)
+                self.b2.probeFail.connect(self.BotProbeFail)
+                self.b2.start()
+                self.isProbing += 1
+                print 'botprpber b2 started'
+
+                self.b3 = BotProber('10.102.28',101,150)
+                self.b3.probeSuccess.connect(self.BotProbeSuccess)
+                self.b3.probeFail.connect(self.BotProbeFail)
+                self.b3.start()
+                self.isProbing += 1
+                print 'botprpber b3 started'
+
+                self.b4 = BotProber('10.102.28',151,254)
+                self.b4.probeSuccess.connect(self.BotProbeSuccess)
+                self.b4.probeFail.connect(self.BotProbeFail)
+                self.b4.start()
+                self.isProbing += 1
+                print 'botprpber b4 started'
+
             if w :
                 w.setupUi(dialog)
                 dialog.exec_()
+
+
+    def GetDUTByIP(self,nsip) :
+        return self.parent.GetDUTByIP(nsip)
+
+
+
+    def dragEnterEvent(self,e) :
+        print 'dragEnterEvent : for {}'.format(self.container_type)
+        if (self.container_type == GenericContainer.CONTAINER_R2) :
+            t = e.mimeData().text()
+            d = json.loads(t)
+            typ = d['type']
+            print 'typ is {}'.format(typ)
+            if typ != GenericContainer.TYPE_BE_OPENSSL_SERVER :
+                return
+            e.acceptProposedAction()
         
+
+
+    def dropEvent(self,e) :
+        print 'dropEvent called'
+        MR = self.parent
+        if (self.container_type == GenericContainer.CONTAINER_R2) :
+            t = e.mimeData().text()
+            d = json.loads(t)
+            
+            ip = d['ip']
+            port = d['port']
+            name = d['name']
+
+            print 'dropped service {}'.format(name)
+            print 'Total DUT {}'.format(len(MR.DUTList))
+            d = None
+            t = None
+            obj = None
+
+            oldDut = self.GetCurDUT()
+            for dut in MR.DUTList :
+                print 'DUT {}'.format(dut.nsip)
+                try :
+                    self.SetCurDUT(dut)
+                    obj = SSLServiceEntity(name,ip,port,'SSL',dut.sess, dut.nsip)
+                    if not obj.Create() :
+                        print 'dropped obj creation failed '
+                        continue
+                    
+                    ew = self.AddEntity(obj.entity_type)
+                    ew.SetBackendObj(obj)
+                    print 'ew {}  obj {}'.format(ew,obj)
+                except Exception as e :
+                    print 'SSLServiceDialog:BuildEntity exception {}'.format(e.message)
+                    obj = None
+
+                self.SetCurDUT(oldDut)
+
+
+
+    def BotProbeSuccess(self, ip) :
+        print 'botprobe success {}'.format(ip)
+        if len(ip) > 0 :
+            itms = self.lw.findItems(ip,QtCore.Qt.MatchExactly)
+            if not itms or len(itms) == 0 :
+                itm = QtWidgets.QListWidgetItem(ip)
+                itm.setTextAlignment(QtCore.Qt.AlignHCenter)
+                qF = QtGui.QFont()
+                qF.setWeight(QtGui.QFont.Medium)
+                #qF.setFamily('SansSerif')
+                qF.setWeight(QtGui.QFont.DemiBold)
+                itm.setFont(qF)
+                br = QtGui.QBrush(QtGui.QColor(255,255,255,255))
+                itm.setForeground(br)
+                br = QtGui.QBrush(QtGui.QColor(50,50,50,200))
+                itm.setBackground(br)
+
+                itm.setText(ip)
+                self.lw.addItem(itm)
+        else :
+            self.isProbing -= 1
+
+
+    def BotProbeFail(self, ip) :
+        print 'botprobe fail {}'.format(ip)
+        if len(ip) > 0 :
+            itms = self.lw.findItems(ip,QtCore.Qt.MatchExactly)
+            if itms and len(itms) > 0 :
+                r = self.lw.row(itms[0])
+                self.lw.takeItem(r)
+        else :
+            self.isProbing -= 1
+
 
 
     def BotProbe(self, ip) :
@@ -377,8 +579,7 @@ class  GenericContainer (QtWidgets.QWidget)  :
         if len(ip) > 0 :
             self.lw.addItem(ip)
         else :
-            self.isProbing = False
-            print 'isProbing is reset'
+            self.isProbing -= 1
 
 
 
@@ -398,11 +599,11 @@ class  GenericContainer (QtWidgets.QWidget)  :
         elif typ == GenericContainer.TYPE_SSL_TCP_VSERVER  :
             pass
         elif typ == GenericContainer.TYPE_HTTP_VSERVER  :
-            pass
+            o = HttpVServerEntity.FromFileStr(jstring,sess)
         elif typ == GenericContainer.TYPE_TCP_VSERVER  :
             pass
         elif typ == GenericContainer.TYPE_SSL_SERVICE  :
-            pass
+            o = SSLServiceEntity.FromFileStr(jstring,sess)
         elif typ == GenericContainer.TYPE_SSL_TCP_SERVICE  :
             pass
         elif typ == GenericContainer.TYPE_HTTP_SERVICE  :
@@ -437,20 +638,26 @@ class  GenericContainer (QtWidgets.QWidget)  :
 
 class BotProber(QtCore.QThread) :
     probeSig = QtCore.pyqtSignal(str)
+    probeSuccess = QtCore.pyqtSignal(str)
+    probeFail = QtCore.pyqtSignal(str)
     
-    def __init__(self,subnet) :
+    def __init__(self,subnet,s,e) :
         super(self.__class__,self).__init__()
         self.subnet = subnet
+        self.s = s
+        self.e = e
 
     def run(self) :
-        for i in range(2,254) :
+        for i in range(self.s,self.e+1) :
             ip = self.subnet + '.' + str(i)
             b = BasicClientEntity('basic',ip,2345,'1.1.1.1',1111)
-            if b.Connect(timeout=0.3) :
-                self.probeSig.emit(ip)
+            if b.Connect(timeout=1.0) :
+                self.probeSuccess.emit(ip)
                 b.Terminate()
+            else :
+                self.probeFail.emit(ip)
 
-        self.probeSig.emit('')
+        self.probeSuccess.emit('')
 
 
 

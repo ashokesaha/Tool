@@ -27,54 +27,69 @@ class BEOpenSSLServerDialog(object):
         dialog.setStyleSheet("background-color: qlineargradient(spread:reflect, x1:0, y1:0, x2:1, y2:1, stop:0.367232 rgba(93, 158, 158, 255), stop:1 rgba(255, 255, 255, 255));")
         self.gridLayout = QtWidgets.QGridLayout(dialog)
         self.gridLayout.setObjectName("gridLayout")
+        
         self.lineEdit = QtWidgets.QLineEdit(dialog)
         self.lineEdit.setStyleSheet("border-color: rgb(255, 85, 0);\n"
 "background-color: rgb(244, 244, 244);")
         self.lineEdit.setObjectName("lineEdit")
         self.gridLayout.addWidget(self.lineEdit, 0, 0, 1, 1)
+        
         self.lineEdit_2 = QtWidgets.QLineEdit(dialog)
         self.lineEdit_2.setStyleSheet("background-color: rgb(247, 247, 247);")
         self.lineEdit_2.setObjectName("lineEdit_2")
         self.gridLayout.addWidget(self.lineEdit_2, 0, 1, 1, 1)
+
         self.lineEdit_3 = QtWidgets.QLineEdit(dialog)
         self.lineEdit_3.setStyleSheet("background-color: rgb(244, 244, 244);")
         self.lineEdit_3.setObjectName("lineEdit_3")
         self.gridLayout.addWidget(self.lineEdit_3, 0, 2, 1, 1)
-        self.lineEdit_4 = QtWidgets.QLineEdit(dialog)
-        self.lineEdit_4.setStyleSheet("background-color: rgb(241, 241, 241);")
-        self.lineEdit_4.setObjectName("lineEdit_4")
-        self.gridLayout.addWidget(self.lineEdit_4, 1, 0, 1, 1)
+
+        self.comboBox4 = QtWidgets.QComboBox(dialog)
+        self.comboBox4.setStyleSheet("background-color: rgb(236, 236, 236);")
+        self.comboBox4.setObjectName("responseprofile_comboBox")
+        self.comboBox4.addItem("Profile One")
+        self.comboBox4.addItem("Profile Two")
+        self.gridLayout.addWidget(self.comboBox4, 1, 0, 1, 1)
+
+
         self.lineEdit_5 = QtWidgets.QLineEdit(dialog)
         self.lineEdit_5.setStyleSheet("background-color: rgb(241, 241, 241);")
         self.lineEdit_5.setObjectName("lineEdit_5")
         self.gridLayout.addWidget(self.lineEdit_5, 1, 1, 1, 1)
+
         self.lineEdit_6 = QtWidgets.QLineEdit(dialog)
         self.lineEdit_6.setStyleSheet("background-color: rgb(241, 241, 241);")
         self.lineEdit_6.setObjectName("lineEdit_6")
         self.gridLayout.addWidget(self.lineEdit_6, 1, 2, 1, 1)
+
         self.lineEdit_7 = QtWidgets.QLineEdit(dialog)
         self.lineEdit_7.setStyleSheet("background-color: rgb(241, 241, 241);")
         self.lineEdit_7.setObjectName("lineEdit_7")
         self.gridLayout.addWidget(self.lineEdit_7, 2, 0, 1, 1)
+
         self.lineEdit_8 = QtWidgets.QLineEdit(dialog)
-        self.lineEdit_8.setEnabled(False)
+        #self.lineEdit_8.setEnabled(False)
         self.lineEdit_8.setStyleSheet("background-color: rgb(241, 241, 241);")
         self.lineEdit_8.setObjectName("lineEdit_8")
         self.gridLayout.addWidget(self.lineEdit_8, 2, 1, 1, 1)
+
         self.lineEdit_9 = QtWidgets.QLineEdit(dialog)
-        #self.lineEdit_9.setEnabled(False)
         self.lineEdit_9.setStyleSheet("background-color: rgb(241, 241, 241);")
         self.lineEdit_9.setObjectName("lineEdit_9")
         self.gridLayout.addWidget(self.lineEdit_9, 2, 2, 1, 1)
+
         self.checkBox = QtWidgets.QCheckBox(dialog)
         self.checkBox.setObjectName("checkBox")
         self.gridLayout.addWidget(self.checkBox, 3, 0, 1, 1)
+
         self.checkBox_2 = QtWidgets.QCheckBox(dialog)
         self.checkBox_2.setObjectName("checkBox_2")
         self.gridLayout.addWidget(self.checkBox_2, 3, 1, 1, 1)
+
         self.checkBox_3 = QtWidgets.QCheckBox(dialog)
         self.checkBox_3.setObjectName("checkBox_3")
         self.gridLayout.addWidget(self.checkBox_3, 3, 2, 1, 1)
+
         self.buttonBox = QtWidgets.QDialogButtonBox(dialog)
         self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
         self.buttonBox.setStandardButtons(QtWidgets.QDialogButtonBox.Cancel|QtWidgets.QDialogButtonBox.Ok)
@@ -100,10 +115,10 @@ class BEOpenSSLServerDialog(object):
         self.lineEdit.setPlaceholderText(_translate("dialog", "Name"))
         self.lineEdit_2.setPlaceholderText(_translate("dialog", "IP Address"))
         self.lineEdit_3.setPlaceholderText(_translate("dialog", "Port"))
-        self.lineEdit_4.setPlaceholderText(_translate("dialog", "Response Size"))
         self.lineEdit_5.setPlaceholderText(_translate("dialog", "Record size"))
         self.lineEdit_6.setPlaceholderText(_translate("dialog", "Inter Record Delay"))
         self.lineEdit_7.setPlaceholderText(_translate("dialog", "Cipher Filter"))
+        self.lineEdit_8.setPlaceholderText(_translate("dialog", "Response size"))
         self.lineEdit_9.setPlaceholderText(_translate("dialog", "toPort"))
         self.checkBox.setText(_translate("dialog", "Reuse"))
         self.checkBox_2.setText(_translate("dialog", "Reneg"))
@@ -126,7 +141,6 @@ class BEOpenSSLServerDialog(object):
                 print 'Bad toPort'
                 toPort = fromPort
             
-            print 'fromPort {}  toPort {}'.format(fromPort,toPort)
             if fromPort > toPort :
                 print 'invalid toPort'
                 raise TestException()
@@ -142,7 +156,6 @@ class BEOpenSSLServerDialog(object):
                     print 'entity connect failed'
                     continue
 
-                #e.SendOnce()
                 eList.append(e)
 
         except TestException as e :
@@ -170,15 +183,35 @@ class BEOpenSSLServerDialog(object):
 
 
     def acceptSave(self) :
+
+        try :
+            recsize = int(self.lineEdit_5.text())
+        except ValueError as e :
+            recsize = 512
+
+        try :
+            delay = int(self.lineEdit_6.text())
+        except ValueError as e :
+            delay = 0
+
+        try :
+            respsize = int(self.lineEdit_8.text())
+        except ValueError as e :
+            respsize = 512
+
+        
         obj = self.container.GetBackendObj()
-        obj.resp_size = self.lineEdit_4.text()
+        obj.resp_profile = self.comboBox4.currentIndex()
         obj.record_size = self.lineEdit_5.text()
         obj.record_delay = self.lineEdit_6.text()
-        obj.cipher_delay = self.lineEdit_7.text()
-
+        obj.cipher_filter = self.lineEdit_7.text()
         obj.reuse = self.checkBox.isChecked()
         obj.reneg = self.checkBox_2.isChecked()
-        obj.cauth = self.checkBox_2.isChecked()
+        obj.cauth = self.checkBox_3.isChecked()
+        obj.resp_size = respsize
+        obj.record_size = recsize
+        obj.inter_record_delay = delay
+
 
         obj.SendOnce()
         self.dialog.accept()
@@ -207,30 +240,50 @@ class BEOpenSSLServerDialog(object):
         else :
             portStr = self.lineEdit_3.text()
             nameStr = self.lineEdit.text()
+
+
+        try :
+            recsize = int(self.lineEdit_5.text())
+        except ValueError as e :
+            recsize = 512
+
+        try :
+            delay = int(self.lineEdit_6.text())
+        except ValueError as e :
+            delay = 0
+
+        try :
+            respsize = int(self.lineEdit_8.text())
+        except ValueError as e :
+            respsize = 512
+
         
-        entity = BEOpenSSLServerEntity(#self.lineEdit.text(),
-                                        nameStr,
+        
+        entity = BEOpenSSLServerEntity(nameStr,
                                        self.lineEdit_2.text(),
                                        portStr,
-                                       #self.lineEdit_3.text(),
-                                       self.lineEdit_4.text(),
-                                       self.lineEdit_5.text(),
-                                       self.lineEdit_6.text(),
+                                       self.comboBox4.currentIndex(),
+                                       recsize,
+                                       delay,
                                        self.lineEdit_7.text(),
                                        self.checkBox.isChecked(),
                                        self.checkBox_2.isChecked(),
-                                       self.checkBox_2.isChecked() )
+                                       self.checkBox_3.isChecked(),
+                                       respsize)
         return entity
 
 
     def FillFromObj(self,obj) :
+        print 'BEOpenSSLServer: FillFromObj :...'
+        
         self.lineEdit.setText(obj.name)
         self.lineEdit_2.setText(obj.ip)
         self.lineEdit_3.setText(obj.listen_port)
-        self.lineEdit_4.setText(obj.resp_size)
-        self.lineEdit_5.setText(obj.record_size)
-        self.lineEdit_6.setText(obj.inter_record_delay)
+        self.comboBox4.setCurrentIndex(obj.resp_profile)
+        self.lineEdit_5.setText(str(obj.record_size))
+        self.lineEdit_6.setText(str(obj.inter_record_delay))
         self.lineEdit_7.setText(obj.cipher_filter)
+        self.lineEdit_8.setText(str(obj.resp_size))
 
         if obj.reuse :
             self.checkBox.setCheckState(2)
@@ -266,13 +319,14 @@ class BEOpenSSLServerEntity(QtCore.QObject):
     sigStatus = QtCore.pyqtSignal(int)
 
     #=====================================================#
-    def __init__(self,name,ip,port,resp_size,record_size,delay,cipher_filter,reuse,reneg,cauth) :
+    def __init__(self,name,ip,port,resp_profile,record_size,delay,cipher_filter,reuse,reneg,cauth,resp_size) :
         super(self.__class__,self).__init__()
         self.name = name
         self.ip = ip
         self.listen_port = port
         self.type = 'SSL'
-        self.resp_size = resp_size
+        self.resp_size = int(resp_size)
+        self.resp_profile = resp_profile
         self.record_size = record_size
         self.inter_record_delay = delay
         self.cipher_filter = cipher_filter
@@ -284,6 +338,7 @@ class BEOpenSSLServerEntity(QtCore.QObject):
         self.sd = None
         self.isrunning = False
         self.isRemoved = False
+        self.ReadOnceCount = 1
 
 
     #=====================================================#
@@ -292,24 +347,26 @@ class BEOpenSSLServerEntity(QtCore.QObject):
 
 
     def GetName(self) :
-        return self.name
+        s = self.ip + '\n' + str(self.listen_port)
+        return s
 
 
 
     #=====================================================#
     def ToJson(self) :
         d = dict()
-        d['name'] = self.name
-        d['ip'] = self.ip
-        d['listen_port'] =  self.listen_port
-        d['resp_size']   = self.resp_size
-        d['record_size'] = self.record_size
-        d['cipher_filter'] = self.cipher_filter
-        d['inter_record_delay '] = self.inter_record_delay 
-        d['reuse'] = self.reuse
-        d['reneg'] = self.reneg
-        d['cauth'] = self.cauth
-        d['delay'] = self.inter_record_delay
+        d['name']           = self.name
+        d['ip']             = self.ip
+        d['listen_port']    = self.listen_port
+        d['resp_profile']   = self.resp_profile
+        d['record_size']    = self.record_size
+        d['resp_size']      = self.resp_size
+        d['cipher_filter']  = self.cipher_filter
+        d['inter_record_delay'] = self.inter_record_delay 
+        d['reuse']          = self.reuse
+        d['reneg']          = self.reneg
+        d['cauth']          = self.cauth
+        d['delay']          = self.inter_record_delay
         s = json.dumps(d)
         return s
 
@@ -328,9 +385,9 @@ class BEOpenSSLServerEntity(QtCore.QObject):
         d = json.loads(jstring)
         d = json.loads(d['val'])
         o =  BEOpenSSLServerEntity(d['name'], d['ip'], d['listen_port'],
-                                   d['resp_size'],d['record_size'],
+                                   d['resp_profile'],d['record_size'],
                                    d['delay'],d['cipher_filter'],
-                                   d['reuse'],d['reneg'],d['cauth'])
+                                   d['reuse'],d['reneg'],d['cauth'],d['resp_size'])
 
         return o
 
@@ -370,17 +427,24 @@ class BEOpenSSLServerEntity(QtCore.QObject):
         try :
             data = self.sd.recv(4)
         except  socket.error as e  :
-            data = None
+             data = None
         
         if not data :
             return None
 
-        len = struct.unpack("<I",data)
-        if(len[0] == 0) :
+        ll = struct.unpack("<I",data)
+        if(ll[0] == 0) :
+            return None
+        
+        if(ll[0] > 1024) :
+            print 'ReadOnce ({}) big len. returning'.format(ll[0])
             return None
 
+        
         try :
-            data = self.sd.recv(len[0])
+            data = self.sd.recv(ll[0])
+            print data
+            
         except socket.error as e :
             data = None
 
@@ -389,19 +453,65 @@ class BEOpenSSLServerEntity(QtCore.QObject):
 
     #=====================================================#
     def  SendOnce(self) :
+        if not self.sd :
+            self.Connect()
+        
         str = self.ToJson()
         lstr = struct.pack(">I", len(str))
+
+        doretry=0
+        try :
+            self.sd.sendall(lstr)
+        except socket.error as e :
+            doretry = 1
+
+        if doretry :
+            QtCore.QThread.sleep(1)
+            self.sd.sendall(lstr)
+            doretry = 0
+
+        try :
+            self.sd.sendall(str)
+        except socket.error as e :
+            doretry = 1
+
+        if doretry :
+            QtCore.QThread.sleep(1)
+            self.sd.sendall(str)
+            doretry=0
+
+
+    def AskResult(self) :
+        d = dict()
+        d['result'] = 1
+        s = json.dumps(d)
+        lstr = struct.pack(">I", len(s))
+        if not self.sd :
+            self.Connect()
+        
         self.sd.sendall(lstr)
-        self.sd.sendall(str)
+        self.sd.sendall(s)
+
 
 
     #=====================================================#
     def Terminate(self) :
         str = ''
         lstr = struct.pack(">I", len(str))
-        self.sd.sendall(lstr)
-        self.sd.close()
-        self.sd = None
+        doretry = 0
+        try :
+            self.sd.sendall(lstr)
+            self.sd.close()
+            self.sd = None
+        except socket.error as e :
+            doretry = 1
+
+        if doretry :
+            self.Connect()
+            self.sd.sendall(lstr)
+            self.sd.close()
+            self.sd = None
+    
 
 
     def GetSockTimeout(self) :
@@ -444,11 +554,11 @@ class BEOpenSSLServerEntity(QtCore.QObject):
         
 
     def Stop(self) :
+        if not self.sd :
+            self.isrunning = False
+            self.sigStatus.emit(0)
         if self.isrunning :
             self.isrunning = False
-            while self.isRemoved == False :
-                time.sleep(0.1)
-            
             self.Terminate()
             self.sigStatus.emit(0)
 
@@ -485,16 +595,43 @@ class BEOpenSSLServerEntity(QtCore.QObject):
     #to format the table accordingly.
     
     def PrepareResult(self) :
-        fp = self.OpenLogRd()
         N = NestedDict.NestedDict()
-        K = ['version','cipher','ServerCert','ClientCert','ECC']
+        K = ['a','version','cipher','ServerCert','ClientCert','ECC']
+        K = ['version','cipher','ServerCert','ClientCert','ECC','DH']
         N.SetKeys(K)
-        N.LoadFileFp(fp)
+        L = []
+        
+
+        self.AskResult()
+        while True :
+            s = self.ReadOnce()
+            if not s :
+                break;
+            try :
+                d = json.loads(s)
+                N.AddDict(d)
+            except ValueError as e :
+                print 'bad json {}'.format(s)
+        
         tw = N.GetViewWidget(None)
         l = []
         N.Print(N.keys,l)
         return tw
 
+
+    def PrepareMimeData(self,ccode=None) :
+        print 'PrepareMimeData for BEOpenSSLServer . entity_type {}'.format(self.entity_type)
+        d = dict()
+        d['name'] = self.name
+        d['type'] = self.entity_type
+        d['ip'] = self.ip
+        d['port'] = self.listen_port
+        s = json.dumps(d)
+        return s
+    
+
+    def AllowDrop(self,jstring) :
+        return False
 
 
     def __del__(self) :
