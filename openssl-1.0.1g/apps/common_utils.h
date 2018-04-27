@@ -1,0 +1,13 @@
+int SetTestHandler(int(*f)());
+int SetChildCount(int );
+int	SetArgHandler(int(*f)(char *));
+int	SetFirstResp(char *);
+int	SetCHDIR(char *);
+int	SetLogFile(char *);
+int ServerSocket(char *, int );
+int	ClientSocket(char *,int );
+int	WriteResponse(char *, ...);
+int CloseResponse();
+int	readCmdData(int , unsigned char * , int *);
+int ServerRun();
+int AddChild(int);
