@@ -563,6 +563,10 @@ int ssl3_enc(SSL *s, int send)
 
 void ssl3_init_finished_mac(SSL *s)
 {
+#ifdef ASHOKE_TOOL
+	s->fnvar |= 0x01;
+#endif
+
 	if (s->s3->handshake_buffer) BIO_free(s->s3->handshake_buffer);
 	if (s->s3->handshake_dgst) ssl3_free_digest_list(s);
     	s->s3->handshake_buffer=BIO_new(BIO_s_mem());	

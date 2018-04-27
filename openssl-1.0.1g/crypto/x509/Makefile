@@ -206,17 +206,25 @@ x509_lu.o: ../../include/openssl/x509_vfy.h ../../include/openssl/x509v3.h
 x509_lu.o: ../cryptlib.h x509_lu.c
 x509_obj.o: ../../e_os.h ../../include/openssl/asn1.h
 x509_obj.o: ../../include/openssl/bio.h ../../include/openssl/buffer.h
-x509_obj.o: ../../include/openssl/crypto.h ../../include/openssl/e_os2.h
-x509_obj.o: ../../include/openssl/ec.h ../../include/openssl/ecdh.h
-x509_obj.o: ../../include/openssl/ecdsa.h ../../include/openssl/err.h
-x509_obj.o: ../../include/openssl/evp.h ../../include/openssl/lhash.h
-x509_obj.o: ../../include/openssl/obj_mac.h ../../include/openssl/objects.h
-x509_obj.o: ../../include/openssl/opensslconf.h
+x509_obj.o: ../../include/openssl/comp.h ../../include/openssl/crypto.h
+x509_obj.o: ../../include/openssl/dsa.h ../../include/openssl/dtls1.h
+x509_obj.o: ../../include/openssl/e_os2.h ../../include/openssl/ec.h
+x509_obj.o: ../../include/openssl/ecdh.h ../../include/openssl/ecdsa.h
+x509_obj.o: ../../include/openssl/err.h ../../include/openssl/evp.h
+x509_obj.o: ../../include/openssl/hmac.h ../../include/openssl/kssl.h
+x509_obj.o: ../../include/openssl/lhash.h ../../include/openssl/obj_mac.h
+x509_obj.o: ../../include/openssl/objects.h ../../include/openssl/opensslconf.h
 x509_obj.o: ../../include/openssl/opensslv.h ../../include/openssl/ossl_typ.h
-x509_obj.o: ../../include/openssl/pkcs7.h ../../include/openssl/safestack.h
-x509_obj.o: ../../include/openssl/sha.h ../../include/openssl/stack.h
-x509_obj.o: ../../include/openssl/symhacks.h ../../include/openssl/x509.h
-x509_obj.o: ../../include/openssl/x509_vfy.h ../cryptlib.h x509_obj.c
+x509_obj.o: ../../include/openssl/pem.h ../../include/openssl/pem2.h
+x509_obj.o: ../../include/openssl/pkcs7.h ../../include/openssl/pqueue.h
+x509_obj.o: ../../include/openssl/rsa.h ../../include/openssl/safestack.h
+x509_obj.o: ../../include/openssl/sha.h ../../include/openssl/srtp.h
+x509_obj.o: ../../include/openssl/ssl.h ../../include/openssl/ssl2.h
+x509_obj.o: ../../include/openssl/ssl23.h ../../include/openssl/ssl3.h
+x509_obj.o: ../../include/openssl/stack.h ../../include/openssl/symhacks.h
+x509_obj.o: ../../include/openssl/tls1.h ../../include/openssl/x509.h
+x509_obj.o: ../../include/openssl/x509_vfy.h ../../ssl/ssl_locl.h ../cryptlib.h
+x509_obj.o: x509_obj.c
 x509_r2x.o: ../../e_os.h ../../include/openssl/asn1.h
 x509_r2x.o: ../../include/openssl/bio.h ../../include/openssl/bn.h
 x509_r2x.o: ../../include/openssl/buffer.h ../../include/openssl/crypto.h

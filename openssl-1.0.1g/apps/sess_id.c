@@ -84,11 +84,12 @@ NULL
 };
 
 static SSL_SESSION *load_sess_id(char *file, int format);
+static SSL_SESSION *load_sess_id_ALL(char *infile, int format);
 
 int MAIN(int, char **);
 
 int MAIN(int argc, char **argv)
-	{
+{
 	SSL_SESSION *x=NULL;
 	X509 *peer = NULL;
 	int ret=1,i,num,badops=0;
@@ -111,27 +112,27 @@ int MAIN(int argc, char **argv)
 	argv++;
 	num=0;
 	while (argc >= 1)
-		{
+	{
 		if 	(strcmp(*argv,"-inform") == 0)
-			{
+		{
 			if (--argc < 1) goto bad;
 			informat=str2fmt(*(++argv));
-			}
+		}
 		else if (strcmp(*argv,"-outform") == 0)
-			{
+		{
 			if (--argc < 1) goto bad;
 			outformat=str2fmt(*(++argv));
-			}
+		}
 		else if (strcmp(*argv,"-in") == 0)
-			{
+		{
 			if (--argc < 1) goto bad;
 			infile= *(++argv);
-			}
+		}
 		else if (strcmp(*argv,"-out") == 0)
-			{
+		{
 			if (--argc < 1) goto bad;
 			outfile= *(++argv);
-			}
+		}
 		else if (strcmp(*argv,"-text") == 0)
 			text= ++num;
 		else if (strcmp(*argv,"-cert") == 0)
@@ -139,35 +140,36 @@ int MAIN(int argc, char **argv)
 		else if (strcmp(*argv,"-noout") == 0)
 			noout= ++num;
 		else if (strcmp(*argv,"-context") == 0)
-		    {
+		{
 		    if(--argc < 1) goto bad;
 		    context=*++argv;
-		    }
+		}
 		else
-			{
+		{
 			BIO_printf(bio_err,"unknown option %s\n",*argv);
 			badops=1;
 			break;
-			}
+		}
 		argc--;
 		argv++;
-		}
+	}
 
 	if (badops)
-		{
+	{
 bad:
 		for (pp=sess_id_usage; (*pp != NULL); pp++)
 			BIO_printf(bio_err,"%s",*pp);
 		goto end;
-		}
+	}
 
 	ERR_load_crypto_strings();
-	x=load_sess_id(infile,informat);
+	//x=load_sess_id(infile,informat);
+	x=load_sess_id_ALL(infile,informat);
 	if (x == NULL) { goto end; }
 	peer = SSL_SESSION_get0_peer(x);
 
 	if(context)
-	    {
+	{
 	    size_t ctx_len = strlen(context);
 	    if(ctx_len > SSL_MAX_SID_CTX_LENGTH)
 		{
@@ -175,7 +177,7 @@ bad:
 		goto end;
 		}
 	    SSL_SESSION_set1_id_context(x, (unsigned char *)context, ctx_len);
-	    }
+	}
 
 #ifdef undef
 	/* just testing for memory leaks :-) */
@@ -199,16 +201,16 @@ bad:
 #endif
 
 	if (!noout || text)
-		{
+	{
 		out=BIO_new(BIO_s_file());
 		if (out == NULL)
-			{
+		{
 			ERR_print_errors(bio_err);
 			goto end;
-			}
+		}
 
 		if (outfile == NULL)
-			{
+		{
 			BIO_set_fp(out,stdout,BIO_NOCLOSE);
 #ifdef OPENSSL_SYS_VMS
 			{
@@ -216,32 +218,32 @@ bad:
 			out = BIO_push(tmpbio, out);
 			}
 #endif
-			}
+		}
 		else
-			{
+		{
 			if (BIO_write_filename(out,outfile) <= 0)
-				{
+			{
 				perror(outfile);
 				goto end;
-				}
 			}
 		}
+	}
 
 	if (text)
-		{
+	{
 		SSL_SESSION_print(out,x);
 
 		if (cert)
-			{
+		{
 			if (peer == NULL)
 				BIO_puts(out,"No certificate present\n");
 			else
 				X509_print(out,peer);
-			}
 		}
+	}
 
 	if (!noout && !cert)
-		{
+	{
 		if 	(outformat == FORMAT_ASN1)
 			i=i2d_SSL_SESSION_bio(out,x);
 		else if (outformat == FORMAT_PEM)
@@ -254,9 +256,9 @@ bad:
 			BIO_printf(bio_err,"unable to write SSL_SESSION\n");
 			goto end;
 			}
-		}
+	}
 	else if (!noout && (peer != NULL)) /* just print the certificate */
-		{
+	{
 		if 	(outformat == FORMAT_ASN1)
 			i=(int)i2d_X509_bio(out,peer);
 		else if (outformat == FORMAT_PEM)
@@ -269,54 +271,110 @@ bad:
 			BIO_printf(bio_err,"unable to write X509\n");
 			goto end;
 			}
-		}
+	}
 	ret=0;
 end:
 	if (out != NULL) BIO_free_all(out);
 	if (x != NULL) SSL_SESSION_free(x);
 	apps_shutdown();
 	OPENSSL_EXIT(ret);
+}
+
+
+
+static SSL_SESSION *load_sess_id_ALL(char *infile, int format)
+{
+	SSL_SESSION *x=NULL;
+	BIO *in=NULL;
+	BIO *out=NULL;
+
+	in=BIO_new(BIO_s_file());
+	if (in == NULL)
+	{
+		ERR_print_errors(bio_err);
+		goto end;
 	}
 
-static SSL_SESSION *load_sess_id(char *infile, int format)
+	if (infile == NULL)
+		BIO_set_fp(in,stdin,BIO_NOCLOSE);
+	else
 	{
+		if (BIO_read_filename(in,infile) <= 0)
+		{
+			perror(infile);
+			goto end;
+		}
+	}
+
+	out=BIO_new(BIO_s_file());
+	BIO_set_fp(out,stdout,BIO_NOCLOSE);
+
+	while(1)
+	{
+	if 	(format == FORMAT_ASN1)
+		x=d2i_SSL_SESSION_bio(in,NULL);
+	else if (format == FORMAT_PEM)
+		x=PEM_read_bio_SSL_SESSION(in,NULL,NULL,NULL);
+	else	
+	{
+		BIO_printf(bio_err,"bad input format specified for input crl\n");
+		goto end;
+	}
+	if (x == NULL)
+	{
+		BIO_printf(bio_err,"unable to load SSL_SESSION\n");
+		ERR_print_errors(bio_err);
+		goto end;
+	}
+	SSL_SESSION_print(out,x);
+	}
+	
+end:
+	if (in != NULL) BIO_free(in);
+	return(x);
+}
+
+
+static SSL_SESSION *load_sess_id(char *infile, int format)
+{
 	SSL_SESSION *x=NULL;
 	BIO *in=NULL;
 
 	in=BIO_new(BIO_s_file());
 	if (in == NULL)
-		{
+	{
 		ERR_print_errors(bio_err);
 		goto end;
-		}
+	}
 
 	if (infile == NULL)
 		BIO_set_fp(in,stdin,BIO_NOCLOSE);
 	else
-		{
+	{
 		if (BIO_read_filename(in,infile) <= 0)
-			{
+		{
 			perror(infile);
 			goto end;
-			}
 		}
+	}
 	if 	(format == FORMAT_ASN1)
 		x=d2i_SSL_SESSION_bio(in,NULL);
 	else if (format == FORMAT_PEM)
 		x=PEM_read_bio_SSL_SESSION(in,NULL,NULL,NULL);
-	else	{
+	else	
+	{
 		BIO_printf(bio_err,"bad input format specified for input crl\n");
 		goto end;
-		}
+	}
 	if (x == NULL)
-		{
+	{
 		BIO_printf(bio_err,"unable to load SSL_SESSION\n");
 		ERR_print_errors(bio_err);
 		goto end;
-		}
+	}
 	
 end:
 	if (in != NULL) BIO_free(in);
 	return(x);
-	}
+}
 

@@ -116,14 +116,17 @@ int X509V3_EXT_print(BIO *out, X509_EXTENSION *ext, unsigned long flag, int inde
 
 	if(!(method = X509V3_EXT_get(ext)))
 		return unknown_ext_print(out, ext, flag, indent, 0);
+
 	p = ext->value->data;
 	if(method->it) ext_str = ASN1_item_d2i(NULL, &p, ext->value->length, ASN1_ITEM_ptr(method->it));
 	else ext_str = method->d2i(NULL, &p, ext->value->length);
 
 	if(!ext_str) return unknown_ext_print(out, ext, flag, indent, 1);
 
-	if(method->i2s) {
-		if(!(value = method->i2s(method, ext_str))) {
+	if(method->i2s) 
+	{
+		if(!(value = method->i2s(method, ext_str))) 
+		{
 			ok = 0;
 			goto err;
 		}
@@ -143,16 +146,22 @@ int X509V3_EXT_print(BIO *out, X509_EXTENSION *ext, unsigned long flag, int inde
 			}
 		}
 #endif
-	} else if(method->i2v) {
-		if(!(nval = method->i2v(method, ext_str, NULL))) {
+	} 
+	else if(method->i2v) 
+	{
+		if(!(nval = method->i2v(method, ext_str, NULL))) 
+		{
 			ok = 0;
 			goto err;
 		}
 		X509V3_EXT_val_prn(out, nval, indent,
 				 method->ext_flags & X509V3_EXT_MULTILINE);
-	} else if(method->i2r) {
+	} 
+	else if(method->i2r) 
+	{
 		if(!method->i2r(method, ext_str, out, indent)) ok = 0;
-	} else ok = 0;
+	} 
+	else ok = 0;
 
 	err:
 		sk_CONF_VALUE_pop_free(nval, X509V3_conf_free);
@@ -169,13 +178,13 @@ int X509V3_extensions_print(BIO *bp, char *title, STACK_OF(X509_EXTENSION) *exts
 	if(sk_X509_EXTENSION_num(exts) <= 0) return 1;
 
 	if(title) 
-		{
+	{
 		BIO_printf(bp,"%*s%s:\n",indent, "", title);
 		indent += 4;
-		}
+	}
 
 	for (i=0; i<sk_X509_EXTENSION_num(exts); i++)
-		{
+	{
 		ASN1_OBJECT *obj;
 		X509_EXTENSION *ex;
 		ex=sk_X509_EXTENSION_value(exts, i);
@@ -186,12 +195,12 @@ int X509V3_extensions_print(BIO *bp, char *title, STACK_OF(X509_EXTENSION) *exts
 		if (BIO_printf(bp,": %s\n",j?"critical":"") <= 0)
 			return 0;
 		if(!X509V3_EXT_print(bp, ex, flag, indent + 4))
-			{
+		{
 			BIO_printf(bp, "%*s", indent + 4, "");
 			M_ASN1_OCTET_STRING_print(bp,ex->value);
-			}
-		if (BIO_write(bp,"\n",1) <= 0) return 0;
 		}
+		if (BIO_write(bp,"\n",1) <= 0) return 0;
+	}
 	return 1;
 }
 

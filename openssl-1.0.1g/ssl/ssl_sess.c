@@ -474,6 +474,7 @@ int ssl_get_prev_session(SSL *s, unsigned char *session_id, int len,
 	int r;
 #endif
 
+
 	if (len > SSL_MAX_SSL_SESSION_ID_LENGTH)
 		goto err;
 
@@ -502,7 +503,7 @@ int ssl_get_prev_session(SSL *s, unsigned char *session_id, int len,
 	if (try_session_cache &&
 	    ret == NULL &&
 	    !(s->session_ctx->session_cache_mode & SSL_SESS_CACHE_NO_INTERNAL_LOOKUP))
-		{
+	{
 		SSL_SESSION data;
 		data.ssl_version=s->version;
 		data.session_id_length=len;
@@ -512,23 +513,23 @@ int ssl_get_prev_session(SSL *s, unsigned char *session_id, int len,
 		CRYPTO_r_lock(CRYPTO_LOCK_SSL_CTX);
 		ret=lh_SSL_SESSION_retrieve(s->session_ctx->sessions,&data);
 		if (ret != NULL)
-			{
+		{
 			/* don't allow other threads to steal it: */
 			CRYPTO_add(&ret->references,1,CRYPTO_LOCK_SSL_SESSION);
-			}
+		}
 		CRYPTO_r_unlock(CRYPTO_LOCK_SSL_CTX);
 		if (ret == NULL)
 			s->session_ctx->stats.sess_miss++;
-		}
+	}
 
 	if (try_session_cache &&
 	    ret == NULL &&
 	    s->session_ctx->get_session_cb != NULL)
-		{
+	{
 		int copy=1;
 	
 		if ((ret=s->session_ctx->get_session_cb(s,session_id,len,&copy)))
-			{
+		{
 			s->session_ctx->stats.sess_cb_hit++;
 
 			/* Increment reference count now if the session callback
@@ -545,8 +546,8 @@ int ssl_get_prev_session(SSL *s, unsigned char *session_id, int len,
 				/* The following should not return 1, otherwise,
 				 * things are very strange */
 				SSL_CTX_add_session(s->session_ctx,ret);
-			}
 		}
+	}
 
 	if (ret == NULL)
 		goto err;

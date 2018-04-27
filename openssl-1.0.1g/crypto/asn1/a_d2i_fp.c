@@ -140,7 +140,7 @@ void *ASN1_item_d2i_fp(const ASN1_ITEM *it, FILE *in, void *x)
 
 #define HEADER_SIZE   8
 static int asn1_d2i_read_bio(BIO *in, BUF_MEM **pb)
-	{
+{
 	BUF_MEM *b;
 	unsigned char *p;
 	int i;
@@ -283,4 +283,4 @@ static int asn1_d2i_read_bio(BIO *in, BUF_MEM **pb)
 err:
 	if (b != NULL) BUF_MEM_free(b);
 	return -1;
-	}
+}

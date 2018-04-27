@@ -1756,7 +1756,7 @@ int ssl_parse_serverhello_tlsext(SSL *s, unsigned char **p, unsigned char *d, in
 
 
 int ssl_prepare_clienthello_tlsext(SSL *s)
-	{
+{
 #ifndef OPENSSL_NO_EC
 	/* If we are client and using an elliptic curve cryptography cipher suite, send the point formats 
 	 * and elliptic curves we support.
@@ -1768,20 +1768,20 @@ int ssl_prepare_clienthello_tlsext(SSL *s)
 	STACK_OF(SSL_CIPHER) *cipher_stack = SSL_get_ciphers(s);
 
 	for (i = 0; i < sk_SSL_CIPHER_num(cipher_stack); i++)
-		{
+	{
 		SSL_CIPHER *c = sk_SSL_CIPHER_value(cipher_stack, i);
 
 		alg_k = c->algorithm_mkey;
 		alg_a = c->algorithm_auth;
 		if ((alg_k & (SSL_kEECDH|SSL_kECDHr|SSL_kECDHe) || (alg_a & SSL_aECDSA)))
-			{
+		{
 			using_ecc = 1;
 			break;
-			}
 		}
+	}
 	using_ecc = using_ecc && (s->version >= TLS1_VERSION);
 	if (using_ecc)
-		{
+	{
 		if (s->tlsext_ecpointformatlist != NULL) OPENSSL_free(s->tlsext_ecpointformatlist);
 		if ((s->tlsext_ecpointformatlist = OPENSSL_malloc(3)) == NULL)
 			{
@@ -1808,7 +1808,7 @@ int ssl_prepare_clienthello_tlsext(SSL *s)
 			int id = tls1_ec_nid2curve_id(pref_list[i]);
 			s2n(id,j);
 			}
-		}
+	}
 #endif /* OPENSSL_NO_EC */
 
 #ifdef TLSEXT_TYPE_opaque_prf_input
@@ -1816,14 +1816,14 @@ int ssl_prepare_clienthello_tlsext(SSL *s)
 		int r = 1;
 	
 		if (s->ctx->tlsext_opaque_prf_input_callback != 0)
-			{
+		{
 			r = s->ctx->tlsext_opaque_prf_input_callback(s, NULL, 0, s->ctx->tlsext_opaque_prf_input_callback_arg);
 			if (!r)
 				return -1;
-			}
+		}
 
 		if (s->tlsext_opaque_prf_input != NULL)
-			{
+		{
 			if (s->s3->client_opaque_prf_input != NULL) /* shouldn't really happen */
 				OPENSSL_free(s->s3->client_opaque_prf_input);
 
@@ -1837,7 +1837,7 @@ int ssl_prepare_clienthello_tlsext(SSL *s)
 				return -1;
 				}
 			s->s3->client_opaque_prf_input_len = s->tlsext_opaque_prf_input_len;
-			}
+		}
 
 		if (r == 2)
 			/* at callback's request, insist on receiving an appropriate server opaque PRF input */
@@ -1846,10 +1846,10 @@ int ssl_prepare_clienthello_tlsext(SSL *s)
 #endif
 
 	return 1;
-	}
+}
 
 int ssl_prepare_serverhello_tlsext(SSL *s)
-	{
+{
 #ifndef OPENSSL_NO_EC
 	/* If we are server and using an ECC cipher suite, send the point formats we support 
 	 * if the client sent us an ECPointsFormat extension.  Note that the server is not
@@ -1877,10 +1877,10 @@ int ssl_prepare_serverhello_tlsext(SSL *s)
 #endif /* OPENSSL_NO_EC */
 
 	return 1;
-	}
+}
 
 int ssl_check_clienthello_tlsext_early(SSL *s)
-	{
+{
 	int ret=SSL_TLSEXT_ERR_NOACK;
 	int al = SSL_AD_UNRECOGNIZED_NAME;
 
@@ -1972,10 +1972,10 @@ int ssl_check_clienthello_tlsext_early(SSL *s)
 			default:
 		return 1;
 		}
-	}
+}
 
 int ssl_check_clienthello_tlsext_late(SSL *s)
-	{
+{
 	int ret = SSL_TLSEXT_ERR_OK;
 	int al;
 
@@ -2037,10 +2037,10 @@ int ssl_check_clienthello_tlsext_late(SSL *s)
 		default:
 			return 1;
 		}
-	}
+}
 
 int ssl_check_serverhello_tlsext(SSL *s)
-	{
+{
 	int ret=SSL_TLSEXT_ERR_NOACK;
 	int al = SSL_AD_UNRECOGNIZED_NAME;
 
@@ -2149,7 +2149,7 @@ int ssl_check_serverhello_tlsext(SSL *s)
 			default:
 		return 1;
 		}
-	}
+}
 
 /* Since the server cache lookup is done early on in the processing of the
  * ClientHello, and other operations depend on the result, we need to handle
@@ -2186,7 +2186,7 @@ int ssl_check_serverhello_tlsext(SSL *s)
  */
 int tls1_process_ticket(SSL *s, unsigned char *session_id, int len,
 			const unsigned char *limit, SSL_SESSION **ret)
-	{
+{
 	/* Point after session ID in client hello */
 	const unsigned char *p = session_id + len;
 	unsigned short i;
@@ -2269,7 +2269,7 @@ int tls1_process_ticket(SSL *s, unsigned char *session_id, int len,
 		p += size;
 		}
 	return 0;
-	}
+}
 
 /* tls_decrypt_ticket attempts to decrypt a session ticket.
  *
@@ -2289,7 +2289,7 @@ int tls1_process_ticket(SSL *s, unsigned char *session_id, int len,
 static int tls_decrypt_ticket(SSL *s, const unsigned char *etick, int eticklen,
 				const unsigned char *sess_id, int sesslen,
 				SSL_SESSION **psess)
-	{
+{
 	SSL_SESSION *sess;
 	unsigned char *sdec;
 	const unsigned char *p;
@@ -2381,15 +2381,15 @@ static int tls_decrypt_ticket(SSL *s, const unsigned char *etick, int eticklen,
 	/* For session parse failure, indicate that we need to send a new
 	 * ticket. */
 	return 2;
-	}
+}
 
 /* Tables to translate from NIDs to TLS v1.2 ids */
 
 typedef struct 
-	{
+{
 	int nid;
 	int id;
-	} tls12_lookup;
+} tls12_lookup;
 
 static tls12_lookup tls12_md[] = {
 #ifndef OPENSSL_NO_MD5

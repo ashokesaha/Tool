@@ -154,67 +154,67 @@ BIO *bio_err=NULL;
 
 
 static void lock_dbg_cb(int mode, int type, const char *file, int line)
-	{
+{
 	static int modes[CRYPTO_NUM_LOCKS]; /* = {0, 0, ... } */
 	const char *errstr = NULL;
 	int rw;
 	
 	rw = mode & (CRYPTO_READ|CRYPTO_WRITE);
 	if (!((rw == CRYPTO_READ) || (rw == CRYPTO_WRITE)))
-		{
+	{
 		errstr = "invalid mode";
 		goto err;
-		}
+	}
 
 	if (type < 0 || type >= CRYPTO_NUM_LOCKS)
-		{
+	{
 		errstr = "type out of bounds";
 		goto err;
-		}
+	}
 
 	if (mode & CRYPTO_LOCK)
-		{
+	{
 		if (modes[type])
-			{
+		{
 			errstr = "already locked";
 			/* must not happen in a single-threaded program
 			 * (would deadlock) */
 			goto err;
-			}
+		}
 
 		modes[type] = rw;
-		}
+	}
 	else if (mode & CRYPTO_UNLOCK)
-		{
+	{
 		if (!modes[type])
-			{
+		{
 			errstr = "not locked";
 			goto err;
-			}
+		}
 		
 		if (modes[type] != rw)
-			{
+		{
 			errstr = (rw == CRYPTO_READ) ?
 				"CRYPTO_r_unlock on write lock" :
 				"CRYPTO_w_unlock on read lock";
-			}
+		}
 
 		modes[type] = 0;
-		}
+	}
 	else
-		{
+	{
 		errstr = "invalid mode";
 		goto err;
-		}
+	}
 
  err:
 	if (errstr)
-		{
+	{
 		/* we cannot use bio_err here */
 		fprintf(stderr, "openssl (lock_dbg_cb): %s (mode=%d, type=%d) at %s:%d\n",
 			errstr, mode, type, file, line);
-		}
 	}
+}
 
 #if defined( OPENSSL_SYS_VMS) && (__INITIAL_POINTER_SIZE == 64)
 # define ARGV _Argv
@@ -223,7 +223,7 @@ static void lock_dbg_cb(int mode, int type, const char *file, int line)
 #endif
 
 int main(int Argc, char *ARGV[])
-	{
+{
 	ARGS arg;
 #define PROG_NAME_SIZE	39
 	char pname[PROG_NAME_SIZE+1];
@@ -451,7 +451,7 @@ end:
 		}
 #endif
 	OPENSSL_EXIT(ret);
-	}
+}
 
 #define LIST_STANDARD_COMMANDS "list-standard-commands"
 #define LIST_MESSAGE_DIGEST_COMMANDS "list-message-digest-commands"
@@ -462,7 +462,7 @@ end:
 
 
 static int do_cmd(LHASH_OF(FUNCTION) *prog, int argc, char *argv[])
-	{
+{
 	FUNCTION f,*fp;
 	int i,ret=1,tp,nl;
 
@@ -611,20 +611,20 @@ static int do_cmd(LHASH_OF(FUNCTION) *prog, int argc, char *argv[])
 		}
 end:
 	return(ret);
-	}
+}
 
 static int SortFnByName(const void *_f1,const void *_f2)
-    {
+{
     const FUNCTION *f1=_f1;
     const FUNCTION *f2=_f2;
 
     if(f1->type != f2->type)
 	return f1->type-f2->type;
     return strcmp(f1->name,f2->name);
-    }
+}
 
 static void list_pkey(BIO *out)
-	{
+{
 	int i;
 	for (i = 0; i < EVP_PKEY_asn1_get_count(); i++)
 		{
@@ -654,11 +654,11 @@ static void list_pkey(BIO *out)
 			}
 					
 		}
-	}
+}
 
 static void list_cipher_fn(const EVP_CIPHER *c,
 			const char *from, const char *to, void *arg)
-	{
+{
 	if (c)
 		BIO_printf(arg, "%s\n", EVP_CIPHER_name(c));
 	else
@@ -669,16 +669,16 @@ static void list_cipher_fn(const EVP_CIPHER *c,
 			to = "<undefined>";
 		BIO_printf(arg, "%s => %s\n", from, to);
 		}
-	}
+}
 
 static void list_cipher(BIO *out)
-	{
+{
 	EVP_CIPHER_do_all_sorted(list_cipher_fn, out);
-	}
+}
 
 static void list_md_fn(const EVP_MD *m,
 			const char *from, const char *to, void *arg)
-	{
+{
 	if (m)
 		BIO_printf(arg, "%s\n", EVP_MD_name(m));
 	else
@@ -689,27 +689,27 @@ static void list_md_fn(const EVP_MD *m,
 			to = "<undefined>";
 		BIO_printf(arg, "%s => %s\n", from, to);
 		}
-	}
+}
 
 static void list_md(BIO *out)
-	{
+{
 	EVP_MD_do_all_sorted(list_md_fn, out);
-	}
+}
 
 static int MS_CALLBACK function_cmp(const FUNCTION *a, const FUNCTION *b)
-	{
+{
 	return strncmp(a->name,b->name,8);
-	}
+}
 static IMPLEMENT_LHASH_COMP_FN(function, FUNCTION)
 
 static unsigned long MS_CALLBACK function_hash(const FUNCTION *a)
-	{
+{
 	return lh_strhash(a->name);
-	}	
+}	
 static IMPLEMENT_LHASH_HASH_FN(function, FUNCTION)
 
 static LHASH_OF(FUNCTION) *prog_init(void)
-	{
+{
 	LHASH_OF(FUNCTION) *ret;
 	FUNCTION *f;
 	size_t i;
@@ -725,5 +725,5 @@ static LHASH_OF(FUNCTION) *prog_init(void)
 	for (f=functions; f->name != NULL; f++)
 		(void)lh_FUNCTION_insert(ret,f);
 	return(ret);
-	}
+}
 

@@ -13,8 +13,8 @@ SHLIB_MAJOR=1
 SHLIB_MINOR=0.0
 SHLIB_EXT=.so.$(SHLIB_MAJOR).$(SHLIB_MINOR)
 PLATFORM=BSD-x86_64
-OPTIONS=-Wa,--noexecstack no-dso no-ec_nistp_64_gcc_128 no-gmp no-jpake no-krb5 no-md2 no-rc5 no-rfc3779 no-sctp no-shared no-store no-threads no-zlib no-zlib-dynamic static-engine
-CONFIGURE_ARGS=BSD-x86_64 no-threads no-dso no-shared -Wa,--noexecstack
+OPTIONS=enable-shared -Wa,--noexecstack no-dso no-ec_nistp_64_gcc_128 no-gmp no-jpake no-krb5 no-md2 no-rc5 no-rfc3779 no-sctp no-store no-threads no-zlib no-zlib-dynamic no-static-engine
+CONFIGURE_ARGS=BSD-x86_64 no-threads shared no-dso -Wa,--noexecstack
 SHLIB_TARGET=bsd-gcc-shared
 
 # HERE indicates where this Makefile lives.  This can be used to indicate
@@ -59,9 +59,9 @@ OPENSSLDIR=/usr/local/ssl
 # equal 4.
 # PKCS1_CHECK - pkcs1 tests.
 
-CC=gcc
-CFLAG= -g -Wa,--noexecstack -DL_ENDIAN -DTERMIOS -Wall -DOPENSSL_IA32_SSE2 -DOPENSSL_BN_ASM_MONT -DOPENSSL_BN_ASM_MONT5 -DOPENSSL_BN_ASM_GF2m -DSHA1_ASM -DSHA256_ASM -DSHA512_ASM -DMD5_ASM -DAES_ASM -DVPAES_ASM -DBSAES_ASM -DWHIRLPOOL_ASM -DGHASH_ASM -DASHOKE_TOOL
-DEPFLAG= -g -DOPENSSL_NO_EC_NISTP_64_GCC_128 -DOPENSSL_NO_GMP -DOPENSSL_NO_JPAKE -DOPENSSL_NO_MD2 -DOPENSSL_NO_RC5 -DOPENSSL_NO_RFC3779 -DOPENSSL_NO_SCTP -DOPENSSL_NO_STORE
+CC= gcc
+CFLAG= -fPIC -DOPENSSL_PIC -Wa,--noexecstack -DL_ENDIAN -DTERMIOS -O3 -Wall -DOPENSSL_IA32_SSE2 -DOPENSSL_BN_ASM_MONT -DOPENSSL_BN_ASM_MONT5 -DOPENSSL_BN_ASM_GF2m -DSHA1_ASM -DSHA256_ASM -DSHA512_ASM -DMD5_ASM -DAES_ASM -DVPAES_ASM -DBSAES_ASM -DWHIRLPOOL_ASM -DGHASH_ASM -DASHOKE_TOOL
+DEPFLAG= -DOPENSSL_NO_EC_NISTP_64_GCC_128 -DOPENSSL_NO_GMP -DOPENSSL_NO_JPAKE -DOPENSSL_NO_MD2 -DOPENSSL_NO_RC5 -DOPENSSL_NO_RFC3779 -DOPENSSL_NO_SCTP -DOPENSSL_NO_STORE
 PEX_LIBS= 
 EX_LIBS= 
 EXE_EXT= 
@@ -174,7 +174,7 @@ WDIRS=  windows
 LIBS=   libcrypto.a libssl.a
 SHARED_CRYPTO=libcrypto$(SHLIB_EXT)
 SHARED_SSL=libssl$(SHLIB_EXT)
-SHARED_LIBS=
+SHARED_LIBS=$(SHARED_CRYPTO) $(SHARED_SSL)
 SHARED_LIBS_LINK_EXTS=.so.$(SHLIB_MAJOR) .so
 SHARED_LDFLAGS= -Wl,-rpath,$(LIBRPATH)
 

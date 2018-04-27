@@ -11,6 +11,7 @@
 #include <netinet/in.h>
 #include <signal.h>
 #include <errno.h>
+#include <sys/resource.h>
 
 #include <sys/wait.h>
 #include <sys/time.h>
@@ -20,22 +21,38 @@
 #include <openssl/dh.h>
 #include <openssl/ec.h>
 #include <openssl/bio.h>
+#include <openssl/x509v3.h>
+#include <openssl/err.h>
 #include <sys/select.h>
 #include "cJSON.h"
 
+#if 0
 #define		REQUEST		"GET /index.html HTTP/1.1\r\nHost: 10.102.28.72\r\nConnection: keep-alive\r\n\r\n"
+
+#define		REQUEST		"GET /index.html HTTP/1.1\r\nHost: 10.102.28.72\r\nConnection: keep-alive\r\nASHOKEHDR: TEST1\r\n\r\n"
+#endif
+
+#define		REQUEST		"GET /index.html HTTP/1.1\r\nHost: 10.102.28.72\r\nConnection: close\r\nASHOKEHDR: TEST1\r\n\r\n"
+
 
 #define		REQLEN		strlen(REQUEST)
 
 #define		ENDTOKEN	"I AM DONE\n"
 #define		ENDTOKLEN	strlen(ENDTOKEN)
 #define		CLIENTHOME	"/mnt/ToolPkg/Client/"
+#define		MAXCHILD	4
+
+#define		STATUS_CAUTH	0x01
 
 typedef struct _child_stat_ {
 	int							id;
+	int							rescount;
 	int 						pid;
 	int							pass;
 	int							fail;
+	char						childLogFile[64];
+	unsigned	int				rsapadtest;
+	char						*testid;
 	struct 		_child_stat_	*next;	
 } CHILD_STAT_t;
 
@@ -113,9 +130,9 @@ char		*CIPHERS[] = {
 static int			doTest();
 static int			ForEachMethod(const SSL_METHOD *);
 static int			ForEachCipherFilter(const SSL_METHOD *,const SSL_CIPHER *);
-static int			ForEachCipher(const SSL_METHOD *,const SSL_CIPHER *,int);
+static int			ForEachCipher(const SSL_METHOD *,const SSL_CIPHER *,int,unsigned int *);
 static int  		checkVersionCipher(unsigned char,const char *);
-static int 			SendResult(int,const char *,int,int,char *,char *,char *,char *);
+static int 			SendResult(SSL *,char *,const SSL_CIPHER *);
 static int			MakeSocket(char *,int );
 static int			AllowCipher(const char *,int);
 static int			checkSkipFilter(const char *);
@@ -131,10 +148,29 @@ static cJSON 		*MakeJson(int ,int ,char *);
 static int  		BigJson();
 static int			loadCertsByPrefix(char *);
 static int			AddCertByName(char *,char *);
-extern int			GetServerCertDetails(SSL *,char *,char *);
+static int			StreamFileByLine(char *file);
+static int			StreamResults(char *);
+int			FillCommonNames(X509 *x509, char *out);
+
+extern	int				GetServerCertDetails(SSL *,char *,char *);
+extern	DH				*SSL_get_dh(SSL *s);
+extern	DH				*SSL_get_peerdh(SSL *s);
+extern  X509			*ssl_get_server_send_cert(const SSL *s);
+extern	char			*SSL_get_curvename(SSL *s);
+extern	unsigned short 	SSL_get_peer_port(SSL *s);
+extern	int 			SSL_set_peer_port(SSL *s, unsigned short port);
+extern	char			*get_ecc_curvename(SSL *s);
+extern	char			*ASHOKE_TOOL_get_cert_info(X509 *,char *);
+extern	char			*ASHOKE_TOOL_get_ecc_info(SSL *);
+extern	int				ASHOKE_TOOL_write_session(SSL *, char *);
+extern	SSL_SESSION		*ASHOKE_TOOL_find_session(unsigned char *, char *);
+
 
 
 CHILD_STAT_t			*childStatQ = NULL;
+CHILD_STAT_t 			*curChildStat = NULL;
+CHILD_STAT_t			*childStatFreeQ = NULL;
+CHILD_STAT_t			*childStatActiveQ = NULL;
 
 char					*IP = NULL;
 int						PORT = 0;
@@ -152,15 +188,18 @@ char					*CIPHERFILTER = NULL;
 char					*CERTFILE = NULL;
 char					*KEYFILE = NULL;
 char					*CERTLINK = NULL;
+char					*SERVERNAME = NULL;
 int						CHILDID = 1;
-int						TOUTMSEC = 1000;
+int						RSAPADTEST = 0;
+int						TOUTMSEC = 3000;
 char					EndToken[32];
 int						padtest = 0;
 int						smallrecordtest = 0;
 cJSON					*cjArray;
 char					*respBuf = NULL;
-//FILE					*childLogFp = NULL;
-extern FILE				*childLogFp;
+char					*TESTID_str = NULL;
+FILE					*debugParentFP = NULL;
+FILE					*debugChildFP = NULL;
 
 const SSL_METHOD		*v30Method = NULL;
 const SSL_METHOD		*v31Method = NULL;
@@ -169,11 +208,13 @@ const SSL_METHOD		*v33Method = NULL;
 
 CERT_LIST_t				gCertList[1024];
 int						gNumCertKey = 0;
+int						filedes[2];
 
+extern unsigned int TESTVAR_rsapadtest;
 
 int main(int argc, char **argv)
 {
-	int						asd, sd;
+	int						sd;
 	int						len, childCount=0;
 	int						i,pid = -1;
 	int						status = 0, ret;
@@ -191,13 +232,16 @@ int main(int argc, char **argv)
 	fd_set					readfds;
 	struct	timeval			tv;
 	volatile int			main_debug = 1;
-	FILE					*fp;
 	char					fpname[32];
 
-	chdir("/mnt/ToolPkg/Client");
-	sprintf(fpname,"/tmp/client_local_log.%d",getpid());
-	fp = fopen(fpname,"w");
-	setbuf(fp,NULL);
+	volatile int debugmain=1;
+
+	TESTVAR_rsapadtest = 0;
+
+	chdir("/tmp");
+	sprintf(fpname,"/tmp/debug.client.%d",getpid());
+	debugParentFP = fopen(fpname,"w");
+	setbuf(debugParentFP,NULL);
 
 
 	respBuf = malloc(256 * 1024);
@@ -211,8 +255,21 @@ int main(int argc, char **argv)
 		return 0;
 	WriteResponse("%s","upabovethe");
 
+
+	for(ret=0; ret < MAXCHILD; ret++)
+	{
+		tChildStat = (CHILD_STAT_t *)malloc(sizeof(CHILD_STAT_t));
+		tChildStat->pid = 0;
+		tChildStat->id = ret;
+		tChildStat->rescount = 0;
+		tChildStat->next = childStatFreeQ;
+		childStatFreeQ = tChildStat;
+	}
+
 	tv.tv_sec = 0;
 	tv.tv_usec = 500 * 1024;
+	pipe(filedes);
+
 	while(1)
 	{
 		FD_ZERO(&readfds);
@@ -220,43 +277,65 @@ int main(int argc, char **argv)
 
 		select(1,&readfds,NULL,NULL,&tv);
 	
-		CleanChild();
-
 		if(FD_ISSET(0,&readfds))
 		{
-			fprintf(fp,"fd 0 set. readCmdData call\n");
 			len =  sizeof(buf) - 1;
 			ret = readCmdData(0, buf, &len);
 			if(ret <= 0)
 				break;
-			fprintf(fp,"readCmdData read [%s]\n",buf);
-	
-			if(strcmp(buf,"Ping")==0)
-			{
-				WriteResponse("%s","Pong");
-				continue;
-			}
+			fprintf(debugParentFP,"readCmdData read [%s]\n",buf);
 
 			HandleArgs(buf);
 
 			for(ret=0; ret < CHILDCOUNT ; ret++)
 			{
-				fprintf(fp,"forking..\n");
-				fflush(fp);
+				curChildStat		= childStatFreeQ;
+				childStatFreeQ		= childStatFreeQ->next;
+				curChildStat->next	= childStatActiveQ;
+				childStatActiveQ	= curChildStat;
+				curChildStat->pass  = curChildStat->fail=curChildStat->pid=0;
+				curChildStat->id  = 	CHILDID++;
+				curChildStat->rsapadtest  = 	TESTVAR_rsapadtest;
+				curChildStat->testid  = 	TESTID_str;
+				sprintf(curChildStat->childLogFile,"/tmp/debug.client.%s.%d",TESTID_str,ret);
+
 				pid = fork();
 
 				if(pid > 0)
 				{
-					tChildStat = (CHILD_STAT_t *)malloc(sizeof(CHILD_STAT_t));
-					tChildStat->pid = pid;
-					tChildStat->id  = 	CHILDID++;
-					tChildStat->next = childStatQ;
-					childStatQ = tChildStat;
-					usleep(100 * 1000);
+					int i = 1;
+					fprintf(debugParentFP,"created child %d\n",pid);
+					curChildStat->pid = pid;
+					write(filedes[1],&i,sizeof(i));
 				}
 				else if (pid == 0)
 				{
-					ret = doTest();
+					int pid,status;
+					int i = 0;
+					volatile int debug = 1;
+					debugChildFP = fopen(curChildStat->childLogFile,"w");
+					read(filedes[0],&i,sizeof(i));
+
+					if(!ITERCOUNT)
+						ITERCOUNT=1;
+					for(i=0; i<ITERCOUNT; i++)
+					{
+						pid = fork();
+						if (pid > 0)
+						{
+							waitpid(pid,&status,0);
+						}
+						else if (pid == 0)
+						{
+							ret = doTest();
+							exit(0);
+						}
+						else
+							break;
+					}
+
+					fclose(debugChildFP);
+					debugChildFP = NULL;
 					exit(ret);
 				}
 				else
@@ -264,15 +343,39 @@ int main(int argc, char **argv)
 					goto Exit;
 				}
 			}
-			fprintf(fp,"out of child loop\n");
-			WaitForChild(0);
-			fprintf(fp,"sending ENDD\n");
+
+			tv.tv_sec = 1;
+			tv.tv_usec = 0;
+			while(childStatActiveQ)
+			{
+				CleanChild();
+
+				FD_ZERO(&readfds);
+				FD_SET(0,&readfds);
+				select(1,&readfds,NULL,NULL,&tv);
+				if(FD_ISSET(0,&readfds))
+				{
+					len =  sizeof(buf) - 1;
+					ret = readCmdData(0, buf, &len);
+					if(ret <= 0)
+					{
+						WaitForChild(1);
+						break;
+					}
+				}
+			}
+
+			fprintf(debugParentFP,"sending ENDD\n");
+			fflush(debugParentFP);
 			WriteResponse("%s","ENDD");
 		}
 	}
 
 Exit:
+	fprintf(debugParentFP,"Exiting . Killing child\n");
+	fflush(debugParentFP);
 	WaitForChild(1);
+	fprintf(debugParentFP,"Exiting . Killed child\n");
 }
 
 
@@ -293,22 +396,14 @@ static int doTest()
 
 	volatile int debug = 1;
 
-	sprintf(fpname,"/tmp/local_log.%d.%d",getppid(),getpid());
-	childLogFp = fopen(fpname,"w");
-	setbuf(childLogFp,NULL);
+	curChildStat->rescount = 0;
 
-	fprintf(childLogFp,"CIPHERFILER :  %s\n", CIPHERFILTER);
-	fprintf(childLogFp,"CERTFILE :  %s\n", CERTFILE);
-	fprintf(childLogFp,"CERTLINK :  %s\n", CERTLINK);
-	out = getcwd(NULL,0);
-	fprintf(childLogFp,"PWD :  %s\n", out);
-	free(out);
-	out = NULL;
-
+	chdir("/mnt/ToolPkg/Client");
 	if(CERTFILE)
 	{
 		loadCertsByPrefix(CERTFILE);
 	}
+	chdir("/tmp");
 
 	cjArray	= cJSON_CreateArray();
 
@@ -318,6 +413,8 @@ static int doTest()
 		iterCount = 1;
 
 	bzero(EndToken,sizeof(EndToken));
+	SSL_load_error_strings();
+	ERR_load_crypto_strings();
 	SSL_library_init();
 
 	v30Method	= SSLv3_client_method();
@@ -325,6 +422,10 @@ static int doTest()
 	v32Method	= TLSv1_1_client_method();
 	v33Method	= TLSv1_2_client_method();
 
+	/* we have crashes when client runs for a long time. As a stop gap
+	 * each client would run one iteration and we shall fork many clients.
+	 */
+	iterCount=1;
 	while(iterCount--)
 	{
 		ForEachMethod(v30Method);
@@ -332,14 +433,6 @@ static int doTest()
 		ForEachMethod(v32Method);
 		ForEachMethod(v33Method);
 	}
-
-#if 0
-	out	=	cJSON_Print(cjArray);
-	WriteResponse("%s",out);
-	printf("\n\n");
-	cJSON_Delete(cjArray); 
-	free(out);
-#endif
 
 	return 0;
 }
@@ -368,6 +461,7 @@ static int	ForEachMethod(const SSL_METHOD *M)
 static int	ForEachCipherFilter(const SSL_METHOD *M,const SSL_CIPHER *C)
 {
 	int	i,k;
+	unsigned int status;
 
 	if(!AllowCipher(C->name,M->version))
 		return 0;
@@ -378,8 +472,30 @@ static int	ForEachCipherFilter(const SSL_METHOD *M,const SSL_CIPHER *C)
 	k = 0;
 	do
 	{
-		ForEachCipher(M,C,k);
+		if(curChildStat->rsapadtest)
+		{
+			status = 0;
+			TESTVAR_rsapadtest = 1;
+			ForEachCipher(M,C,k,&status);
+
+			status = 0;
+			TESTVAR_rsapadtest = 2;
+			ForEachCipher(M,C,k,&status);
+
+			status = 0;
+			TESTVAR_rsapadtest = 8;
+			ForEachCipher(M,C,k,&status);
+		}
+		else
+		{
+			status = 0;
+			ForEachCipher(M,C,k,&status);
+		}
 		k++;
+
+		if(!(status & STATUS_CAUTH))
+			k = gNumCertKey;
+
 	} while(k<gNumCertKey);
 
 	return 0;
@@ -388,7 +504,7 @@ static int	ForEachCipherFilter(const SSL_METHOD *M,const SSL_CIPHER *C)
 
 
 
-static int	ForEachCipher(const SSL_METHOD *M,const SSL_CIPHER *C,int certIndex)
+static int	ForEachCipher(const SSL_METHOD *M,const SSL_CIPHER *C,int certIndex, unsigned int *attr)
 {
 #define	TOTERR	8
 	int			reConnect 	= REUSE;
@@ -412,6 +528,7 @@ static int	ForEachCipher(const SSL_METHOD *M,const SSL_CIPHER *C,int certIndex)
 	char		*certCN = NULL;
 	char		serverCN[128],certType[16];
 
+	volatile int mydebug=1;
 
 	if(CERTLINK)
 	{
@@ -450,7 +567,6 @@ static int	ForEachCipher(const SSL_METHOD *M,const SSL_CIPHER *C,int certIndex)
 		ret = SSL_CTX_load_verify_locations(CTX,CERTLINK,NULL);
 	}
 
-while(debugLoop);
 
 	for(;;)
 	{
@@ -484,15 +600,36 @@ while(debugLoop);
 
 			SSL_set_no_empty_frag(con);
 
+			if(SERVERNAME)
+				SSL_set_tlsext_host_name(con,SERVERNAME);
+
 			ecode	= SSL_connect(con);
+
+			{
+				struct sockaddr_in sin;
+				int	sinlen = sizeof(sin);
+				getsockname(sd,(struct sockaddr *)&sin,&sinlen);
+				SSL_set_peer_port(con,ntohs(sin.sin_port));
+			}
+
+			if(con->s3->tmp.cert_req)
+				*attr |= STATUS_CAUTH;	
+
 			GetServerCertDetails(con,serverCN,certType);
 			if(ecode <= 0)
 			{
+				unsigned long l;
+				char	*ptr;
+				l = ERR_get_error();
+				ptr = ERR_error_string(l,NULL);
+
 				status = "Handshake Failure";
 				if(reuseSESS)
 					Ret = -4;
 				else
 					Ret = -2;
+
+				SendResult(con,ptr,C);
 
 				sd = BIO_get_fd(con->wbio,NULL);
 				close(sd);
@@ -504,6 +641,7 @@ while(debugLoop);
 			if(reuseSESS && !con->hit)
 			{
 				status = "Reuse Failure";
+				SendResult(con,status,C);
 				Ret = -4;
 				sd = BIO_get_fd(con->wbio,NULL);
 				close(sd);
@@ -519,6 +657,7 @@ while(debugLoop);
 			if(ecode != REQLEN)
 			{
 				status = "Write Failure";
+				SendResult(con,status,C);
 				if(reuseSESS)
 					Ret = -5;
 				else
@@ -534,15 +673,56 @@ while(debugLoop);
 			bzero(EndToken,sizeof(EndToken));
 
 			debugLoop = 0;
+
+			while(1)
+			{
+				ecode = SSL_read(con,rBuf,8090);
+				if(ecode > 0)
+				{
+					rBuf[ecode] = 0;
+					if(ecode >= ENDTOKLEN)
+						strcpy(EndToken,rBuf+ecode-ENDTOKLEN);
+					else
+					{
+						char	tmpToken[64] = "";
+						int		tlen=0;
+						strcat(EndToken,rBuf);
+						tlen = strlen(EndToken);
+						if(tlen > ENDTOKLEN)
+						{
+							strcpy(tmpToken,EndToken+(tlen-ENDTOKLEN));
+							strcpy(EndToken,tmpToken);
+						}
+					}
+					if(strcmp(EndToken,ENDTOKEN) == 0)
+						break;
+				}
+				else
+				{
+					if(SSL_get_error(con,ecode) == SSL_ERROR_WANT_READ)
+					{
+						fprintf(debugChildFP,"Sleeping... %d\n",SSL_get_peer_port(con));
+						fflush(debugChildFP);
+						
+						sleep(1);
+					}
+					else
+						break;
+				}
+			}
+
+#if 0
 			for(;;)
 			{
 				debugLoop++;
 				bzero(rBuf,8092);
 
 				int toterr = 0;
+
 				do
 				{
 					ecode = SSL_read(con,rBuf,8090);
+
 					if(ecode > 0)
 					{
 						if(strcmp(rBuf+ecode-ENDTOKLEN,ENDTOKEN)==0)
@@ -550,16 +730,48 @@ while(debugLoop);
 					}
 					else if(ecode < 0)
 					{
-						status = "Read Failure";
 						toterr++;
+						break;
 					}
-					else if(ecode == 0)
-						toterr = TOTERR;
+					sleep(1);
 
+					/* if ecode is 0, not considering it error first time.
+					 * But after sleeping for 1 second, expect the data to
+					 * be present and dont expect a ecode 0
+					 */
+
+					/*****************************************
+					while(1)
+					{
+						ecode = SSL_read(con,rBuf,8090);
+						if(ecode <= 0)
+						{
+							if(SSL_get_error(con,ecode) == SSL_ERROR_WANT_READ)
+								sleep(1);
+							else
+								break;
+						}
+					}
+					*****************************************/
+
+					ecode = SSL_read(con,rBuf,8090);
+					if(ecode <= 0)
+					{
+						toterr++;
+						break;
+					}
 				} while(toterr && (toterr < TOTERR));
 
+
 				if(toterr)
-					break;
+				{
+					Ret = -1;
+					fprintf(debugChildFP,"Peer port %d\n",SSL_get_peer_port(con));
+					fflush(debugChildFP);
+					status = "Read Failure 1";
+					SendResult(con,status,C);
+					goto end;
+				}
 
 				rBuf[ecode] = 0;
 				if(ecode >= ENDTOKLEN)
@@ -572,19 +784,26 @@ while(debugLoop);
 				if(strcmp(EndToken,ENDTOKEN) == 0)
 					break;
 			}
+#endif
 
 			if(strcmp(EndToken,ENDTOKEN) != 0)
 			{
-				status = "Read Failure";
+				struct sockaddr_in peer;
+				int peerlen;
+
+				status = "Read Failure 2";
+				SendResult(con,status,C);
 				if(reuseSESS)
 					Ret = -5;
 				else
 					Ret = -3;
 
-				sd = BIO_get_fd(con->wbio,NULL);
-				close(sd);
-				SSL_shutdown(con);
-				BIO_free(con->wbio);
+				peerlen =  sizeof(peer);
+				getsockname(sd,(struct sockaddr *)&peer,&peerlen);
+
+				//close(sd);
+				//SSL_shutdown(con);
+				//BIO_free(con->wbio);
 				goto end;
 			}
 
@@ -605,6 +824,7 @@ do_reneg:
 	
 				if(SSL_write(con,REQUEST,REQLEN) != REQLEN)
 				{
+					SendResult(con,"Reneg Write Failure",C);
 					Ret = -7;
 					sd = BIO_get_fd(con->wbio,NULL);
 					close(sd);
@@ -642,6 +862,7 @@ do_reneg:
 
 				if(strcmp(EndToken,ENDTOKEN) != 0)
 				{
+					SendResult(con,"Reneg Read Failure",C);
 					Ret = -7;
 					sd = BIO_get_fd(con->wbio,NULL);
 					close(sd);
@@ -661,11 +882,21 @@ do_reneg:
 	sd = BIO_get_fd(con->wbio,NULL);
 	close(sd);
 	SSL_shutdown(con);
-	BIO_free(con->wbio);
+	SSL_free(con);
 	}
 
 end:
-	SendResult(M->version,C->name,REUSE,RENEG,certCN,serverCN,certType,status);
+	if(Ret == 0)
+		SendResult(con,"Success",C);
+	else
+	{
+		SSL_shutdown(con);
+		sd = BIO_get_fd(con->wbio,NULL);
+		close(sd);
+		BIO_free(con->wbio);
+	}
+	SSL_CTX_free(CTX);
+	return 0;
 }
 
 
@@ -688,53 +919,110 @@ static int  checkVersionCipher(unsigned char ver,const char *cname)
 }
 
 
-static int SendResult(int version,const char *cipher,int reuse,int reneg,char *certCN,char *serverCN,char *serverCertType,char *result)
+static int SendResult(SSL *ssl,char *status,const SSL_CIPHER *C)
 {
-	cJSON	*root, *cJ;
-	char	*out = NULL;
-	char	buf[128];
+	cJSON	*root, *cJ,*cjArray;
+	DH		*dh;
+	char	*ecname,*out = NULL;
+	char	buf[1024];
+	char	tbuf[1024];
+	X509	*x509;
+	int		i;
+	
+	struct rlimit rlp;
+	getrlimit(RLIMIT_AS,&rlp);
+	//fprintf(debugChildFP,"rlimit: %x\n",rlp.rlim_cur);
+	//fflush(debugChildFP);
+	
 
+	curChildStat->rescount++;
 	root	= cJSON_CreateObject();
 
-	//cJSON_AddStringToObject(root,"ip", IP);
-	//cJSON_AddNumberToObject(root,"port", PORT);
-
-
-	sprintf(buf,"0x%x",version);
+	sprintf(buf,"0x%x",SSL_version(ssl));
 	cJSON_AddStringToObject(root,"version", buf);
-	cJSON_AddStringToObject(root,"cipher", cipher);
 
-	if(certCN)
-		cJSON_AddStringToObject(root,"ClientCert", certCN);
+	if(ssl->session && ssl->session->cipher)
+		cJSON_AddStringToObject(root,"cipher",SSL_get_current_cipher_name(ssl));
 	else
-		cJSON_AddStringToObject(root,"ClientCert", "None");
+		cJSON_AddStringToObject(root,"cipher", C->name);
 
-	cJSON_AddStringToObject(root,"ServerCert", serverCN);
-	cJSON_AddStringToObject(root,"ServerCertType", serverCertType);
+	tbuf[0] = 0;
+	if(ssl->s3->tmp.cert_req && ssl->s3->tmp.new_cipher && (x509=ssl_get_server_send_cert(ssl)))
+		ASHOKE_TOOL_get_cert_info(x509,tbuf);
+	else
+		strcpy(tbuf,"None");
+	cJSON_AddStringToObject(root,"ClientCert", tbuf);
 
-	if(!reuse)
-		reuse = 0;
-	cJSON_AddNumberToObject(root,"reuse", reuse);
+	tbuf[0] = 0;
+	if(ssl->session->peer)
+		ASHOKE_TOOL_get_cert_info(ssl->session->peer,tbuf);
+	else
+		strcpy(tbuf,"None");
+	cJSON_AddStringToObject(root,"ServerCert", tbuf);
+
+	tbuf[0] = 0;
+	out = SSL_get_servername(ssl,TLSEXT_NAMETYPE_host_name);
+	if(out)
+		strcpy(tbuf,out);
+	else
+		strcpy(tbuf,"None");
+	cJSON_AddStringToObject(root,"SNI", tbuf);
+
 	
-	if(!reneg)
-		reneg = 0;
-	cJSON_AddNumberToObject(root,"reneg", reneg);
+	tbuf[0] = 0;
+	FillCommonNames(ssl->session->peer, tbuf);
+	cJSON_AddStringToObject(root,"Server CN", tbuf);
 
-	if(!RECBOUNDARY)
-		RECBOUNDARY = 0;
-	cJSON_AddNumberToObject(root,"recboundary", RECBOUNDARY);
 
-	//if(ITERCOUNT)
-	//cJSON_AddNumberToObject(root,"iter", ITERCOUNT);
+	tbuf[0] = 0;
+	if((dh=SSL_get_peerdh(ssl)))
+	{
+		sprintf(tbuf,"%d", BN_num_bits(dh->p));
+	}
+	else
+		strcpy(tbuf,"None");
+	cJSON_AddStringToObject(root,"DH", tbuf);
 
-	cJSON_AddStringToObject(root,"result", result);
+	if((ecname=get_ecc_curvename(ssl)))
+	{
+		sprintf(tbuf, "%s", ecname);
+	}
+	else
+		strcpy(tbuf,"None");
+	cJSON_AddStringToObject(root,"ECC", tbuf);
 
+
+	if(ssl->hit)
+		i = 1;
+	else
+		i = 0;
+	cJSON_AddNumberToObject(root,"reuse", i);
+	
+
+	if(ssl->new_session)
+		i = 1;
+	else
+		i = 0;
+	cJSON_AddNumberToObject(root,"reneg", i);
+
+	sprintf(buf,"%d",TESTVAR_rsapadtest);
+	cJSON_AddStringToObject(root,"rsapadtest",buf); 
+
+	cJSON_AddNumberToObject(root,"a", curChildStat->rescount);
+
+
+	cJSON_AddStringToObject(root,"result", status);
+
+	cjArray = cJSON_CreateArray();
 	cJSON_AddItemToArray(cjArray,root);
 	out	=	cJSON_PrintUnformatted(root);
-	fprintf(childLogFp,"%s\n",out);
-	WriteResponse("%s\n",out);
+	fprintf(debugChildFP,"%s\n",out);
+	fflush(debugChildFP);
+	cJSON_Delete(cjArray);
+
 	return 0;
 }
+
 
 
 
@@ -891,6 +1179,9 @@ static int	loadCertsByPrefix(char *prefix)
 	BIO		*cert;
 	BIO		*key;
 
+	int		keysize[] = {1024,2048,4096};
+	int		mdsize[] = {1,256,384};
+
 	for(x = 0; x < sizeof(gCertList)/sizeof(gCertList[0]); x++)
 	{
 		gCertList[x].s_cert = NULL;
@@ -901,18 +1192,19 @@ static int	loadCertsByPrefix(char *prefix)
 
 	if(CERTFILE && KEYFILE)
 	{
-		if( (stat(CERTFILE,&sb)!=-1) && (stat(CERTFILE,&sb)!=-1) )
+		if( (stat(CERTFILE,&sb)!=-1) && (stat(KEYFILE,&sb)!=-1) )
 			return AddCertByName(CERTFILE,KEYFILE);
 	}
 	
 
-	for(i=0; i< max; i++)
+	for(i=0; i< sizeof(keysize)/sizeof(keysize[0]); i++)
+	for(j=0; j< sizeof(mdsize)/sizeof(mdsize[0]); j++)
 	{
 		bzero(certName,sizeof(certName));
 		bzero(keyName,sizeof(keyName));
 
-		sprintf(certName,"%s_%d_cert.pem",prefix,i+1);
-		sprintf(keyName,"%s_%d_key.pem",prefix,i+1);
+		sprintf(certName,"client%d_sha%d_cert.pem",keysize[i],mdsize[j]);
+		sprintf(keyName,"client%d_sha%d_key.pem",keysize[i],mdsize[j]);
 
 		if((stat(certName,&sb)==-1) || (stat(keyName,&sb)==-1))
 		{
@@ -947,14 +1239,12 @@ static int	AddCertByName(char *certName,char *keyName)
 
 	if (BIO_read_filename(cert,certName) <= 0)
 	{
-		fprintf(childLogFp,"AddCertByName: Failed to read certname\n");
 		BIO_free(cert);
 		BIO_free(key);
 		return 0;
 	}
 	if (BIO_read_filename(key,keyName) <= 0)
 	{
-		fprintf(childLogFp,"AddCertByName: Failed to read keyname\n");
 		BIO_free(cert);
 		BIO_free(key);
 		return 0;
@@ -962,7 +1252,6 @@ static int	AddCertByName(char *certName,char *keyName)
 
 	if( !(x509 = PEM_read_bio_X509_AUX(cert,NULL,NULL,NULL)) )
 	{
-		fprintf(childLogFp,"AddCertByName: Failed to load cert\n");
 		BIO_free(cert);
 		BIO_free(key);
 		return 0;
@@ -970,7 +1259,6 @@ static int	AddCertByName(char *certName,char *keyName)
 
 	if( !(pkey = PEM_read_bio_PrivateKey(key,NULL,NULL,NULL)))
 	{
-		fprintf(childLogFp,"AddCertByName: Failed to load key\n");
 		X509_free(x509);
 		BIO_free(cert);
 		BIO_free(key);
@@ -1078,6 +1366,15 @@ static int	HandleArgs(char * buf)
 	cJc = cJ->child;
 	while(cJc)
 	{
+		if(strcmp(cJc->string,"result") == 0)
+		{
+			char *testid = cJc->valuestring;
+			fprintf(debugParentFP,"result [%s]\n", testid);
+			fflush(debugParentFP);
+			WaitForChild(1);
+			StreamResults(testid);
+			exit(0);
+		}
 		if(strcmp(cJc->string,"targetip") == 0)
 		{
 			IP = strdup(cJc->valuestring);
@@ -1129,6 +1426,8 @@ static int	HandleArgs(char * buf)
 		else if(strcmp(cJc->string,"childcount") == 0)
 		{
 			CHILDCOUNT = cJc->valueint;
+			if(CHILDCOUNT > MAXCHILD)
+				CHILDCOUNT = MAXCHILD;
 		}
 		else if(strcmp(cJc->string,"cert") == 0)
 		{
@@ -1142,6 +1441,18 @@ static int	HandleArgs(char * buf)
 		{
 			CERTLINK = strdup(cJc->valuestring);
 		}
+		else if(strcmp(cJc->string,"SNI") == 0)
+		{
+			SERVERNAME = strdup(cJc->valuestring);
+		}
+		else if(strcmp(cJc->string,"rsapadtest") == 0)
+		{
+			TESTVAR_rsapadtest = cJc->valueint;
+		}
+		else if(strcmp(cJc->string,"testid") == 0)
+		{
+			TESTID_str = strdup(cJc->valuestring);
+		}
 		cJc = cJc->next;
 	}
 	return 0;
@@ -1149,27 +1460,33 @@ static int	HandleArgs(char * buf)
 
 
 
-static int  WaitForChild(int killl)
+int  WaitForChild(int killl)
 {
 	CHILD_STAT_t	*p, **pp;
 	int				pid,status = 0;
 
 	if(killl)
 	{
-		for(p=childStatQ; p; p = p->next)
+		for(p=childStatActiveQ; p; p = p->next)
+		{
+			fprintf(debugParentFP,"killing child %d\n", p->pid);
+			fflush(debugParentFP);
 			kill(p->pid,9);
+		}
 	}
 
-	while(childStatQ)
+	while(childStatActiveQ)
 	{
 		pid=wait4(-1,&status,0,NULL);
 		if(pid <= 0)
 			break;
-		for(pp=&childStatQ; p=*pp; pp = &p->next)
+		for(pp=&childStatActiveQ; p=*pp; pp = &p->next)
 		{
 			if(p->pid == pid)	
 			{
 				*pp = p->next;
+				p->next = childStatFreeQ;
+				childStatFreeQ = p;
 			}
 		}
 	}
@@ -1177,27 +1494,34 @@ static int  WaitForChild(int killl)
 }
 
 
-static int	 CleanChild()
+int	 CleanChild()
 {
 	int				count = 0;
 	int				status, pid;
+	int				found = 0;
 	CHILD_STAT_t	**pp, *p;
 
 	while( (pid=wait4(-1,&status,WNOHANG,NULL)) > 0 )
 	{
-		for(pp=&childStatQ; p=*pp; pp = &p->next)
+		found = 0;
+		for(pp=&childStatActiveQ; p=*pp; pp = &p->next)
 		{
 			if(p->pid == pid)	
 			{
 				*pp = p->next;
-				p->next = childStatQ;
-				childStatQ = p;
+				p->next = childStatFreeQ;
+				childStatFreeQ = p;
 				count++;
+				found = 1;
 			}
 		}
+		if(!found)
+			fprintf(debugParentFP,"no child for %d\n", pid);
 	}
 	return count;
 }
+
+
 
 
 static int	findVerInt(char *v)
@@ -1209,4 +1533,104 @@ static int	findVerInt(char *v)
 			return verInt[i];
 	}
 	return -1;
+}
+
+
+int	FillCommonNames(X509 *x509, char *out)
+{
+	const X509V3_EXT_METHOD		*meth;
+	X509_EXTENSION			*ext;
+	STACK_OF(X509_EXTENSION) *exts;
+	STACK_OF(CONF_VALUE) 	*nval = NULL;
+	X509_NAME				*subjname;
+	const unsigned char		*p;
+	int						i;
+	void					*ext_str = NULL;
+	char					*ptr = out;
+
+	if(!x509)
+	{
+		strcpy(out,"None");
+		return 0;
+	}
+
+	exts = x509->cert_info->extensions;
+
+	subjname = x509->cert_info->subject;
+	for(i=0; i<sk_X509_NAME_ENTRY_num(subjname->entries); i++)
+	{
+		X509_NAME_ENTRY *e;
+		e = sk_X509_NAME_ENTRY_value(subjname->entries,i);
+		if(NID_commonName == OBJ_obj2nid(e->object))
+		{
+			ptr += sprintf(ptr,"%s ", e->value->data);
+		}
+	}
+
+	for (i=0; i<sk_X509_EXTENSION_num(exts); i++)
+	{
+		ext = sk_X509_EXTENSION_value(exts, i);
+		if(NID_subject_alt_name == OBJ_obj2nid(ext->object))
+		{
+			meth = X509V3_EXT_get(ext);
+			p = ext->value->data;
+
+		 	if(meth->it)
+				ext_str = ASN1_item_d2i(NULL, &p, ext->value->length,
+												ASN1_ITEM_ptr(meth->it));
+			else
+				ext_str = meth->d2i(NULL, &p, ext->value->length);
+
+			nval = meth->i2v(meth,ext_str,NULL);
+			for(i=0; i<sk_CONF_VALUE_num(nval); i++)
+			{
+				CONF_VALUE *cval;
+				cval = sk_CONF_VALUE_value(nval,i);
+				ptr += sprintf(ptr,"%s ", cval->value);
+			}
+			break;
+		}
+	}
+
+	return 0;
+}
+
+
+
+int	StreamFileByLine(char *file)
+{
+	FILE	*fp = fopen(file,"r");
+	char	buf[1024];
+	int		count=0;
+
+	if(!fp)
+		return -1;
+
+	while(fgets(buf,1023,fp))
+	{
+		WriteResponse("%s\n",buf);
+		count++;
+		if(count%16 == 0)
+			usleep(1024 * 100);
+	}
+	fclose(fp);
+	return count;	
+}
+
+
+int	StreamResults(char *testid)
+{
+	int				len = 0,count  = 0;
+	char			filename[128];
+
+
+	for(count=0; count < MAXCHILD; count++)
+	{
+		sprintf(filename,"/tmp/debug.client.%s.%d",testid,count);
+		fprintf(debugParentFP,"Streaming %s\n",filename);
+		len += StreamFileByLine(filename);
+	}
+
+	WriteResponse("%s","");
+	return len;
 }

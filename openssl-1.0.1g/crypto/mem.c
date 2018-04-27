@@ -58,6 +58,10 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/types.h>
+#include <sys/time.h>
+#include <sys/resource.h>
+
 #include <openssl/crypto.h>
 #include "cryptlib.h"
 
@@ -294,21 +298,31 @@ void CRYPTO_free_locked(void *str)
 	}
 
 void *CRYPTO_malloc(int num, const char *file, int line)
-	{
+{
 	void *ret = NULL;
 
-	if (num <= 0) return NULL;
+	if (num <= 0) 
+	{
+#ifdef ASHOKE_TOOL
+		volatile int *ptr = 0;
+		*ptr = 1;
+#endif
+		return NULL;
+	}
 
 	allow_customize = 0;
 	if (malloc_debug_func != NULL)
-		{
+	{
 		allow_customize_debug = 0;
 		malloc_debug_func(NULL, num, file, line, 0);
-		}
+	}
+
 	ret = malloc_ex_func(num,file,line);
+
 #ifdef LEVITTE_DEBUG_MEM
 	fprintf(stderr, "LEVITTE_DEBUG_MEM:         > 0x%p (%d)\n", ret, num);
 #endif
+
 	if (malloc_debug_func != NULL)
 		malloc_debug_func(ret, num, file, line, 1);
 
@@ -322,18 +336,34 @@ void *CRYPTO_malloc(int num, const char *file, int line)
 	}
 #endif
 
-	return ret;
-	}
-char *CRYPTO_strdup(const char *str, const char *file, int line)
+#ifdef ASHOKE_TOOL
+	if(!ret)
 	{
+		struct rlimit rlp;
+		int rret;
+		rret = getrlimit(RLIMIT_AS,&rlp);
+
+		while(1)
+			sleep(1);
+
+		volatile int *ptr = 0;
+		*ptr = 1;
+	}
+#endif
+	return ret;
+}
+
+char *CRYPTO_strdup(const char *str, const char *file, int line)
+{
 	char *ret = CRYPTO_malloc(strlen(str)+1, file, line);
 
 	strcpy(ret, str);
 	return ret;
-	}
+}
+
 
 void *CRYPTO_realloc(void *str, int num, const char *file, int line)
-	{
+{
 	void *ret = NULL;
 
 	if (str == NULL)
@@ -351,11 +381,11 @@ void *CRYPTO_realloc(void *str, int num, const char *file, int line)
 		realloc_debug_func(str, ret, num, file, line, 1);
 
 	return ret;
-	}
+}
 
 void *CRYPTO_realloc_clean(void *str, int old_len, int num, const char *file,
 			   int line)
-	{
+{
 	void *ret = NULL;
 
 	if (str == NULL)
@@ -385,10 +415,10 @@ void *CRYPTO_realloc_clean(void *str, int old_len, int num, const char *file,
 		realloc_debug_func(str, ret, num, file, line, 1);
 
 	return ret;
-	}
+}
 
 void CRYPTO_free(void *str)
-	{
+{
 	if (free_debug_func != NULL)
 		free_debug_func(str, 0);
 #ifdef LEVITTE_DEBUG_MEM
@@ -397,14 +427,14 @@ void CRYPTO_free(void *str)
 	free_func(str);
 	if (free_debug_func != NULL)
 		free_debug_func(NULL, 1);
-	}
+}
 
 void *CRYPTO_remalloc(void *a, int num, const char *file, int line)
-	{
+{
 	if (a != NULL) OPENSSL_free(a);
 	a=(char *)OPENSSL_malloc(num);
 	return(a);
-	}
+}
 
 void CRYPTO_set_mem_debug_options(long bits)
 	{

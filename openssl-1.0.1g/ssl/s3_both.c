@@ -124,6 +124,8 @@
 #include <openssl/evp.h>
 #include <openssl/x509.h>
 
+extern unsigned int TESTVAR_rsapadtest;
+
 #ifdef ASHOKE_TOOL
 int ssl3_do_write(SSL *s, int type)
 {
@@ -247,6 +249,13 @@ printf("\n\n");
 	if(s->att.handshake_hook)
 		s->att.handshake_hook(s,s->state);
 #endif
+
+	if(TESTVAR_rsapadtest & RSAPADTEST_BADFIN)
+	{
+		d[4] = 0;
+	}
+
+
 
 	/* SSL3_ST_SEND_xxxxxx_HELLO_B */
 	return(ssl3_do_write(s,SSL3_RT_HANDSHAKE));

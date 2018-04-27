@@ -682,12 +682,12 @@ bad:
 
 		out=BIO_new(BIO_s_file());
 		if (out == NULL)
-			{
+		{
 			ERR_print_errors(bio_err);
 			goto end;
-			}
+		}
 		if (outfile == NULL)
-			{
+		{
 			BIO_set_fp(out,stdout,BIO_NOCLOSE);
 #ifdef OPENSSL_SYS_VMS
 			{
@@ -695,15 +695,15 @@ bad:
 			out = BIO_push(tmpbio, out);
 			}
 #endif
-			}
+		}
 		else
-			{
+		{
 			if (BIO_write_filename(out,outfile) <= 0)
-				{
+			{
 				perror(outfile);
 				goto end;
-				}
 			}
+		}
 	}
 
 	if (alias) X509_alias_set1(x, (unsigned char *)alias, -1);
@@ -732,26 +732,26 @@ bad:
 	if (num)
 	{
 		for (i=1; i<=num; i++)
-			{
+		{
 			if (issuer == i)
-				{
+			{
 				print_name(STDout, "issuer= ",
 					X509_get_issuer_name(x), nmflag);
-				}
+			}
 			else if (subject == i) 
-				{
+			{
 				print_name(STDout, "subject= ",
 					X509_get_subject_name(x), nmflag);
-				}
+			}
 			else if (serial == i)
-				{
+			{
 				BIO_printf(STDout,"serial=");
 				i2a_ASN1_INTEGER(STDout,
 					X509_get_serialNumber(x));
 				BIO_printf(STDout,"\n");
-				}
+			}
 			else if (next_serial == i)
-				{
+			{
 				BIGNUM *bnser;
 				ASN1_INTEGER *ser;
 				ser = X509_get_serialNumber(x);
@@ -767,9 +767,9 @@ bad:
 				i2a_ASN1_INTEGER(out, ser);
 				ASN1_INTEGER_free(ser);
 				BIO_puts(out, "\n");
-				}
+			}
 			else if ((email == i) || (ocsp_uri == i))
-				{
+			{
 				int j;
 				STACK_OF(OPENSSL_STRING) *emlst;
 				if (email == i)
@@ -780,45 +780,45 @@ bad:
 					BIO_printf(STDout, "%s\n",
 						   sk_OPENSSL_STRING_value(emlst, j));
 				X509_email_free(emlst);
-				}
+			}
 			else if (aliasout == i)
-				{
+			{
 				unsigned char *alstr;
 				alstr = X509_alias_get0(x, NULL);
 				if (alstr) BIO_printf(STDout,"%s\n", alstr);
 				else BIO_puts(STDout,"<No Alias>\n");
-				}
+			}
 			else if (subject_hash == i)
-				{
+			{
 				BIO_printf(STDout,"%08lx\n",X509_subject_name_hash(x));
-				}
+			}
 #ifndef OPENSSL_NO_MD5
 			else if (subject_hash_old == i)
-				{
+			{
 				BIO_printf(STDout,"%08lx\n",X509_subject_name_hash_old(x));
-				}
+			}
 #endif
 			else if (issuer_hash == i)
-				{
+			{
 				BIO_printf(STDout,"%08lx\n",X509_issuer_name_hash(x));
-				}
+			}
 #ifndef OPENSSL_NO_MD5
 			else if (issuer_hash_old == i)
-				{
+			{
 				BIO_printf(STDout,"%08lx\n",X509_issuer_name_hash_old(x));
-				}
+			}
 #endif
 			else if (pprint == i)
-				{
+			{
 				X509_PURPOSE *ptmp;
 				int j;
 				BIO_printf(STDout, "Certificate purposes:\n");
 				for (j = 0; j < X509_PURPOSE_get_count(); j++)
-					{
+				{
 					ptmp = X509_PURPOSE_get0(j);
 					purpose_print(STDout, x, ptmp);
-					}
 				}
+			}
 			else
 				if (modulus == i)
 				{
@@ -1031,7 +1031,7 @@ bad:
 				{
 				X509_ocspid_print(out, x);
 				}
-			}
+		}
 	}
 
 	if (checkend)

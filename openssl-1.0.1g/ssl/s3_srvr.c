@@ -154,6 +154,9 @@
 #include <stdio.h>
 #include "ssl_locl.h"
 #include "kssl_lcl.h"
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 #include <openssl/buffer.h>
 #include <openssl/rand.h>
 #include <openssl/objects.h>
@@ -271,38 +274,38 @@ int ssl3_accept(SSL *s)
 			if (cb != NULL) cb(s,SSL_CB_HANDSHAKE_START,1);
 
 			if ((s->version>>8) != 3)
-				{
+			{
 				SSLerr(SSL_F_SSL3_ACCEPT, ERR_R_INTERNAL_ERROR);
 				return -1;
-				}
+			}
 			s->type=SSL_ST_ACCEPT;
 
 			if (s->init_buf == NULL)
-				{
+			{
 				if ((buf=BUF_MEM_new()) == NULL)
-					{
+				{
 					ret= -1;
 					goto end;
-					}
-				if (!BUF_MEM_grow(buf,SSL3_RT_MAX_PLAIN_LENGTH))
-					{
-					ret= -1;
-					goto end;
-					}
-				s->init_buf=buf;
 				}
+				if (!BUF_MEM_grow(buf,SSL3_RT_MAX_PLAIN_LENGTH))
+				{
+					ret= -1;
+					goto end;
+				}
+				s->init_buf=buf;
+			}
 
 			if (!ssl3_setup_buffers(s))
-				{
+			{
 				ret= -1;
 				goto end;
-				}
+			}
 
 			s->init_num=0;
 			s->s3->flags &= ~SSL3_FLAGS_SGC_RESTART_DONE;
 
 			if (s->state != SSL_ST_RENEGOTIATE)
-				{
+			{
 				/* Ok, we now need to push on a buffering BIO so that
 				 * the output is sent in a way that TCP likes :-)
 				 */
@@ -311,10 +314,10 @@ int ssl3_accept(SSL *s)
 				ssl3_init_finished_mac(s);
 				s->state=SSL3_ST_SR_CLNT_HELLO_A;
 				s->ctx->stats.sess_accept++;
-				}
+			}
 			else if (!s->s3->send_connection_binding &&
 				!(s->options & SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION))
-				{
+			{
 				/* Server attempting to renegotiate with
 				 * client that doesn't support secure
 				 * renegotiation.
@@ -323,14 +326,14 @@ int ssl3_accept(SSL *s)
 				ssl3_send_alert(s,SSL3_AL_FATAL,SSL_AD_HANDSHAKE_FAILURE);
 				ret = -1;
 				goto end;
-				}
+			}
 			else
-				{
+			{
 				/* s->state == SSL_ST_RENEGOTIATE,
 				 * we will just send a HelloRequest */
 				s->ctx->stats.sess_accept_renegotiate++;
 				s->state=SSL3_ST_SW_HELLO_REQ_A;
-				}
+			}
 			break;
 
 		case SSL3_ST_SW_HELLO_REQ_A:
@@ -353,7 +356,6 @@ int ssl3_accept(SSL *s)
 		case SSL3_ST_SR_CLNT_HELLO_A:
 		case SSL3_ST_SR_CLNT_HELLO_B:
 		case SSL3_ST_SR_CLNT_HELLO_C:
-
 			s->shutdown=0;
 			if (s->rwstate != SSL_X509_LOOKUP)
 			{
@@ -364,13 +366,13 @@ int ssl3_accept(SSL *s)
 			{
 			int al;
 			if ((ret = ssl_check_srp_ext_ClientHello(s,&al))  < 0)
-					{
+			{
 					/* callback indicates firther work to be done */
 					s->rwstate=SSL_X509_LOOKUP;
 					goto end;
-					}
+			}
 			if (ret != SSL_ERROR_NONE)
-				{
+			{
 				ssl3_send_alert(s,SSL3_AL_FATAL,al);	
 				/* This is not really an error but the only means to
                                    for a client to detect whether srp is supported. */
@@ -379,7 +381,7 @@ int ssl3_accept(SSL *s)
 				ret = SSL_TLSEXT_ERR_ALERT_FATAL;			
 				ret= -1;
 				goto end;	
-				}
+			}
 			}
 #endif		
 			
@@ -954,6 +956,17 @@ int ssl3_get_client_hello(SSL *s)
 		SSL3_RT_MAX_PLAIN_LENGTH,
 		&ok);
 
+		{
+		int fd,sinlen;
+		struct sockaddr_in sin;
+		bzero(&sin,sizeof(sin));
+		BIO_get_fd(s->rbio,&fd);
+		sinlen = sizeof(sin);
+		getpeername(fd, &sin,&sinlen);
+		s->peer_port = ntohs(sin.sin_port);
+		s->peer_ip = sin.sin_addr.s_addr;
+		}
+
 	if (!ok) return((int)n);
 	s->first_packet=0;
 	d=p=(unsigned char *)s->init_msg;
@@ -1284,19 +1297,19 @@ int ssl3_get_client_hello(SSL *s)
 
 		nn=sk_SSL_COMP_num(s->ctx->comp_methods);
 		for (m=0; m<nn; m++)
-			{
+		{
 			comp=sk_SSL_COMP_value(s->ctx->comp_methods,m);
 			v=comp->id;
 			for (o=0; o<i; o++)
-				{
+			{
 				if (v == q[o])
-					{
+				{
 					done=1;
 					break;
-					}
 				}
-			if (done) break;
 			}
+			if (done) break;
+		}
 		if (done)
 			s->s3->tmp.new_compression=comp;
 		else
@@ -2153,7 +2166,7 @@ int ssl3_get_client_key_exchange(SSL *s)
 	{
 		/* FIX THIS UP EAY EAY EAY EAY */
 		if (s->s3->tmp.use_rsa_tmp)
-			{
+		{
 			if ((s->cert != NULL) && (s->cert->rsa_tmp != NULL))
 				rsa=s->cert->rsa_tmp;
 			/* Don't do a callback because rsa_tmp should
@@ -2165,24 +2178,24 @@ int ssl3_get_client_key_exchange(SSL *s)
 				goto f_err;
 
 				}
-			}
+		}
 		else
-			{
+		{
 			pkey=s->cert->pkeys[SSL_PKEY_RSA_ENC].privatekey;
 			if (	(pkey == NULL) ||
 				(pkey->type != EVP_PKEY_RSA) ||
 				(pkey->pkey.rsa == NULL))
-				{
+			{
 				al=SSL_AD_HANDSHAKE_FAILURE;
 				SSLerr(SSL_F_SSL3_GET_CLIENT_KEY_EXCHANGE,SSL_R_MISSING_RSA_CERTIFICATE);
 				goto f_err;
-				}
-			rsa=pkey->pkey.rsa;
 			}
+			rsa=pkey->pkey.rsa;
+		}
 
 		/* TLS and [incidentally] DTLS{0xFEFF} */
 		if (s->version > SSL3_VERSION && s->version != DTLS1_BAD_VER)
-			{
+		{
 			n2s(p,i);
 			if (n != i+2)
 				{
@@ -2196,20 +2209,19 @@ int ssl3_get_client_key_exchange(SSL *s)
 				}
 			else
 				n=i;
-			}
+		}
 
 		i=RSA_private_decrypt((int)n,p,p,rsa,RSA_PKCS1_PADDING);
 
 		al = -1;
 		
 		if (i != SSL_MAX_MASTER_KEY_LENGTH)
-			{
+		{
 			al=SSL_AD_DECODE_ERROR;
-			/* SSLerr(SSL_F_SSL3_GET_CLIENT_KEY_EXCHANGE,SSL_R_BAD_RSA_DECRYPT); */
-			}
+		}
 
 		if ((al == -1) && !((p[0] == (s->client_version>>8)) && (p[1] == (s->client_version & 0xff))))
-			{
+		{
 			/* The premaster secret must contain the same version number as the
 			 * ClientHello to detect version rollback attacks (strangely, the
 			 * protocol does not offer such protection for DH ciphersuites).
@@ -2217,9 +2229,10 @@ int ssl3_get_client_key_exchange(SSL *s)
 			 * version instead if the server does not support the requested
 			 * protocol version.
 			 * If SSL_OP_TLS_ROLLBACK_BUG is set, tolerate such clients. */
+
 			if (!((s->options & SSL_OP_TLS_ROLLBACK_BUG) &&
 				(p[0] == (s->version>>8)) && (p[1] == (s->version & 0xff))))
-				{
+			{
 				al=SSL_AD_DECODE_ERROR;
 				/* SSLerr(SSL_F_SSL3_GET_CLIENT_KEY_EXCHANGE,SSL_R_BAD_PROTOCOL_VERSION_NUMBER); */
 
@@ -2230,11 +2243,11 @@ int ssl3_get_client_key_exchange(SSL *s)
 				 * made up by the adversary is properly formatted except
 				 * that the version number is wrong.  To avoid such attacks,
 				 * we should treat this just like any other decryption error. */
-				}
 			}
+		}
 
 		if (al != -1)
-			{
+		{
 			/* Some decryption failure -- use random value instead as countermeasure
 			 * against Bleichenbacher's attack on PKCS #1 v1.5 RSA padding
 			 * (see RFC 2246, section 7.4.7.1). */
@@ -2244,7 +2257,7 @@ int ssl3_get_client_key_exchange(SSL *s)
 			p[1] = s->client_version & 0xff;
 			if (RAND_pseudo_bytes(p+2, i-2) <= 0) /* should be RAND_bytes, but we cannot work around a failure */
 				goto err;
-			}
+		}
 	
 		s->session->master_key_length=
 			s->method->ssl3_enc->generate_master_secret(s,

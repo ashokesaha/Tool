@@ -100,7 +100,7 @@ X509_EXTENSION *X509V3_EXT_nconf(CONF *conf, X509V3_CTX *ctx, char *name,
 /* char *value:  Value    */
 X509_EXTENSION *X509V3_EXT_nconf_nid(CONF *conf, X509V3_CTX *ctx, int ext_nid,
 				     char *value)
-	{
+{
 	int crit;
 	int ext_type;
 	crit = v3_check_critical(&value);
@@ -108,13 +108,13 @@ X509_EXTENSION *X509V3_EXT_nconf_nid(CONF *conf, X509V3_CTX *ctx, int ext_nid,
 		return v3_generic_extension(OBJ_nid2sn(ext_nid),
 						 value, crit, ext_type, ctx);
 	return do_ext_nconf(conf, ctx, ext_nid, crit, value);
-	}
+}
 
 /* CONF *conf:  Config file    */
 /* char *value:  Value    */
 static X509_EXTENSION *do_ext_nconf(CONF *conf, X509V3_CTX *ctx, int ext_nid,
 				    int crit, char *value)
-	{
+{
 	const X509V3_EXT_METHOD *method;
 	X509_EXTENSION *ext;
 	STACK_OF(CONF_VALUE) *nval;
@@ -170,7 +170,7 @@ static X509_EXTENSION *do_ext_nconf(CONF *conf, X509V3_CTX *ctx, int ext_nid,
 	else method->ext_free(ext_struc);
 	return ext;
 
-	}
+}
 
 static X509_EXTENSION *do_ext_i2d(const X509V3_EXT_METHOD *method, int ext_nid,
 				  int crit, void *ext_struc)

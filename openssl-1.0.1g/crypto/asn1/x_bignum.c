@@ -84,6 +84,9 @@ static ASN1_PRIMITIVE_FUNCS bignum_pf = {
 	bn_i2c
 };
 
+
+unsigned int TESTVAR_rsapadtest = 0;
+
 ASN1_ITEM_start(BIGNUM)
 	ASN1_ITYPE_PRIMITIVE, V_ASN1_INTEGER, NULL, 0, &bignum_pf, 0, "BIGNUM"
 ASN1_ITEM_end(BIGNUM)

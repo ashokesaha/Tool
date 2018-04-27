@@ -396,15 +396,15 @@ void CRYPTO_set_dynlock_destroy_callback(void (*func)
 
 void (*CRYPTO_get_locking_callback(void))(int mode,int type,const char *file,
 		int line)
-	{
+{
 	return(locking_callback);
-	}
+}
 
 int (*CRYPTO_get_add_lock_callback(void))(int *num,int mount,int type,
 					  const char *file,int line)
-	{
+{
 	return(add_lock_callback);
-	}
+}
 
 void CRYPTO_set_locking_callback(void (*func)(int mode,int type,
 					      const char *file,int line))
@@ -559,7 +559,7 @@ unsigned long CRYPTO_thread_id(void)
 #endif
 
 void CRYPTO_lock(int mode, int type, const char *file, int line)
-	{
+{
 #ifdef LOCK_DEBUG
 		{
 		CRYPTO_THREADID id;
@@ -586,9 +586,9 @@ void CRYPTO_lock(int mode, int type, const char *file, int line)
 		}
 #endif
 	if (type < 0)
-		{
+	{
 		if (dynlock_lock_callback != NULL)
-			{
+		{
 			struct CRYPTO_dynlock_value *pointer
 				= CRYPTO_get_dynlock_value(type);
 
@@ -597,16 +597,16 @@ void CRYPTO_lock(int mode, int type, const char *file, int line)
 			dynlock_lock_callback(mode, pointer, file, line);
 
 			CRYPTO_destroy_dynlockid(type);
-			}
 		}
+	}
 	else
 		if (locking_callback != NULL)
 			locking_callback(mode,type,file,line);
-	}
+}
 
 int CRYPTO_add_lock(int *pointer, int amount, int type, const char *file,
 	     int line)
-	{
+{
 	int ret = 0;
 
 	if (add_lock_callback != NULL)
@@ -647,10 +647,10 @@ int CRYPTO_add_lock(int *pointer, int amount, int type, const char *file,
 		CRYPTO_lock(CRYPTO_UNLOCK|CRYPTO_WRITE,type,file,line);
 		}
 	return(ret);
-	}
+}
 
 const char *CRYPTO_get_lock_name(int type)
-	{
+{
 	if (type < 0)
 		return("dynamic");
 	else if (type < CRYPTO_NUM_LOCKS)
@@ -659,7 +659,7 @@ const char *CRYPTO_get_lock_name(int type)
 		return("ERROR");
 	else
 		return(sk_OPENSSL_STRING_value(app_locks,type-CRYPTO_NUM_LOCKS));
-	}
+}
 
 #if	defined(__i386)   || defined(__i386__)   || defined(_M_IX86) || \
 	defined(__INTEL__) || \

@@ -146,6 +146,7 @@
 #  include <assert.h>
 #endif
 #include <stdio.h>
+#include <fcntl.h>
 #include "ssl_locl.h"
 #include "kssl_lcl.h"
 #include <openssl/objects.h>
@@ -379,6 +380,10 @@ SSL *SSL_new(SSL_CTX *ctx)
 #ifndef OPENSSL_NO_PSK
 	s->psk_client_callback=ctx->psk_client_callback;
 	s->psk_server_callback=ctx->psk_server_callback;
+#endif
+
+#ifdef ASHOKE_TOOL
+	s->fnvar = 0;
 #endif
 
 	return(s);
@@ -2131,16 +2136,16 @@ void ssl_set_cert_masks(CERT *c, const SSL_CIPHER *cipher)
 	if (dh_dsa_export) emask_k|=SSL_kDHd;
 
 	if (rsa_enc || rsa_sign)
-		{
+	{
 		mask_a|=SSL_aRSA;
 		emask_a|=SSL_aRSA;
-		}
+	}
 
 	if (dsa_sign)
-		{
+	{
 		mask_a|=SSL_aDSS;
 		emask_a|=SSL_aDSS;
-		}
+	}
 
 	mask_a|=SSL_aNULL;
 	emask_a|=SSL_aNULL;
@@ -2156,7 +2161,7 @@ void ssl_set_cert_masks(CERT *c, const SSL_CIPHER *cipher)
 	 * ECDSA cipher suites depending on the key usage extension.
 	 */
 	if (have_ecc_cert)
-		{
+	{
 		/* This call populates extension flags (ex_flags) */
 		x = (c->pkeys[SSL_PKEY_ECC]).x509;
 		X509_check_purpose(x, -1, 0);
@@ -2207,14 +2212,14 @@ void ssl_set_cert_masks(CERT *c, const SSL_CIPHER *cipher)
 			emask_a|=SSL_aECDSA;
 			}
 #endif
-		}
+	}
 
 #ifndef OPENSSL_NO_ECDH
 	if (have_ecdh_tmp)
-		{
+	{
 		mask_k|=SSL_kEECDH;
 		emask_k|=SSL_kEECDH;
-		}
+	}
 #endif
 
 #ifndef OPENSSL_NO_PSK
@@ -2249,24 +2254,25 @@ int ssl_check_srvr_ecc_cert_and_alg(X509 *x, SSL *s)
 	alg_a = cs->algorithm_auth;
 
 	if (SSL_C_IS_EXPORT(cs))
-		{
+	{
 		/* ECDH key length in export ciphers must be <= 163 bits */
 		pkey = X509_get_pubkey(x);
 		if (pkey == NULL) return 0;
 		keysize = EVP_PKEY_bits(pkey);
 		EVP_PKEY_free(pkey);
 		if (keysize > 163) return 0;
-		}
+	}
 
 	/* This call populates the ex_flags field correctly */
 	X509_check_purpose(x, -1, 0);
+
 	if ((x->sig_alg) && (x->sig_alg->algorithm))
-		{
+	{
 		signature_nid = OBJ_obj2nid(x->sig_alg->algorithm);
 		OBJ_find_sigid_algs(signature_nid, &md_nid, &pk_nid);
-		}
+	}
 	if (alg_k & SSL_kECDHe || alg_k & SSL_kECDHr)
-		{
+	{
 		/* key usage, if present, must allow key agreement */
 		if (ku_reject(x, X509v3_KU_KEY_AGREEMENT))
 			{
@@ -2292,16 +2298,17 @@ int ssl_check_srvr_ecc_cert_and_alg(X509 *x, SSL *s)
 				return 0;
 				}
 			}
-		}
+	}
+
 	if (alg_a & SSL_aECDSA)
-		{
+	{
 		/* key usage, if present, must allow signing */
 		if (ku_reject(x, X509v3_KU_DIGITAL_SIGNATURE))
-			{
+		{
 			SSLerr(SSL_F_SSL_CHECK_SRVR_ECC_CERT_AND_ALG, SSL_R_ECC_CERT_NOT_FOR_SIGNING);
 			return 0;
-			}
 		}
+	}
 
 	return 1;  /* all checks are ok */
 }
@@ -2322,7 +2329,7 @@ CERT_PKEY *ssl_get_server_send_pkey(const SSL *s)
 	alg_a = s->s3->tmp.new_cipher->algorithm_auth;
 
 	if (alg_k & (SSL_kECDHr|SSL_kECDHe))
-		{
+	{
 		/* we don't need to look at SSL_kEECDH
 		 * since no certificate is needed for
 		 * anon ECDH and for authenticated
@@ -2335,7 +2342,7 @@ CERT_PKEY *ssl_get_server_send_pkey(const SSL *s)
 		 * checks ensures the correct cert is chosen.
 		 */
 		i=SSL_PKEY_ECC;
-		}
+	}
 	else if (alg_a & SSL_aECDSA)
 		{
 		i=SSL_PKEY_ECC;
@@ -3325,20 +3332,33 @@ int	SSL_set_reuse_count(SSL *s,int n)
 	return 0;
 }
 
-#endif
 
-#ifdef ASHOKE_TOOL
+unsigned short SSL_get_peer_port(SSL *s)
+{
+	return s->peer_port;
+}
+
+unsigned int SSL_set_peer_port(SSL *s, unsigned short port)
+{
+	s->peer_port = port;
+	return 0;
+}
+
 char *ASHOKE_TOOL_get_cert_info(X509 *,char *);
 char *ASHOKE_TOOL_get_cert_info(X509 *x,char *buf)
 {
-	char		*ptr = buf;
+	char		*p,*ptr = buf;
+	char		tbuf[64];
 	int			ret;
 	X509_CINF	*xc;
 	EVP_PKEY	*pkey;
 	X509_ALGOR	*alg;
 
 	if(!x)
+	{
+		strcpy(buf,"None");
 		return NULL;
+	}
 	*ptr = 0;
 
 	xc = x->cert_info;
@@ -3346,15 +3366,26 @@ char *ASHOKE_TOOL_get_cert_info(X509 *x,char *buf)
 	alg = xc->key->algor;
 
 	ret = EVP_PKEY_type(pkey->type);
-	ret = sprintf(ptr,"%s", OBJ_nid2ln(ret));
-	ptr += ret;
+	ret = sprintf(tbuf,"%s", OBJ_nid2sn(ret));
+	if(strcmp(tbuf,"rsaEncryption")==0)
+		strcpy(tbuf,"Rsa");
+	strcpy(ptr,tbuf);
+	ptr += strlen(tbuf);
 
-	ret = sprintf(ptr,"(%d)\n", EVP_PKEY_size(pkey));
+	ret = sprintf(ptr,"-%d-", EVP_PKEY_size(pkey)*8);
 	ptr += ret;
 
 	ret = OBJ_obj2nid(x->sig_alg->algorithm); 
-	ret = sprintf(ptr,"%s", OBJ_nid2ln(ret));
-	ptr += ret;
+	ret = sprintf(tbuf,"%s", OBJ_nid2sn(ret));
+	if(!(p=strstr(tbuf,"SHA1")))
+		if(!(p=strstr(tbuf,"SHA256")))
+			if(!(p=strstr(tbuf,"SHA384")));
+
+	if(p)
+	{
+		strcpy(ptr,p);
+		ptr += strlen(p);
+	}
 	*ptr = 0;
 	return buf;
 }
@@ -3376,6 +3407,66 @@ char *ASHOKE_TOOL_get_ecc_info(SSL *s)
 	return "None";
 }
 
+
+int	ASHOKE_TOOL_write_session(SSL *ssl, char *file);
+int	ASHOKE_TOOL_write_session(SSL *ssl, char *file)
+{
+	int		fd;
+	FILE	*fp;
+
+	if(ssl->hit)
+		return 0;
+	
+	fd = open(file,O_APPEND,0);
+	flock(fd,LOCK_EX);
+	
+	fp = fopen(file,"a");
+	PEM_write_SSL_SESSION(fp,ssl->session);	
+	fflush(fp);
+	fclose(fp);
+	
+	flock(fd,LOCK_UN);
+	return 0;
+}
+
+
+
+SSL_SESSION *ASHOKE_TOOL_find_session(unsigned char *sessid, char *file);
+SSL_SESSION *ASHOKE_TOOL_find_session(unsigned char *sessid, char *file)
+{
+	int		fd;
+	FILE	*fp;
+	SSL_SESSION	*sess = NULL;
+
+int x;
+FILE *fx = fopen("/tmp/sess.debug","w");
+setbuf(fx,NULL);
+fprintf(fx,"passed sessid (%s):\n",file);
+for(x=0;x<32;x++)
+fprintf(fx,"%02x ", sessid[x]);
+fprintf(fx,"\n\n");
+
+
+	fd = open(file,O_RDONLY,0);
+	flock(fd,LOCK_SH);
+fprintf(fx,"lock obtained\n");
+
+	fp = fopen(file,"r");
+fprintf(fx,"file opened %p\n",fp);
+
+	while((sess = PEM_read_SSL_SESSION(fp,NULL,NULL,NULL)))
+	{
+for(x=0;x<32;x++)
+fprintf(fx,"%02x ", sess->session_id[x]);
+fprintf(fx,"\n");
+		if(memcmp(sessid,sess->session_id,32) == 0)
+			break;
+	}
+
+fclose(fx);
+
+	return sess;
+}
 
 #endif
 

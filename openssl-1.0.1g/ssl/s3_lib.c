@@ -2926,6 +2926,7 @@ SSL3_ENC_METHOD SSLv3_enc_data={
 
 char	*get_ecc_curvename(SSL *s);
 DH		*SSL_get_dh(SSL *s);
+DH		*SSL_get_peerdh(SSL *s);
 char	*SSL_get_curvename(SSL *s);
 char	*SSL_get_curvename2(EC_KEY *key);
 
@@ -3191,24 +3192,24 @@ long ssl3_ctrl(SSL *s, int cmd, long larg, void *parg)
 		{
 			DH *dh = (DH *)parg;
 			if (dh == NULL)
-				{
+			{
 				SSLerr(SSL_F_SSL3_CTRL, ERR_R_PASSED_NULL_PARAMETER);
 				return(ret);
-				}
+			}
 			if ((dh = DHparams_dup(dh)) == NULL)
-				{
+			{
 				SSLerr(SSL_F_SSL3_CTRL, ERR_R_DH_LIB);
 				return(ret);
-				}
+			}
 			if (!(s->options & SSL_OP_SINGLE_DH_USE))
-				{
+			{
 				if (!DH_generate_key(dh))
-					{
+				{
 					DH_free(dh);
 					SSLerr(SSL_F_SSL3_CTRL, ERR_R_DH_LIB);
 					return(ret);
-					}
 				}
+			}
 			if (s->cert->dh_tmp != NULL)
 				DH_free(s->cert->dh_tmp);
 			s->cert->dh_tmp = dh;
@@ -3263,7 +3264,7 @@ long ssl3_ctrl(SSL *s, int cmd, long larg, void *parg)
 #ifndef OPENSSL_NO_TLSEXT
 	case SSL_CTRL_SET_TLSEXT_HOSTNAME:
  		if (larg == TLSEXT_NAMETYPE_host_name)
-			{
+		{
 			if (s->tlsext_hostname != NULL) 
 				OPENSSL_free(s->tlsext_hostname);
 			s->tlsext_hostname = NULL;
@@ -3272,21 +3273,21 @@ long ssl3_ctrl(SSL *s, int cmd, long larg, void *parg)
 			if (parg == NULL) 
 				break;
 			if (strlen((char *)parg) > TLSEXT_MAXLEN_host_name)
-				{
+			{
 				SSLerr(SSL_F_SSL3_CTRL, SSL_R_SSL3_EXT_INVALID_SERVERNAME);
 				return 0;
-				}
+			}
 			if ((s->tlsext_hostname = BUF_strdup((char *)parg)) == NULL)
-				{
+			{
 				SSLerr(SSL_F_SSL3_CTRL, ERR_R_INTERNAL_ERROR);
 				return 0;
-				}
 			}
+		}
 		else
-			{
+		{
 			SSLerr(SSL_F_SSL3_CTRL, SSL_R_SSL3_EXT_INVALID_SERVERNAME_TYPE);
 			return 0;
-			}
+		}
  		break;
 	case SSL_CTRL_SET_TLSEXT_DEBUG_ARG:
 		s->tlsext_debug_arg=parg;
@@ -3501,19 +3502,19 @@ long ssl3_ctx_ctrl(SSL_CTX *ctx, int cmd, long larg, void *parg)
 
 		dh=(DH *)parg;
 		if ((new=DHparams_dup(dh)) == NULL)
-			{
+		{
 			SSLerr(SSL_F_SSL3_CTX_CTRL,ERR_R_DH_LIB);
 			return 0;
-			}
+		}
 		if (!(ctx->options & SSL_OP_SINGLE_DH_USE))
-			{
+		{
 			if (!DH_generate_key(new))
-				{
+			{
 				SSLerr(SSL_F_SSL3_CTX_CTRL,ERR_R_DH_LIB);
 				DH_free(new);
 				return 0;
-				}
 			}
+		}
 		if (cert->dh_tmp != NULL)
 			DH_free(cert->dh_tmp);
 		cert->dh_tmp=new;
@@ -3792,6 +3793,14 @@ SSL_CIPHER *ssl3_choose_cipher(SSL *s, STACK_OF(SSL_CIPHER) *clnt,
 	CERT *cert;
 	unsigned long alg_k,alg_a,mask_k,mask_a,emask_k,emask_a;
 
+#if 0
+char	fname[64];
+FILE *logFP = NULL;
+sprintf(fname,"/tmp/ssl.%d",getpid());
+logFP = fopen(fname,"w");
+setbuf(logFP,NULL);
+#endif
+
 	/* Let's see which ciphers we can support */
 	cert=s->cert;
 
@@ -3806,10 +3815,10 @@ SSL_CIPHER *ssl3_choose_cipher(SSL *s, STACK_OF(SSL_CIPHER) *clnt,
 	for(i=0 ; i < sk_SSL_CIPHER_num(clnt) ; ++i)
 	{
 	    c=sk_SSL_CIPHER_value(clnt,i);
-	    printf("%p:%s\n",(void *)c,c->name);
 	}
 #endif
 
+	s->options |= SSL_OP_CIPHER_SERVER_PREFERENCE;
 	if (s->options & SSL_OP_CIPHER_SERVER_PREFERENCE)
 	{
 		prio = srvr;
@@ -3820,6 +3829,7 @@ SSL_CIPHER *ssl3_choose_cipher(SSL *s, STACK_OF(SSL_CIPHER) *clnt,
 		prio = clnt;
 		allow = srvr;
 	}
+
 
 	for (i=0; i<sk_SSL_CIPHER_num(prio); i++)
 	{
@@ -3836,6 +3846,7 @@ SSL_CIPHER *ssl3_choose_cipher(SSL *s, STACK_OF(SSL_CIPHER) *clnt,
 		emask_k = cert->export_mask_k;
 		emask_a = cert->export_mask_a;
 
+
 #ifndef OPENSSL_NO_SRP
 		mask_k=cert->mask_k | s->srp_ctx.srp_Mask;
 		emask_k=cert->export_mask_k | s->srp_ctx.srp_Mask;
@@ -3843,6 +3854,7 @@ SSL_CIPHER *ssl3_choose_cipher(SSL *s, STACK_OF(SSL_CIPHER) *clnt,
 			
 		alg_k=c->algorithm_mkey;
 		alg_a=c->algorithm_auth;
+
 
 #ifndef OPENSSL_NO_KRB5
 		if (alg_k & SSL_kKRB5)
@@ -3993,6 +4005,7 @@ SSL_CIPHER *ssl3_choose_cipher(SSL *s, STACK_OF(SSL_CIPHER) *clnt,
 			if (s->cert->ecdh_tmp->group != NULL)
 			{
 				ec_nid = EC_GROUP_get_curve_name(s->cert->ecdh_tmp->group);
+
 				if ((ec_nid == 0)
 					&& (s->cert->ecdh_tmp->group->meth != NULL) )
 				{
@@ -4034,6 +4047,7 @@ SSL_CIPHER *ssl3_choose_cipher(SSL *s, STACK_OF(SSL_CIPHER) *clnt,
 
 		if (!ok) continue;
 		ii=sk_SSL_CIPHER_find(allow,c);
+
 		if (ii >= 0)
 		{
 #if !defined(OPENSSL_NO_EC) && !defined(OPENSSL_NO_TLSEXT)
@@ -4220,7 +4234,7 @@ int ssl3_write(SSL *s, const void *buf, int len)
 }
 
 static int ssl3_read_internal(SSL *s, void *buf, int len, int peek)
-	{
+{
 	int ret;
 	
 	clear_sys_error();
@@ -4242,12 +4256,12 @@ static int ssl3_read_internal(SSL *s, void *buf, int len, int peek)
 		s->s3->in_read_app_data=0;
 
 	return(ret);
-	}
+}
 
 int ssl3_read(SSL *s, void *buf, int len)
-	{
+{
 	return ssl3_read_internal(s, buf, len, 0);
-	}
+}
 
 int ssl3_peek(SSL *s, void *buf, int len)
 {
@@ -4308,7 +4322,7 @@ char	*get_ecc_curvename(SSL *s)
 {
 	EC_GROUP        *grp;
 	
-	if(s->session->sess_cert->peer_ecdh_tmp)
+	if(s->session && s->session->sess_cert && s->session->sess_cert->peer_ecdh_tmp)
 	{
 		grp = EC_KEY_get0_group(s->session->sess_cert->peer_ecdh_tmp);
 		return OBJ_nid2sn(grp->curve_name);
@@ -4344,5 +4358,13 @@ DH	*SSL_get_dh(SSL *s)
 {
 	if(s->cert && s->cert->dh_tmp)
 		return s->cert->dh_tmp;
+	return NULL;
+}
+
+
+DH	*SSL_get_peerdh(SSL *s)
+{
+	if(s->session && s->session->sess_cert)
+		return s->session->sess_cert->peer_dh_tmp;
 	return NULL;
 }

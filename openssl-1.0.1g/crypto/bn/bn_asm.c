@@ -303,7 +303,6 @@ BN_ULONG bn_div_words(BN_ULONG h, BN_ULONG l, BN_ULONG d)
 #endif /* !defined(BN_LLONG) && defined(BN_DIV2W) */
 
 #ifdef BN_LLONG
-#error "one"
 BN_ULONG bn_add_words(BN_ULONG *r, const BN_ULONG *a, const BN_ULONG *b, int n)
 {
 	BN_ULLONG ll=0;
@@ -339,7 +338,6 @@ BN_ULONG bn_add_words(BN_ULONG *r, const BN_ULONG *a, const BN_ULONG *b, int n)
 	return((BN_ULONG)ll);
 }
 #else /* !BN_LLONG */
-#error "two"
 BN_ULONG bn_add_words(BN_ULONG *r, const BN_ULONG *a, const BN_ULONG *b, int n)
 {
 	BN_ULONG c,l,t;

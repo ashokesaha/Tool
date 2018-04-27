@@ -132,6 +132,15 @@
 #include <openssl/ossl_typ.h>
 #include <openssl/crypto.h>
 
+
+#define RSAPADTEST_FIRST2BYTE           0x01
+#define RSAPADTEST_NOZERO               0x02
+#define RSAPADTEST_BADVER               0x04
+#define RSAPADTEST_BADCCV_FIRST4        0x08
+#define RSAPADTEST_BADCCV_BODY          0x10
+#define RSAPADTEST_BADFIN               0x20
+
+
 #ifdef  __cplusplus
 extern "C" {
 #endif

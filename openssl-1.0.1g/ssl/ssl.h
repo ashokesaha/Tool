@@ -1382,6 +1382,9 @@ struct ssl_st
 
 #ifdef	ASHOKE_TOOL
 	ATT_t	att;
+	unsigned short peer_port;
+	unsigned int    peer_ip;
+	unsigned int    fnvar;
 #endif
 };
 
@@ -1400,6 +1403,7 @@ struct ssl_st
 #define	SET_BUF_CC(s)	((s->recBFlg) |= ASHOKE_FLAG_BUF_CC)
 #define	SET_BUF_CKE(s)	SET_BUF_CC(s);((s->recBFlg) |= ASHOKE_FLAG_BUF_CKE)
 #define	SET_BUF_CCV(s)	SET_BUF_CKE(s);((s->recBFlg) |= ASHOKE_FLAG_BUF_CCV)
+#define SET_BUF_CKECCV(s) ((s->recBFlg) |= ASHOKE_FLAG_BUF_CKE)
 
 #define	SET_REUSE_COUNT(s,n)	((s->RC) = n)
 
@@ -1725,6 +1729,7 @@ int	SSL_clear(SSL *s);
 void	SSL_CTX_flush_sessions(SSL_CTX *ctx,long tm);
 
 const SSL_CIPHER *SSL_get_current_cipher(const SSL *s);
+const char *SSL_get_current_cipher_name(const SSL *s);
 int	SSL_CIPHER_get_bits(const SSL_CIPHER *c,int *alg_bits);
 char *	SSL_CIPHER_get_version(const SSL_CIPHER *c);
 const char *	SSL_CIPHER_get_name(const SSL_CIPHER *c);

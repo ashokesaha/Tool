@@ -142,53 +142,53 @@ void BIO_vfree(BIO *a)
     { BIO_free(a); }
 
 void BIO_clear_flags(BIO *b, int flags)
-	{
+{
 	b->flags &= ~flags;
-	}
+}
 
 int	BIO_test_flags(const BIO *b, int flags)
-	{
+{
 	return (b->flags & flags);
-	}
+}
 
 void	BIO_set_flags(BIO *b, int flags)
-	{
+{
 	b->flags |= flags;
-	}
+}
 
 long (*BIO_get_callback(const BIO *b))(struct bio_st *,int,const char *,int, long,long)
-	{
+{
 	return b->callback;
-	}
+}
 
 void BIO_set_callback(BIO *b, long (*cb)(struct bio_st *,int,const char *,int, long,long))
-	{
+{
 	b->callback = cb;
-	}
+}
 
 void BIO_set_callback_arg(BIO *b, char *arg)
-	{
+{
 	b->cb_arg = arg;
-	}
+}
 
 char * BIO_get_callback_arg(const BIO *b)
-	{
+{
 	return b->cb_arg;
-	}
+}
 
 const char * BIO_method_name(const BIO *b)
-	{
+{
 	return b->method->name;
-	}
+}
 
 int BIO_method_type(const BIO *b)
-	{
+{
 	return b->method->type;
-	}
+}
 
 
 int BIO_read(BIO *b, void *out, int outl)
-	{
+{
 	int i;
 	long (*cb)(BIO *,int,const char *,int,long,long);
 
@@ -217,10 +217,10 @@ int BIO_read(BIO *b, void *out, int outl)
 		i=(int)cb(b,BIO_CB_READ|BIO_CB_RETURN,out,outl,
 			0L,(long)i);
 	return(i);
-	}
+}
 
 int BIO_write(BIO *b, const void *in, int inl)
-	{
+{
 	int i;
 	long (*cb)(BIO *,int,const char *,int,long,long);
 
@@ -252,10 +252,10 @@ int BIO_write(BIO *b, const void *in, int inl)
 		i=(int)cb(b,BIO_CB_WRITE|BIO_CB_RETURN,in,inl,
 			0L,(long)i);
 	return(i);
-	}
+}
 
 int BIO_puts(BIO *b, const char *in)
-	{
+{
 	int i;
 	long (*cb)(BIO *,int,const char *,int,long,long);
 
@@ -285,10 +285,10 @@ int BIO_puts(BIO *b, const char *in)
 		i=(int)cb(b,BIO_CB_PUTS|BIO_CB_RETURN,in,0,
 			0L,(long)i);
 	return(i);
-	}
+}
 
 int BIO_gets(BIO *b, char *in, int inl)
-	{
+{
 	int i;
 	long (*cb)(BIO *,int,const char *,int,long,long);
 
@@ -316,10 +316,10 @@ int BIO_gets(BIO *b, char *in, int inl)
 		i=(int)cb(b,BIO_CB_GETS|BIO_CB_RETURN,in,inl,
 			0L,(long)i);
 	return(i);
-	}
+}
 
 int BIO_indent(BIO *b,int indent,int max)
-	{
+{
 	if(indent < 0)
 		indent=0;
 	if(indent > max)
@@ -328,28 +328,28 @@ int BIO_indent(BIO *b,int indent,int max)
 		if(BIO_puts(b," ") != 1)
 			return 0;
 	return 1;
-	}
+}
 
 long BIO_int_ctrl(BIO *b, int cmd, long larg, int iarg)
-	{
+{
 	int i;
 
 	i=iarg;
 	return(BIO_ctrl(b,cmd,larg,(char *)&i));
-	}
+}
 
 char *BIO_ptr_ctrl(BIO *b, int cmd, long larg)
-	{
+{
 	char *p=NULL;
 
 	if (BIO_ctrl(b,cmd,larg,(char *)&p) <= 0)
 		return(NULL);
 	else
 		return(p);
-	}
+}
 
 long BIO_ctrl(BIO *b, int cmd, long larg, void *parg)
-	{
+{
 	long ret;
 	long (*cb)(BIO *,int,const char *,int,long,long);
 
@@ -373,10 +373,10 @@ long BIO_ctrl(BIO *b, int cmd, long larg, void *parg)
 		ret=cb(b,BIO_CB_CTRL|BIO_CB_RETURN,parg,cmd,
 			larg,ret);
 	return(ret);
-	}
+}
 
 long BIO_callback_ctrl(BIO *b, int cmd, void (*fp)(struct bio_st *, int, const char *, int, long, long))
-	{
+{
 	long ret;
 	long (*cb)(BIO *,int,const char *,int,long,long);
 
@@ -400,20 +400,20 @@ long BIO_callback_ctrl(BIO *b, int cmd, void (*fp)(struct bio_st *, int, const c
 		ret=cb(b,BIO_CB_CTRL|BIO_CB_RETURN,(void *)&fp,cmd,
 			0,ret);
 	return(ret);
-	}
+}
 
 /* It is unfortunate to duplicate in functions what the BIO_(w)pending macros
  * do; but those macros have inappropriate return type, and for interfacing
  * from other programming languages, C macros aren't much of a help anyway. */
 size_t BIO_ctrl_pending(BIO *bio)
-	{
+{
 	return BIO_ctrl(bio, BIO_CTRL_PENDING, 0, NULL);
-	}
+}
 
 size_t BIO_ctrl_wpending(BIO *bio)
-	{
+{
 	return BIO_ctrl(bio, BIO_CTRL_WPENDING, 0, NULL);
-	}
+}
 
 
 /* put the 'bio' on the end of b's list of operators */
@@ -435,7 +435,7 @@ BIO *BIO_push(BIO *b, BIO *bio)
 
 /* Remove the first and return the rest */
 BIO *BIO_pop(BIO *b)
-	{
+{
 	BIO *ret;
 
 	if (b == NULL) return(NULL);
@@ -451,10 +451,10 @@ BIO *BIO_pop(BIO *b)
 	b->next_bio=NULL;
 	b->prev_bio=NULL;
 	return(ret);
-	}
+}
 
 BIO *BIO_get_retry_BIO(BIO *bio, int *reason)
-	{
+{
 	BIO *b,*last;
 
 	b=last=bio;
@@ -467,15 +467,15 @@ BIO *BIO_get_retry_BIO(BIO *bio, int *reason)
 		}
 	if (reason != NULL) *reason=last->retry_reason;
 	return(last);
-	}
+}
 
 int BIO_get_retry_reason(BIO *bio)
-	{
+{
 	return(bio->retry_reason);
-	}
+}
 
 BIO *BIO_find_type(BIO *bio, int type)
-	{
+{
 	int mt,mask;
 
 	if(!bio) return NULL;
@@ -495,16 +495,16 @@ BIO *BIO_find_type(BIO *bio, int type)
 		bio=bio->next_bio;
 		} while (bio != NULL);
 	return(NULL);
-	}
+}
 
 BIO *BIO_next(BIO *b)
-	{
+{
 	if(!b) return NULL;
 	return b->next_bio;
-	}
+}
 
 void BIO_free_all(BIO *bio)
-	{
+{
 	BIO *b;
 	int ref;
 
@@ -517,10 +517,10 @@ void BIO_free_all(BIO *bio)
 		/* Since ref count > 1, don't free anyone else. */
 		if (ref > 1) break;
 		}
-	}
+}
 
 BIO *BIO_dup_chain(BIO *in)
-	{
+{
 	BIO *ret=NULL,*eoc=NULL,*bio,*new_bio;
 
 	for (bio=in; bio != NULL; bio=bio->next_bio)
@@ -562,30 +562,30 @@ err:
 	if (ret != NULL)
 		BIO_free(ret);
 	return(NULL);	
-	}
+}
 
 void BIO_copy_next_retry(BIO *b)
-	{
+{
 	BIO_set_flags(b,BIO_get_retry_flags(b->next_bio));
 	b->retry_reason=b->next_bio->retry_reason;
-	}
+}
 
 int BIO_get_ex_new_index(long argl, void *argp, CRYPTO_EX_new *new_func,
 	     CRYPTO_EX_dup *dup_func, CRYPTO_EX_free *free_func)
-	{
+{
 	return CRYPTO_get_ex_new_index(CRYPTO_EX_INDEX_BIO, argl, argp,
 				new_func, dup_func, free_func);
-	}
+}
 
 int BIO_set_ex_data(BIO *bio, int idx, void *data)
-	{
+{
 	return(CRYPTO_set_ex_data(&(bio->ex_data),idx,data));
-	}
+}
 
 void *BIO_get_ex_data(BIO *bio, int idx)
-	{
+{
 	return(CRYPTO_get_ex_data(&(bio->ex_data),idx));
-	}
+}
 
 unsigned long BIO_number_read(BIO *bio)
 {

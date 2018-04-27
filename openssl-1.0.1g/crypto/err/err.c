@@ -289,25 +289,25 @@ static int int_err_library_number= ERR_LIB_USER;
 /* Internal function that checks whether "err_fns" is set and if not, sets it to
  * the defaults. */
 static void err_fns_check(void)
-	{
+{
 	if (err_fns) return;
 	
 	CRYPTO_w_lock(CRYPTO_LOCK_ERR);
 	if (!err_fns)
 		err_fns = &err_defaults;
 	CRYPTO_w_unlock(CRYPTO_LOCK_ERR);
-	}
+}
 
 /* API functions to get or set the underlying ERR functions. */
 
 const ERR_FNS *ERR_get_implementation(void)
-	{
+{
 	err_fns_check();
 	return err_fns;
-	}
+}
 
 int ERR_set_implementation(const ERR_FNS *fns)
-	{
+{
 	int ret = 0;
 
 	CRYPTO_w_lock(CRYPTO_LOCK_ERR);
@@ -320,7 +320,7 @@ int ERR_set_implementation(const ERR_FNS *fns)
 		}
 	CRYPTO_w_unlock(CRYPTO_LOCK_ERR);
 	return ret;
-	}
+}
 
 /* These are the callbacks provided to "lh_new()" when creating the LHASH tables
  * internal to the "err_defaults" implementation. */
@@ -331,20 +331,20 @@ static unsigned long get_error_values(int inc,int top,const char **file,int *lin
 /* The internal functions used in the "err_defaults" implementation */
 
 static unsigned long err_string_data_hash(const ERR_STRING_DATA *a)
-	{
+{
 	unsigned long ret,l;
 
 	l=a->error;
 	ret=l^ERR_GET_LIB(l)^ERR_GET_FUNC(l);
 	return(ret^ret%19*13);
-	}
+}
 static IMPLEMENT_LHASH_HASH_FN(err_string_data, ERR_STRING_DATA)
 
 static int err_string_data_cmp(const ERR_STRING_DATA *a,
 			       const ERR_STRING_DATA *b)
-	{
+{
 	return (int)(a->error - b->error);
-	}
+}
 static IMPLEMENT_LHASH_COMP_FN(err_string_data, ERR_STRING_DATA)
 
 static LHASH_OF(ERR_STRING_DATA) *int_err_get(int create)
